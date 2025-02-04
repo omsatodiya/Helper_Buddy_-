@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'GWOC',
+  title: 'Dudh Kela',
   description: 'Made by Dudh Kela',
 }
 
