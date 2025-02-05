@@ -13,60 +13,77 @@ const passwordRequirements = [
   { regex: /[A-Z]/, label: "Must contain an uppercase letter" },
   { regex: /[a-z]/, label: "Must contain a lowercase letter" },
   { regex: /[0-9]/, label: "Must contain a number" },
-  { regex: /[!@#$%^&*(),.?":{}|<>]/, label: "Must contain a special character" },
+  {
+    regex: /[!@#$%^&*(),.?":{}|<>]/,
+    label: "Must contain a special character",
+  },
   { regex: /.{8,}/, label: "Minimum 8 characters" },
-];
+] as const;
+
+interface FormState {
+  password: string;
+  confirmPassword: string;
+}
 
 export function ResetPasswordForm({ className = "" }: { className?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [oobCode, setOobCode] = useState<string | null>(null);
+  const params = useSearchParams();
+  const oobCode = params.get("oobCode");
+
+  const [isValidCode, setIsValidCode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showReqs, setShowReqs] = useState(false);
-  const [{ password, confirmPassword }, setForm] = useState({
+  const [formState, setFormState] = useState<FormState>({
     password: "",
     confirmPassword: "",
   });
 
   useEffect(() => {
-    const code = searchParams.get("oobCode");
-    if (!code) return setError("Invalid reset link");
+    if (!oobCode) {
+      setError("Invalid reset link");
+      return;
+    }
 
-    verifyPasswordResetCode(auth, code)
-      .then(() => setOobCode(code))
+    verifyPasswordResetCode(auth, oobCode)
+      .then(() => setIsValidCode(true))
       .catch(() => setError("Reset link expired or invalid"));
-  }, [searchParams]);
+  }, [oobCode]);
 
   const validatePassword = () => {
     const failed = passwordRequirements.filter(
-      (req) => !req.regex.test(password)
+      (req) => !req.regex.test(formState.password)
     );
     if (failed.length)
       return `Password needs: ${failed.map((f) => f.label).join(", ")}`;
-    if (password !== confirmPassword) return "Passwords don't match";
+    if (formState.password !== formState.confirmPassword)
+      return "Passwords don't match";
     return "";
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!oobCode) return;
+    if (!oobCode || !isValidCode) return;
 
     const validationError = validatePassword();
-    if (validationError) return setError(validationError);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setIsLoading(true);
     try {
-      await confirmPasswordReset(auth, oobCode, password);
+      await confirmPasswordReset(auth, oobCode, formState.password);
       router.push("/auth/login?resetSuccess=true");
-    } catch {
+    } catch (err) {
       setError("Failed to reset password");
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!oobCode) {
+  if (!isValidCode) {
     return (
       <Card className={`w-full max-w-md ${className}`}>
         <CardContent className="p-6">
@@ -95,9 +112,9 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
             <Input
               id="password"
               type="password"
-              value={password}
+              value={formState.password}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, password: e.target.value }))
+                setFormState((prev) => ({ ...prev, password: e.target.value }))
               }
               onFocus={() => setShowReqs(true)}
               onBlur={() => setShowReqs(false)}
@@ -112,11 +129,11 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
                 <div
                   key={label}
                   className={
-                    regex.test(password)
+                    regex.test(formState.password)
                       ? "text-green-600"
                       : "text-muted-foreground"
                   }>
-                  {regex.test(password) ? "✓" : "○"} {label}
+                  {regex.test(formState.password) ? "✓" : "○"} {label}
                 </div>
               ))}
             </div>
@@ -127,9 +144,9 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
             <Input
               id="confirmPassword"
               type="password"
-              value={confirmPassword}
+              value={formState.confirmPassword}
               onChange={(e) =>
-                setForm((prev) => ({
+                setFormState((prev) => ({
                   ...prev,
                   confirmPassword: e.target.value,
                 }))
