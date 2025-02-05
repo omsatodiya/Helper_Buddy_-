@@ -7,6 +7,21 @@
     padding: 0;
 }
 
+@font-face {
+  font-family: 'Adallyn-Light';
+  src: url('/fonts/Adallyn-Light.ttf');
+}
+
+@font-face {
+  font-family: 'Adallyn-Bold';
+  src: url('/fonts/Adallyn-Bold.ttf');
+}
+
+@font-face {
+  font-family: 'New-York';
+  src: url('/fonts/NewYork.otf');
+}
+
 @layer base {
   :root {
         --background: 0 0% 100%;
