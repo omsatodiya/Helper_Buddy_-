@@ -70,7 +70,7 @@ export function LoginForm({ className = "" }: { className?: string }) {
             <div className="flex justify-between items-center">
               <Label htmlFor="password">Password</Label>
               <Link
-                href="/forgot-password"
+                href="/auth/forgot-password"
                 className="text-sm text-primary hover:underline">
                 Forgot?
               </Link>

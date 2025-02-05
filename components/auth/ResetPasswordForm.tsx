@@ -58,7 +58,7 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
     setIsLoading(true);
     try {
       await confirmPasswordReset(auth, oobCode, password);
-      router.push("/login?resetSuccess=true");
+      router.push("/auth/login?resetSuccess=true");
     } catch {
       setError("Failed to reset password");
     } finally {
@@ -74,7 +74,7 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
             {error}
           </div>
           <Link
-            href="/login"
+            href="/auth/login"
             className="block mt-4 text-center text-primary hover:underline">
             Back to login
           </Link>

@@ -19,7 +19,7 @@ export function ForgotPasswordForm({ className = "" }: { className?: string }) {
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email, {
-        url: `${window.location.origin}/reset-password`,
+        url: `${window.location.origin}/auth/reset-password`,
         handleCodeInApp: true,
       });
       setSuccess(true);
