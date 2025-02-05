@@ -50,14 +50,16 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
       .catch(() => setError("Reset link expired or invalid"));
   }, [oobCode]);
 
-  const validatePassword = () => {
+  const validatePassword = (): string => {
     const failed = passwordRequirements.filter(
       (req) => !req.regex.test(formState.password)
     );
-    if (failed.length)
+    if (failed.length) {
       return `Password needs: ${failed.map((f) => f.label).join(", ")}`;
-    if (formState.password !== formState.confirmPassword)
+    }
+    if (formState.password !== formState.confirmPassword) {
       return "Passwords don't match";
+    }
     return "";
   };
 
