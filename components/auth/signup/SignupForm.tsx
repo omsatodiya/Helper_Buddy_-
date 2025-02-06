@@ -94,20 +94,33 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
     setIsLoading(true);
     try {
+      // First create the user
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create account");
+      }
+
+      // Then sign in
       const result = await signIn("credentials", {
         email,
         password,
-        name,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Signup failed. Please try again.");
+        setError(result.error);
       } else {
         router.push("/dashboard");
+        router.refresh();
       }
     } catch (err) {
-      setError("Signup failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setIsLoading(false);
     }
