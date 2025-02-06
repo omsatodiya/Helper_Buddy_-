@@ -2,12 +2,11 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
-import { auth } from "@/app/fireConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const passwordRequirements = [
   { regex: /[A-Z]/, label: "Must contain an uppercase letter" },
@@ -28,9 +27,8 @@ interface FormState {
 export function ResetPasswordForm({ className = "" }: { className?: string }) {
   const router = useRouter();
   const params = useSearchParams();
-  const oobCode = params.get("oobCode");
+  const token = params.get("token");
 
-  const [isValidCode, setIsValidCode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showReqs, setShowReqs] = useState(false);
@@ -40,15 +38,10 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
   });
 
   useEffect(() => {
-    if (!oobCode) {
+    if (!token) {
       setError("Invalid reset link");
-      return;
     }
-
-    verifyPasswordResetCode(auth, oobCode)
-      .then(() => setIsValidCode(true))
-      .catch(() => setError("Reset link expired or invalid"));
-  }, [oobCode]);
+  }, [token]);
 
   const validatePassword = (): string => {
     const failed = passwordRequirements.filter(
@@ -65,7 +58,7 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!oobCode || !isValidCode) return;
+    if (!token) return;
 
     const validationError = validatePassword();
     if (validationError) {
@@ -75,23 +68,35 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
 
     setIsLoading(true);
     try {
-      await confirmPasswordReset(auth, oobCode, formState.password);
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          password: formState.password,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reset password");
+      }
+
       router.push("/auth/login?resetSuccess=true");
     } catch (err) {
-      setError("Failed to reset password");
-      console.error(err);
+      setError(err instanceof Error ? err.message : "Failed to reset password");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isValidCode) {
+  if (!token) {
     return (
       <Card className={`w-full max-w-md ${className}`}>
         <CardContent className="p-6">
-          <div className="p-3 rounded bg-destructive/10 text-destructive text-sm">
-            {error}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
           <Link
             href="/auth/login"
             className="block mt-4 text-center text-primary hover:underline">
@@ -109,7 +114,7 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <Input
               id="password"
@@ -141,7 +146,7 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
             </div>
           )}
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
               id="confirmPassword"
@@ -159,11 +164,13 @@ export function ResetPasswordForm({ className = "" }: { className?: string }) {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Loading..." : "Reset Password"}
+            {isLoading ? "Resetting..." : "Reset Password"}
           </Button>
         </form>
       </CardContent>
