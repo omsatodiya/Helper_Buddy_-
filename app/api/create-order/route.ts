@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "../auth/config/auth";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -17,14 +17,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    if (!body.key_id) {
-      return NextResponse.json(
-        { error: "key_id is required" },
-        { status: 400 }
-      );
-    }
-
-    const amount = body.amount || 1; // Default to 100 if not provided
+    const amount = body.amount || 1;
 
     const order = await razorpay.orders.create({
       amount: amount * 100, // Convert to paise
