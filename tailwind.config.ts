@@ -13,6 +13,10 @@ export default {
         adallyn: ["Adallyn-Light", "sans-serif"],
         adallynBold: ["Adallyn-Bold", "sans-serif"],
         newYork: ["New-York", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
+        poppins: ["Poppins", "sans-serif"],
+        lora: ["Lora", "serif"],
+        montserrat: ["Montserrat", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",
@@ -61,6 +65,14 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      helper: {
+        deepBlue: "#004AAD",
+        tealGreen: "#2C786C",
+        warmOrange: "#F4A261",
+        boldRed: "#D62828",
+        lightGray: "#EAEAEA",
+        charcoal: "#141414"
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

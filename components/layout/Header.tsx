@@ -89,7 +89,7 @@ const Header = () => {
                       damping: 10,
                     }}>
                     <Image
-                      src="/images/logo.jpg"
+                      src="/images/logo2.png"
                       alt="HB Logo"
                       width={80}
                       height={50}
@@ -116,7 +116,7 @@ const Header = () => {
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                   <Image
-                    src="/images/logo.jpg"
+                    src="/images/logo2.png"
                     alt="HB Logo"
                     width={80}
                     height={50}
