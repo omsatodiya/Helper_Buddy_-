@@ -2,39 +2,80 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile,
-} from "firebase/auth";
-import { FcGoogle } from "react-icons/fc";
-import { auth } from "@/app/fireConfig";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const passwordRequirements = [
   { regex: /[A-Z]/, label: "Must contain an uppercase letter" },
   { regex: /[a-z]/, label: "Must contain a lowercase letter" },
   { regex: /[0-9]/, label: "Must contain a number" },
-  { regex: /[!@#$%^&*(),.?":{}|<>]/, label: "Must contain a special character" },
+  {
+    regex: /[!@#$%^&*(),.?":{}|<>]/,
+    label: "Must contain a special character",
+  },
   { regex: /.{8,}/, label: "Minimum 8 characters" },
 ];
 
 export function SignupForm({ className = "" }: { className?: string }) {
   const router = useRouter();
+  const [step, setStep] = useState<"email" | "otp" | "details">("email");
   const [isLoading, setIsLoading] = useState(false);
   const [showReqs, setShowReqs] = useState(false);
-  const [{ name, email, password, confirmPassword }, setForm] = useState({
+  const [{ name, email, password, confirmPassword, otp }, setForm] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    otp: "",
   });
   const [error, setError] = useState("");
+
+  const sendOTP = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        setStep("otp");
+        setError("");
+      } else {
+        setError("Failed to send verification code");
+      }
+    } catch (err) {
+      setError("Failed to send verification code");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOTP = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "PUT",
+        body: JSON.stringify({ email, otp }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        setStep("details");
+        setError("");
+      } else {
+        setError("Invalid verification code");
+      }
+    } catch (err) {
+      setError("Verification failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validatePassword = () => {
     const failed = passwordRequirements.filter(
@@ -46,26 +87,27 @@ export function SignupForm({ className = "" }: { className?: string }) {
     return "";
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const validationError = validatePassword();
     if (validationError) return setError(validationError);
 
     setIsLoading(true);
     try {
-      const { user } = await createUserWithEmailAndPassword(
-        auth,
+      const result = await signIn("credentials", {
         email,
-        password
-      );
-      await updateProfile(user, { displayName: name });
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(
-        err.code === "auth/email-already-in-use"
-          ? "Email already registered"
-          : "Signup failed. Please try again."
-      );
+        password,
+        name,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Signup failed. Please try again.");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      setError("Signup failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -77,81 +119,125 @@ export function SignupForm({ className = "" }: { className?: string }) {
         <CardTitle className="text-2xl text-center">Create account</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[
-            { id: "name", label: "Full Name", type: "text", value: name },
-            { id: "email", label: "Email", type: "email", value: email },
-            {
-              id: "password",
-              label: "Password",
-              type: "password",
-              value: password,
-              onFocus: () => setShowReqs(true),
-              onBlur: () => setShowReqs(false),
-            },
-            {
-              id: "confirmPassword",
-              label: "Confirm Password",
-              type: "password",
-              value: confirmPassword,
-            },
-          ].map((field) => (
-            <div key={field.id}>
-              <Label htmlFor={field.id}>{field.label}</Label>
+        {step === "email" && (
+          <form onSubmit={sendOTP} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id={field.id}
-                type={field.type}
-                value={field.value}
+                id="email"
+                type="email"
+                value={email}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, [field.id]: e.target.value }))
+                  setForm((prev) => ({ ...prev, email: e.target.value }))
                 }
                 disabled={isLoading}
-                onFocus={field.onFocus}
-                onBlur={field.onBlur}
                 required
               />
             </div>
-          ))}
+            {error && (
+              <p className="text-sm text-destructive text-center">{error}</p>
+            )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Sending..." : "Send Verification Code"}
+            </Button>
+          </form>
+        )}
 
-          {showReqs && (
-            <div className="text-sm space-y-1 bg-muted p-3 rounded">
-              {passwordRequirements.map(({ regex, label }) => (
-                <div
-                  key={label}
-                  className={
-                    regex.test(password)
-                      ? "text-green-600"
-                      : "text-muted-foreground"
-                  }>
-                  {regex.test(password) ? "✓" : "○"} {label}
-                </div>
-              ))}
+        {step === "otp" && (
+          <form onSubmit={verifyOTP} className="space-y-4">
+            <div>
+              <Label htmlFor="otp">Verification Code</Label>
+              <Input
+                id="otp"
+                type="text"
+                value={otp}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, otp: e.target.value }))
+                }
+                disabled={isLoading}
+                required
+              />
             </div>
-          )}
+            {error && (
+              <p className="text-sm text-destructive text-center">{error}</p>
+            )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Verifying..." : "Verify Code"}
+            </Button>
+          </form>
+        )}
 
-          {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
-          )}
+        {step === "details" && (
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, password: e.target.value }))
+                }
+                disabled={isLoading}
+                onFocus={() => setShowReqs(true)}
+                onBlur={() => setShowReqs(false)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                }
+                disabled={isLoading}
+                required
+              />
+            </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Loading..." : "Sign Up"}
-          </Button>
-        </form>
+            {showReqs && (
+              <div className="text-sm space-y-1 bg-muted p-3 rounded">
+                {passwordRequirements.map(({ regex, label }) => (
+                  <div
+                    key={label}
+                    className={
+                      regex.test(password)
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }>
+                    {regex.test(password) ? "✓" : "○"} {label}
+                  </div>
+                ))}
+              </div>
+            )}
 
-        <div className="relative">
-          <Separator />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-muted-foreground text-sm">
-            Or
-          </span>
-        </div>
-
-        <Button
-          variant="outline"
-          onClick={() => signInWithPopup(auth, new GoogleAuthProvider())}
-          disabled={isLoading}
-          className="w-full">
-          <FcGoogle className="mr-2" /> Google
-        </Button>
+            {error && (
+              <p className="text-sm text-destructive text-center">{error}</p>
+            )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating account..." : "Sign Up"}
+            </Button>
+          </form>
+        )}
 
         <p className="text-sm text-center text-muted-foreground">
           Already have an account?{" "}
