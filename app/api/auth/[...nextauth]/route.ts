@@ -2,9 +2,8 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import mongoose from "mongoose";
 import { User } from "./models/User";
-import type { NextAuthOptions } from "next-auth";
 
-export const authOptions: NextAuthOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -19,8 +18,8 @@ export const authOptions: NextAuthOptions = {
           if (!mongoose.connections[0].readyState) {
             await mongoose.connect(process.env.MONGODB_URI!);
           }
-          const user = await User.findOne({ email: credentials.email });
 
+          const user = await User.findOne({ email: credentials.email });
           if (!user) return null;
 
           const isValid = await user.comparePassword(credentials.password);
@@ -43,15 +42,11 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  pages: {
-    signIn: "/auth/login",
-    newUser: "/auth/signup",
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.emailVerified = user.emailVerified;
+        token.emailVerified = user.emailVerified || false;
       }
       return token;
     },
@@ -63,10 +58,13 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  pages: {
+    signIn: "/auth/login",
+    newUser: "/auth/signup",
+  },
   session: {
     strategy: "jwt",
   },
-};
+});
 
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
