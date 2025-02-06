@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence, useScroll } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, UserCircle2 } from "lucide-react";
 import {
   NavigationMenu,
@@ -26,16 +26,7 @@ const navItems: NavItem[] = [
 ];
 
 const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { scrollY } = useScroll();
-
-  useEffect(() => {
-    const unsubscribe = scrollY.on("change", (latest) => {
-      setIsScrolled(latest > 50);
-    });
-    return () => unsubscribe();
-  }, [scrollY]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -51,9 +42,7 @@ const Header = () => {
   return (
     <>
       <motion.header
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          isScrolled ? "bg-white shadow-md" : "bg-black"
-        }`}
+        className="fixed top-0 w-full z-50 bg-black"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}>
@@ -72,15 +61,11 @@ const Header = () => {
                         ? { top: "50%", rotate: 45, y: "-50%" }
                         : { top: "25%", rotate: 0 }
                     }
-                    className={`absolute left-0 w-6 h-0.5 ${
-                      isScrolled ? "bg-black" : "bg-white"
-                    } transition-colors`}
+                    className="absolute left-0 w-6 h-0.5 bg-white"
                   />
                   <motion.span
                     animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-                    className={`absolute top-1/2 -translate-y-1/2 left-0 w-6 h-0.5 ${
-                      isScrolled ? "bg-black" : "bg-white"
-                    } transition-colors`}
+                    className="absolute top-1/2 -translate-y-1/2 left-0 w-6 h-0.5 bg-white"
                   />
                   <motion.span
                     animate={
@@ -88,9 +73,7 @@ const Header = () => {
                         ? { bottom: "50%", rotate: -45, y: "50%" }
                         : { bottom: "25%", rotate: 0 }
                     }
-                    className={`absolute left-0 w-6 h-0.5 ${
-                      isScrolled ? "bg-black" : "bg-white"
-                    } transition-colors`}
+                    className="absolute left-0 w-6 h-0.5 bg-white"
                   />
                 </div>
               </button>
@@ -122,11 +105,7 @@ const Header = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="cursor-pointer">
-                <UserCircle2
-                  className={isScrolled ? "text-gray-900" : "text-white"}
-                  size={28}
-                  strokeWidth={2}
-                />
+                <UserCircle2 className="text-white" size={28} strokeWidth={2} />
               </motion.div>
             </div>
 
@@ -153,10 +132,7 @@ const Header = () => {
                     {navItems.map((item) => (
                       <NavigationMenuItem key={item.label}>
                         <Link href={item.href} legacyBehavior passHref>
-                          <NavigationMenuLink
-                            className={`text-lg uppercase tracking-wide font-bold font-newYork transition-all duration-300 ${
-                              isScrolled ? "text-gray-900" : "text-white"
-                            } hover:no-underline relative before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] before:bottom-0 before:left-0 before:bg-current before:scale-x-0 hover:before:scale-x-100 before:transition-transform before:duration-300 before:origin-left before:transform-gpu`}>
+                          <NavigationMenuLink className="text-lg uppercase tracking-wide font-bold font-newYork text-white transition-all duration-300 hover:no-underline relative before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] before:bottom-0 before:left-0 before:bg-current before:scale-x-0 hover:before:scale-x-100 before:transition-transform before:duration-300 before:origin-left before:transform-gpu">
                             {item.label}
                           </NavigationMenuLink>
                         </Link>
@@ -171,7 +147,7 @@ const Header = () => {
                     whileTap={{ scale: 0.95 }}
                     className="cursor-pointer">
                     <UserCircle2
-                      className={isScrolled ? "text-gray-900" : "text-white"}
+                      className="text-white"
                       size={28}
                       strokeWidth={2}
                     />
@@ -182,7 +158,7 @@ const Header = () => {
                     whileTap={{ scale: 0.95 }}
                     className="cursor-pointer">
                     <ShoppingCart
-                      className={isScrolled ? "text-gray-900" : "text-white"}
+                      className="text-white"
                       size={28}
                       strokeWidth={2}
                     />
