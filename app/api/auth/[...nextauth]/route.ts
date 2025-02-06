@@ -1,10 +1,10 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { AuthOptions } from "next-auth";
 import mongoose from "mongoose";
 import { User } from "./models/User";
+import type { NextAuthOptions } from "next-auth";
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -19,8 +19,8 @@ export const authOptions: AuthOptions = {
           if (!mongoose.connections[0].readyState) {
             await mongoose.connect(process.env.MONGODB_URI!);
           }
-
           const user = await User.findOne({ email: credentials.email });
+
           if (!user) return null;
 
           const isValid = await user.comparePassword(credentials.password);
@@ -43,11 +43,15 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
+  pages: {
+    signIn: "/auth/login",
+    newUser: "/auth/signup",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.emailVerified = user.emailVerified || false;
+        token.emailVerified = user.emailVerified;
       }
       return token;
     },
@@ -58,10 +62,6 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
-  },
-  pages: {
-    signIn: "/auth/login",
-    newUser: "/auth/signup",
   },
   session: {
     strategy: "jwt",
