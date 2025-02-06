@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/app/fireConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function ForgotPasswordForm({ className = "" }: { className?: string }) {
   const [email, setEmail] = useState("");
@@ -17,21 +16,25 @@ export function ForgotPasswordForm({ className = "" }: { className?: string }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
+
     try {
-      await sendPasswordResetEmail(auth, email, {
-        url: `${window.location.origin}/auth/reset-password`,
-        handleCodeInApp: true,
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send reset email");
+      }
+
       setSuccess(true);
       setEmail("");
-    } catch (error: any) {
-      setError(
-        error.code === "auth/user-not-found"
-          ? "No account found with this email"
-          : error.code === "auth/invalid-email"
-          ? "Invalid email address"
-          : "Failed to send reset email"
-      );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -45,18 +48,21 @@ export function ForgotPasswordForm({ className = "" }: { className?: string }) {
       <CardContent className="space-y-4">
         {success ? (
           <div className="space-y-4">
-            <div className="p-3 rounded bg-green-50 text-green-800 text-sm">
-              Check your email for reset instructions
-            </div>
+            <Alert className="border-green-500 text-green-700 bg-green-50">
+              <AlertDescription>
+                If an account exists with this email, you will receive password
+                reset instructions.
+              </AlertDescription>
+            </Alert>
             <Link
-              href="/login"
+              href="/auth/login"
               className="block text-center text-primary hover:underline">
               Back to login
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -65,16 +71,22 @@ export function ForgotPasswordForm({ className = "" }: { className?: string }) {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 required
+                placeholder="Enter your email address"
               />
             </div>
+
             {error && (
-              <p className="text-sm text-destructive text-center">{error}</p>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Loading..." : "Send Reset Link"}
+              {isLoading ? "Sending..." : "Send Reset Link"}
             </Button>
+
             <Link
-              href="/login"
+              href="/auth/login"
               className="block text-center text-primary hover:underline">
               Back to login
             </Link>
