@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { motion } from "framer-motion";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
+import gsap from "gsap";
 
 const passwordRequirements = [
   { regex: /[A-Z]/, label: "Must contain an uppercase letter" },
@@ -31,6 +31,44 @@ export function SignupForm({ className = "" }: { className?: string }) {
     otp: "",
   });
   const [error, setError] = useState("");
+
+  // Refs for GSAP animations
+  const formRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const inputsRef = useRef<HTMLDivElement>(null);
+  const reqsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Initial animation
+    const tl = gsap.timeline();
+    
+    tl.fromTo(formRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5 }
+    );
+
+    tl.fromTo(titleRef.current,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.3 },
+      "-=0.2"
+    );
+
+    tl.fromTo(inputsRef.current,
+      { x: -20, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.3 },
+      "-=0.1"
+    );
+  }, []);
+
+  // Password requirements animation
+  useEffect(() => {
+    if (showReqs && reqsRef.current) {
+      gsap.fromTo(reqsRef.current,
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.3 }
+      );
+    }
+  }, [showReqs]);
 
   const sendOTP = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -115,7 +153,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push("/dashboard");
+        router.push("/");
         router.refresh();
       }
     } catch (err) {
@@ -127,27 +165,19 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
   return (
     <Card className={`bg-black/30 backdrop-blur-sm border border-white/10 ${className}`}>
-      <CardContent className="pt-8 px-8 pb-8">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-3 mb-8">
+      <CardContent className="pt-8 px-8 pb-8" ref={formRef}>
+        <div ref={titleRef} className="space-y-3 mb-8">
           <h1 className="font-adallyn text-4xl text-white text-center tracking-wide">
             Create Account
           </h1>
           <p className="text-gray-400 text-center font-adallynBold text-lg tracking-wide">
             Join our community today
           </p>
-        </motion.div>
+        </div>
 
         {step === "email" && (
           <form onSubmit={sendOTP} className="space-y-6">
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-2">
+            <div ref={inputsRef} className="space-y-2">
               <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
                 Email
               </p>
@@ -164,7 +194,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
-            </motion.div>
+            </div>
 
             {error && (
               <Alert variant="destructive">
@@ -191,11 +221,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
         {step === "otp" && (
           <form onSubmit={verifyOTP} className="space-y-6">
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-2">
+            <div ref={inputsRef} className="space-y-2">
               <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
                 Verification Code
               </p>
@@ -212,7 +238,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
-            </motion.div>
+            </div>
 
             {error && (
               <Alert variant="destructive">
@@ -239,11 +265,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
         {step === "details" && (
           <form onSubmit={handleSignup} className="space-y-6">
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-2">
+            <div ref={inputsRef} className="space-y-2">
               <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
                 Full Name
               </p>
@@ -260,13 +282,9 @@ export function SignupForm({ className = "" }: { className?: string }) {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-2">
+            <div ref={inputsRef} className="space-y-2">
               <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
                 Password
               </p>
@@ -285,13 +303,9 @@ export function SignupForm({ className = "" }: { className?: string }) {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="space-y-2">
+            <div ref={inputsRef} className="space-y-2">
               <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
                 Confirm Password
               </p>
@@ -313,12 +327,11 @@ export function SignupForm({ className = "" }: { className?: string }) {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
-            </motion.div>
+            </div>
 
             {showReqs && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+              <div
+                ref={reqsRef}
                 className="text-sm space-y-1 bg-white/5 p-4 rounded-lg border border-white/10">
                 {passwordRequirements.map(({ regex, label }) => (
                   <div
@@ -327,7 +340,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
                     {regex.test(password) ? "✓" : "○"} {label}
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {error && (

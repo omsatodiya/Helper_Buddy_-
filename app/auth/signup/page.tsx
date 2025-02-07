@@ -1,4 +1,3 @@
-import { Metadata } from "next";
 import { SignupForm } from "@/components/auth/SignupForm";
 import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
