@@ -172,7 +172,11 @@ export function SignupForm({ className = "" }: { className?: string }) {
               </Alert>
             )}
 
-            <Button type="submit" className="w-full h-12" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -216,7 +220,11 @@ export function SignupForm({ className = "" }: { className?: string }) {
               </Alert>
             )}
 
-            <Button type="submit" className="w-full h-12" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -328,7 +336,11 @@ export function SignupForm({ className = "" }: { className?: string }) {
               </Alert>
             )}
 
-            <Button type="submit" className="w-full h-12" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -343,10 +355,10 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
         <div className="relative mt-8">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-white/10" />
+            {/* <span className="w-full border-t border-white/10" /> */}
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-black/30 px-2 text-white/60">
+            <span className="px-2 text-white/60">
               Already have an account?
             </span>
           </div>
