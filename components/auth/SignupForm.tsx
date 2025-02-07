@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Lock, User, Phone, MapPin, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, MapPin, Loader2, ArrowLeft } from "lucide-react";
 import gsap from "gsap";
 
 const passwordRequirements = [
@@ -65,7 +65,7 @@ export function SignupForm({ className = "" }: { className?: string }) {
 
   const formRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  const inputsRef = useRef<HTMLDivElement>(null);
+  const inputsRef = useRef<HTMLFormElement>(null);
   const reqsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,18 +73,18 @@ export function SignupForm({ className = "" }: { className?: string }) {
     tl.fromTo(
       formRef.current,
       { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.5 }
+      { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
     );
     tl.fromTo(
       titleRef.current,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.3 },
+      { opacity: 0, y: -10 },
+      { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
       "-=0.2"
     );
     tl.fromTo(
       inputsRef.current,
-      { x: -20, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.3 },
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
       "-=0.1"
     );
   }, []);
@@ -210,352 +210,313 @@ export function SignupForm({ className = "" }: { className?: string }) {
     }
   };
 
+  const handleBack = () => {
+    setStep("email");
+    setError("");
+  };
+
   return (
-    <Card
-      className={`bg-black/30 backdrop-blur-sm border border-white/10 ${className}`}>
-      <CardContent className="pt-8 px-8 pb-8" ref={formRef}>
-        <div ref={titleRef} className="space-y-3 mb-8">
-          <h1 className="font-adallyn text-4xl text-white text-center tracking-wide">
-            Create Account
-          </h1>
-          <p className="text-gray-400 text-center font-adallynBold text-lg tracking-wide">
-            Join our community today
-          </p>
-        </div>
-
-        {step === "email" && (
-          <form onSubmit={sendOTP} className="space-y-6">
-            <div ref={inputsRef} className="space-y-2">
-              <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                Email
-              </p>
-              <div className="relative">
-                <Mail
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                  size={20}
-                />
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formState.email}
-                  onChange={(e) => updateForm("email", e.target.value)}
-                  disabled={isLoading}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
-              disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Send Verification Code"
-              )}
-            </Button>
-          </form>
-        )}
-
-        {step === "otp" && (
-          <form onSubmit={verifyOTP} className="space-y-6">
-            <div ref={inputsRef} className="space-y-2">
-              <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                Verification Code
-              </p>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                  size={20}
-                />
-                <Input
-                  type="text"
-                  placeholder="Enter verification code"
-                  value={formState.otp}
-                  onChange={(e) => updateForm("otp", e.target.value)}
-                  disabled={isLoading}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
-              disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                "Verify Code"
-              )}
-            </Button>
-          </form>
-        )}
-
-        {step === "details" && (
-          <form onSubmit={handleSignup} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  First Name
-                </p>
-                <div className="relative">
-                  <User
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                    size={20}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="First name"
-                    value={formState.firstName}
-                    onChange={(e) => updateForm("firstName", e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  Last Name
-                </p>
-                <div className="relative">
-                  <User
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                    size={20}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Last name"
-                    value={formState.lastName}
-                    onChange={(e) => updateForm("lastName", e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                Address
-              </p>
-              <div className="relative">
-                <MapPin
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                  size={20}
-                />
-                <Input
-                  type="text"
-                  placeholder="Street address"
-                  value={formState.address}
-                  onChange={(e) => updateForm("address", e.target.value)}
-                  disabled={isLoading}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  City
-                </p>
-                <div className="relative">
-                  <MapPin
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                    size={20}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="City"
-                    value={formState.city}
-                    onChange={(e) => updateForm("city", e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  State
-                </p>
-                <div className="relative">
-                  <MapPin
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                    size={20}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="State"
-                    value={formState.state}
-                    onChange={(e) => updateForm("state", e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  Mobile
-                </p>
-                <div className="relative">
-                  <Phone
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                    size={20}
-                  />
-                  <Input
-                    type="tel"
-                    placeholder="Mobile number"
-                    value={formState.mobile}
-                    onChange={(e) => updateForm("mobile", e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                  Gender
-                </p>
-                <Select
-                  value={formState.gender}
-                  onValueChange={(value: string) => updateForm("gender", value)}
-                  disabled={isLoading}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                Password
-              </p>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                  size={20}
-                />
-                <Input
-                  type="password"
-                  placeholder="Create password"
-                  value={formState.password}
-                  onChange={(e) => updateForm("password", e.target.value)}
-                  onFocus={() => setShowReqs(true)}
-                  onBlur={() => setShowReqs(false)}
-                  disabled={isLoading}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                />
-              </div>
-              {showReqs && (
-                <div ref={reqsRef} className="mt-2 space-y-1">
-                  {passwordRequirements.map((req, i) => (
-                    <p
-                      key={i}
-                      className={`text-sm ${
-                        req.regex.test(formState.password)
-                          ? "text-green-400"
-                          : "text-gray-400"
-                      }`}>
-                      {req.label}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
-                Confirm Password
-              </p>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-                  size={20}
-                />
-                <Input
-                  type="password"
-                  placeholder="Confirm password"
-                  value={formState.confirmPassword}
-                  onChange={(e) =>
-                    updateForm("confirmPassword", e.target.value)
-                  }
-                  disabled={isLoading}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
-              disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-
-            <p className="text-center text-sm text-gray-400">
-              Already have an account?{" "}
-              <Link href="/login" className="text-white hover:underline">
-                Sign in
-              </Link>
+    <div className="w-full min-h-screen flex items-center justify-center py-8 md:py-12 lg:py-16">
+      <Card className={`w-full max-w-[95%] sm:max-w-xl bg-white/80 backdrop-blur-md border-gray-200 shadow-lg ${className}`}>
+        <CardContent className="pt-8 px-4 sm:px-8 pb-8" ref={formRef}>
+          <div ref={titleRef} className="space-y-2 mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-black">
+              Create Account
+            </h1>
+            <p className="text-sm text-gray-500">
+              Join our community today
             </p>
-          </form>
-        )}
-      </CardContent>
-    </Card>
+          </div>
+          {step === "email" && (
+            <form onSubmit={sendOTP} className="space-y-6">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => router.push('/auth/login')}
+                className="mb-4 text-gray-600 hover:text-gray-800 -ml-2"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Login
+              </Button>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-black">Email</p>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formState.email}
+                    onChange={(e) => updateForm("email", e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium transition-colors"
+                disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Verification Code"
+                )}
+              </Button>
+            </form>
+          )}
+          {step === "otp" && (
+            <form onSubmit={verifyOTP} className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-black">Verification Code</p>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    type="text"
+                    placeholder="Enter verification code"
+                    value={formState.otp}
+                    onChange={(e) => updateForm("otp", e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium transition-colors"
+                disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Verify Code"
+                )}
+              </Button>
+            </form>
+          )}
+
+          {step === "details" && (
+            <form onSubmit={handleSignup} className="space-y-6" ref={inputsRef}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">First Name</p>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="First name"
+                      value={formState.firstName}
+                      onChange={(e) => updateForm("firstName", e.target.value)}
+                      disabled={isLoading}
+                      required
+                      className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">Last Name</p>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="Last name"
+                      value={formState.lastName}
+                      onChange={(e) => updateForm("lastName", e.target.value)}
+                      disabled={isLoading}
+                      required
+                      className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-black">Address</p>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    type="text"
+                    placeholder="Street address"
+                    value={formState.address}
+                    onChange={(e) => updateForm("address", e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">City</p>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="City"
+                      value={formState.city}
+                      onChange={(e) => updateForm("city", e.target.value)}
+                      disabled={isLoading}
+                      required
+                      className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">State</p>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="State"
+                      value={formState.state}
+                      onChange={(e) => updateForm("state", e.target.value)}
+                      disabled={isLoading}
+                      required
+                      className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">Mobile</p>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      type="tel"
+                      placeholder="Mobile number"
+                      value={formState.mobile}
+                      onChange={(e) => updateForm("mobile", e.target.value)}
+                      disabled={isLoading}
+                      required
+                      className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-black">Gender</p>
+                  <Select
+                    value={formState.gender}
+                    onValueChange={(value: string) => updateForm("gender", value)}
+                    disabled={isLoading}>
+                    <SelectTrigger className="h-11 bg-white border-black/10 text-black">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-black/10">
+                      <SelectItem value="male" className="text-black hover:bg-black/10">Male</SelectItem>
+                      <SelectItem value="female" className="text-black hover:bg-black/10">Female</SelectItem>
+                      <SelectItem value="other" className="text-black hover:bg-black/10">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-black">Password</p>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    type="password"
+                    placeholder="Create password"
+                    value={formState.password}
+                    onChange={(e) => updateForm("password", e.target.value)}
+                    onFocus={() => setShowReqs(true)}
+                    onBlur={() => setShowReqs(false)}
+                    disabled={isLoading}
+                    required
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                  />
+                </div>
+                {showReqs && (
+                  <div ref={reqsRef} className="space-y-1 text-xs">
+                    {passwordRequirements.map((req, i) => (
+                      <p
+                        key={i}
+                        className={`${
+                          req.regex.test(formState.password)
+                            ? "text-green-400"
+                            : "text-gray-500"
+                        }`}>
+                        {req.label}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-black">Confirm Password</p>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                    type="password"
+                    placeholder="Confirm password"
+                    value={formState.confirmPassword}
+                    onChange={(e) =>
+                      updateForm("confirmPassword", e.target.value)
+                    }
+                    disabled={isLoading}
+                    required
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium transition-colors"
+                disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+
+              <p className="text-center text-sm text-gray-500">
+                Already have an account?{" "}
+                <Link href="/login" className="text-black hover:text-gray-800 underline-offset-4 hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

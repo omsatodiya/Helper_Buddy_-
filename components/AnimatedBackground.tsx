@@ -1,148 +1,140 @@
 "use client";
-import React, { useEffect, useRef } from "react";
-import gsap from "gsap";
+import React, { useEffect, useRef, useState } from "react";
+
+interface Dot {
+  x: number;
+  y: number;
+  originalX: number;
+  originalY: number;
+  vx: number;
+  vy: number;
+}
 
 const AnimatedBackground = () => {
-  const [mounted, setMounted] = React.useState(false);
-  const beamsRef = useRef<HTMLDivElement[]>([]);
-  const wavesRef = useRef<HTMLDivElement[]>([]);
-  const orbsRef = useRef<HTMLDivElement[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+  const dotsRef = useRef<Dot[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
 
+  // Initialize dots
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    const initializeDots = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-  useEffect(() => {
-    if (mounted) {
-      // Animate beams
-      beamsRef.current.forEach((beam, i) => {
-        if (beam) {
-          gsap.to(beam, {
-            top: "100%",
-            opacity: 0.04,
-            duration: 7 + i * 2,
-            delay: i * 2,
-            repeat: -1,
-            ease: "none",
-            yoyo: true
+      const dotSpacing = 30; // Space between dots
+      const dots: Dot[] = [];
+
+      for (let x = 0; x < canvas.width; x += dotSpacing) {
+        for (let y = 0; y < canvas.height; y += dotSpacing) {
+          dots.push({
+            x,
+            y,
+            originalX: x,
+            originalY: y,
+            vx: 0,
+            vy: 0,
           });
         }
-      });
+      }
 
-      // Animate waves
-      wavesRef.current.forEach((wave, index) => {
-        if (wave) {
-          gsap.to(wave, {
-            x: "50%",
-            duration: 20 + index * 3,
-            repeat: -1,
-            ease: "none",
-          });
-        }
-      });
+      dotsRef.current = dots;
+    };
 
-      // Animate orbs
-      orbsRef.current.forEach((orb, i) => {
-        if (orb) {
-          gsap.to(orb, {
-            scale: 1.2,
-            opacity: 0.03,
-            duration: 4 + i,
-            yoyo: true,
-            repeat: -1,
-            ease: "power1.inOut",
-          });
-        }
-      });
-    }
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+        initializeDots();
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      gsap.killTweensOf([...beamsRef.current, ...wavesRef.current, ...orbsRef.current]);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [mounted]);
+  }, []);
 
-  const addToBeamsRef = (el: HTMLDivElement | null, index: number) => {
-    if (el && !beamsRef.current.includes(el)) {
-      beamsRef.current[index] = el;
-    }
-  };
+  // Handle mouse movement
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
 
-  const addToWavesRef = (el: HTMLDivElement | null, index: number) => {
-    if (el && !wavesRef.current.includes(el)) {
-      wavesRef.current[index] = el;
-    }
-  };
+    window.addEventListener("mousemove", handleMouseMove);
 
-  const addToOrbsRef = (el: HTMLDivElement | null, index: number) => {
-    if (el && !orbsRef.current.includes(el)) {
-      orbsRef.current[index] = el;
-    }
-  };
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
 
-  if (!mounted) {
-    return (
-      <div className="fixed inset-0 z-0 overflow-hidden bg-gradient-to-br from-black via-gray-950 to-black" />
-    );
-  }
+  // Animation loop
+  useEffect(() => {
+    const animate = () => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "black";
+
+      const mouseRadius = 100; // Radius of mouse influence
+      const maxDistance = 30; // Maximum distance dots can move from original position
+      const easing = 0.1; // Movement easing
+
+      dotsRef.current.forEach((dot) => {
+        const dx = mousePosition.x - dot.x;
+        const dy = mousePosition.y - dot.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < mouseRadius) {
+          // Calculate repulsion force
+          const force = (1 - distance / mouseRadius) * 5;
+          const angle = Math.atan2(dy, dx);
+
+          // Update velocity with repulsion
+          dot.vx -= Math.cos(angle) * force;
+          dot.vy -= Math.sin(angle) * force;
+        }
+
+        // Apply velocity with boundaries
+        dot.x += dot.vx;
+        dot.y += dot.vy;
+
+        // Return to original position with easing
+        dot.vx += (dot.originalX - dot.x) * easing;
+        dot.vy += (dot.originalY - dot.y) * easing;
+
+        // Apply friction
+        dot.vx *= 0.9;
+        dot.vy *= 0.9;
+
+        // Draw dot
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [mousePosition]);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Base gradient - darker */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-black" />
-
-      {/* Floating light beams - reduced opacity */}
-      <div className="absolute inset-0">
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={`beam-${i}`}
-            ref={(el) => addToBeamsRef(el, i)}
-            className="absolute h-[50vh] w-[1px] opacity-0"
-            style={{
-              background: "linear-gradient(to bottom, transparent, white, transparent)",
-              left: `${30 + i * 20}%`,
-              top: "-50%"
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Horizontal waves - reduced opacity */}
-      <div className="absolute inset-0">
-        {[...Array(5)].map((_, index) => (
-          <div
-            key={`wave-${index}`}
-            ref={(el) => addToWavesRef(el, index)}
-            className="absolute w-[200%] opacity-[0.02]"
-            style={{
-              height: "1px",
-              background: "linear-gradient(90deg, transparent 0%, white 50%, transparent 100%)",
-              top: `${15 + index * 15}%`,
-              left: "-50%"
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Pulsing orbs - reduced opacity */}
-      <div className="absolute inset-0">
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={`orb-${i}`}
-            ref={(el) => addToOrbsRef(el, i)}
-            className="absolute rounded-full opacity-[0.01]"
-            style={{
-              background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)",
-              width: `${200 + i * 100}px`,
-              height: `${200 + i * 100}px`,
-              left: `${20 + i * 20}%`,
-              top: `${30 + i * 15}%`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Darker vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.6)_100%)]" />
+    <div className="fixed inset-0 z-0 overflow-hidden bg-white">
+      <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   );
 };

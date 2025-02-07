@@ -113,40 +113,27 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Ensure user can only delete their own account
     if (session.user.id !== params.id) {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403 }
-      );
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     await connectDB();
     
     const user = await User.findById(params.id);
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return new NextResponse("User not found", { status: 404 });
     }
 
+    // Delete the user
     await User.findByIdAndDelete(params.id);
 
-    return NextResponse.json(
-      { message: "Account deleted successfully" },
-      { status: 200 }
-    );
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("Account deletion error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete account" },
-      { status: 500 }
-    );
+    console.error("Error deleting user:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

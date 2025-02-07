@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, ArrowLeft } from "lucide-react";
 import gsap from "gsap";
 
 const passwordRequirements = [
@@ -17,7 +17,13 @@ const passwordRequirements = [
   { regex: /.{8,}/, label: "Minimum 8 characters" },
 ];
 
-export function ResetPasswordForm({ token, className = "" }: { token: string; className?: string }) {
+export function ResetPasswordForm({ 
+  className = "", 
+  token = "" 
+}: { 
+  className?: string;
+  token?: string;
+}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showReqs, setShowReqs] = useState(false);
@@ -102,14 +108,27 @@ export function ResetPasswordForm({ token, className = "" }: { token: string; cl
   };
 
   return (
-    <div ref={formRef} className={`w-full max-w-md ${className}`}>
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/10">
-        <CardContent className="pt-8 px-8 pb-8">
-          <div ref={titleRef} className="space-y-3 mb-8">
-            <h1 className="font-adallyn text-4xl text-white text-center tracking-wide">
+    <div className="w-full min-h-screen flex items-center justify-center py-8 md:py-12 lg:py-16">
+      <Card 
+        ref={formRef}
+        className={`w-full max-w-[95%] sm:max-w-xl bg-white/80 backdrop-blur-md border-gray-200 shadow-lg ${className}`}
+      >
+        <CardContent className="pt-8 px-4 sm:px-8 pb-8">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.push('/auth/login')}
+            className="mb-4 text-gray-600 hover:text-gray-800 -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Login
+          </Button>
+
+          <div ref={titleRef} className="space-y-2 mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-black">
               Reset Password
             </h1>
-            <p className="text-gray-400 text-center text-lg tracking-wide">
+            <p className="text-sm text-gray-500">
               Enter your new password
             </p>
           </div>
@@ -117,13 +136,12 @@ export function ResetPasswordForm({ token, className = "" }: { token: string; cl
           <form onSubmit={handleSubmit} className="space-y-6">
             <div ref={inputsRef} className="space-y-4">
               <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
+                <p className="text-sm font-medium text-black">
                   New Password
                 </p>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" size={20} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <Input
-                    id="password"
                     type="password"
                     placeholder="Enter new password"
                     value={password}
@@ -132,31 +150,25 @@ export function ResetPasswordForm({ token, className = "" }: { token: string; cl
                     onBlur={() => setShowReqs(false)}
                     disabled={isLoading}
                     required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-white/80 font-inter mb-2 text-sm tracking-wide">
+                <p className="text-sm font-medium text-black">
                   Confirm Password
                 </p>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" size={20} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <Input
-                    id="confirmPassword"
                     type="password"
                     placeholder="Re-enter new password"
                     value={confirmPassword}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        confirmPassword: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                     disabled={isLoading}
                     required
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12"
+                    className="pl-10 h-11 bg-white border-black/10 text-black placeholder:text-gray-500 focus:ring-black/20"
                   />
                 </div>
               </div>
@@ -165,26 +177,30 @@ export function ResetPasswordForm({ token, className = "" }: { token: string; cl
             {showReqs && (
               <div
                 ref={reqsRef}
-                className="text-sm space-y-1 bg-white/5 p-4 rounded-lg border border-white/10">
-                {passwordRequirements.map(({ regex, label }) => (
-                  <div
-                    key={label}
-                    className={regex.test(password) ? "text-green-400" : "text-white/50"}>
-                    {regex.test(password) ? "✓" : "○"} {label}
-                  </div>
+                className="space-y-1 text-xs">
+                {passwordRequirements.map((req, i) => (
+                  <p
+                    key={i}
+                    className={`${
+                      req.regex.test(password)
+                        ? "text-green-400"
+                        : "text-gray-500"
+                    }`}>
+                    {req.label}
+                  </p>
                 ))}
               </div>
             )}
 
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium transition-colors"
+            <Button
+              type="submit"
+              className="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -197,14 +213,6 @@ export function ResetPasswordForm({ token, className = "" }: { token: string; cl
               )}
             </Button>
           </form>
-
-          <div className="mt-6 text-center">
-            <Link
-              href="/auth/login"
-              className="text-white/80 hover:text-white transition-colors">
-              Back to login
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -142,6 +142,47 @@ export default function EditProfilePage() {
       setError("Failed to update profile");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/user/${session?.user?.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete account");
+
+      // Sign out the user after successful deletion
+      await signOut({ redirect: false });
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been successfully deleted",
+      });
+
+      // Animate out before navigation
+      await gsap.to(formRef.current, {
+        y: -20,
+        opacity: 0,
+        duration: 0.4,
+        ease: "power3.in",
+      });
+
+      router.push("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -318,7 +359,7 @@ export default function EditProfilePage() {
               <Button
                 type="submit"
                 className="h-12 px-8 bg-black hover:bg-gray-800 text-white transition-colors"
-                disabled={isSaving}>
+                disabled={isSaving || isLoading}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -332,8 +373,17 @@ export default function EditProfilePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 px-8 border-2 border-black text-black hover:bg-black hover:text-white transition-colors">
-                Delete Account
+                onClick={handleDelete}
+                disabled={isLoading}
+                className="h-12 px-8 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Account"
+                )}
               </Button>
             </div>
           </form>
