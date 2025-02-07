@@ -3,11 +3,6 @@ import { SignupForm } from "@/components/auth/SignupForm";
 import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-export const metadata: Metadata = {
-  title: "Signup | Helper Buddy",
-  description: "Signup to your Helper Buddy account",
-};
-
 export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-4">

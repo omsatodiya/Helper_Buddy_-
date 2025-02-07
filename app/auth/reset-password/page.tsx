@@ -3,11 +3,6 @@ import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-export const metadata: Metadata = {
-  title: "Reset Password | Helper Buddy",
-  description: "Reset Password to your Helper Buddy account",
-};
-
 export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-4">

@@ -1,8 +1,9 @@
+import AuthProvider from '@/components/providers/SessionProvider';
 import './globals.css';
 
 export const metadata = {
-  title: 'Dudh Kela',
-  description: 'Made by Dudh Kela',
+  title: 'Helper Buddy',
+  description: 'Made by Helper Buddy',
 }
 
 export default function RootLayout({
@@ -12,7 +13,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }

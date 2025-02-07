@@ -3,11 +3,6 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-export const metadata: Metadata = {
-  title: "Login | Helper Buddy",
-  description: "Login to your Helper Buddy account",
-};
-
 export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-4">

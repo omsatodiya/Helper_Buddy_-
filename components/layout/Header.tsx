@@ -11,6 +11,14 @@ import {
   NavigationMenuList,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   label: string;
@@ -26,6 +34,8 @@ const navItems: NavItem[] = [
 ];
 
 const Header = () => {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -38,6 +48,45 @@ const Header = () => {
       document.body.style.overflow = "unset";
     };
   }, [isMenuOpen]);
+
+  const ProfileIcon = () => (
+    <motion.div
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+      className="cursor-pointer">
+      <UserCircle2
+        className={status === "authenticated" ? "text-green-400" : "text-white"}
+        size={28}
+        strokeWidth={2}
+      />
+    </motion.div>
+  );
+
+  const menuVariants = {
+    hidden: { 
+      opacity: 0,
+      y: -20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.95,
+      transition: {
+        duration: 0.2
+      }
+    }
+  };
 
   return (
     <>
@@ -78,35 +127,56 @@ const Header = () => {
                 </div>
               </button>
 
-              {/* Centered Logo */}
-              <div className="absolute left-1/2 transform -translate-x-1/2">
-                <Link href="/" className="relative">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 10,
-                    }}>
-                    <Image
-                      src="/images/logo2.png"
-                      alt="HB Logo"
-                      width={80}
-                      height={50}
-                      className="object-contain"
-                      priority
-                    />
-                  </motion.div>
-                </Link>
-              </div>
+              <Link
+                href="/"
+                className="absolute left-1/2 transform -translate-x-1/2">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+                  <Image
+                    src="/images/logo2.png"
+                    alt="HB Logo"
+                    width={80}
+                    height={50}
+                    className="object-contain"
+                    priority
+                  />
+                </motion.div>
+              </Link>
 
-              {/* Right Profile Icon */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="cursor-pointer">
-                <UserCircle2 className="text-white" size={28} strokeWidth={2} />
-              </motion.div>
+              {status === "authenticated" ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="outline-none">
+                    <ProfileIcon />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48 font-lora bg-black/95 border border-white/10">
+                    <DropdownMenuItem
+                      onClick={() => router.push("/profile")}
+                      className="text-white hover:bg-white/10 cursor-pointer">
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/settings")}
+                      className="text-white hover:bg-white/10 cursor-pointer">
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/orders")}
+                      className="text-white hover:bg-white/10 cursor-pointer">
+                      Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/api/auth/signout")}
+                      className="text-white hover:bg-white/10 cursor-pointer">
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div onClick={() => router.push("/auth/login")}>
+                  <ProfileIcon />
+                </div>
+              )}
             </div>
 
             {/* Desktop Layout */}
@@ -142,16 +212,39 @@ const Header = () => {
                 </NavigationMenu>
 
                 <div className="flex items-center space-x-6">
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="cursor-pointer">
-                    <UserCircle2
-                      className="text-white"
-                      size={28}
-                      strokeWidth={2}
-                    />
-                  </motion.div>
+                  {status === "authenticated" ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="outline-none">
+                        <ProfileIcon />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-48 bg-black/95 border border-white/10">
+                        <DropdownMenuItem
+                          onClick={() => router.push("/profile")}
+                          className="text-white hover:bg-white/10 cursor-pointer">
+                          Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => router.push("/settings")}
+                          className="text-white hover:bg-white/10 cursor-pointer">
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => router.push("/orders")}
+                          className="text-white hover:bg-white/10 cursor-pointer">
+                          Orders
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => router.push("/api/auth/signout")}
+                          className="text-white hover:bg-white/10 cursor-pointer">
+                          Sign out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <div onClick={() => router.push("/auth/login")}>
+                      <ProfileIcon />
+                    </div>
+                  )}
 
                   <motion.div
                     whileHover={{ scale: 1.1 }}
@@ -173,26 +266,66 @@ const Header = () => {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
-            className="fixed inset-0 bg-black z-40 md:hidden">
-            <div className="flex flex-col h-full px-6 pt-24">
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={menuVariants}
+            className="absolute top-full left-0 right-0 bg-black/80 backdrop-blur-lg border-t border-white/10 shadow-2xl"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
               {navItems.map((item, index) => (
                 <motion.div
                   key={item.label}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}>
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    x: 0,
+                    transition: { delay: index * 0.1 } 
+                  }}
+                >
                   <Link
                     href={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className="block py-4 text-white text-2xl font-medium font-adallyn border-b border-gray-800 transition-colors duration-300 hover:text-gray-300">
+                    className="block py-3 px-4 text-lg font-adallyn text-white/90 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                  >
                     {item.label}
                   </Link>
                 </motion.div>
               ))}
+
+              {/* Social Links */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: 1,
+                  transition: { delay: navItems.length * 0.1 }
+                }}
+                className="pt-4 mt-4 border-t border-white/10"
+              >
+                <div className="flex justify-center space-x-6">
+                  {/* Add your social icons here */}
+                  <motion.a
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    href="#"
+                    className="text-white/70 hover:text-white transition-colors"
+                  >
+                    {/* Add social icon */}
+                  </motion.a>
+                </div>
+              </motion.div>
+
+              {/* Contact Info */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: 1,
+                  transition: { delay: (navItems.length + 1) * 0.1 }
+                }}
+                className="text-center text-white/60 text-sm mt-6"
+              >
+                <p>Contact us: info@example.com</p>
+              </motion.div>
             </div>
           </motion.div>
         )}

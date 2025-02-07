@@ -3,11 +3,6 @@ import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-export const metadata: Metadata = {
-  title: "Forgot Password | Helper Buddy",
-  description: "Forgot Password to your Helper Buddy account",
-};
-
 export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-4">
