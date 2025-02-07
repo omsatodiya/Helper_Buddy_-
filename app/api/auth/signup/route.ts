@@ -8,7 +8,17 @@ export async function POST(req: NextRequest) {
       await mongoose.connect(process.env.MONGODB_URI!);
     }
 
-    const { name, email, password } = await req.json();
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      address,
+      city,
+      state,
+      mobile,
+      gender,
+    } = await req.json();
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,20 +31,37 @@ export async function POST(req: NextRequest) {
 
     // Create new user
     const user = new User({
-      name,
+      name: `${firstName} ${lastName}`,
       email,
       password,
-      emailVerified: true, // Set to true after OTP verification
+      firstName,
+      lastName,
+      address,
+      city,
+      state,
+      mobile,
+      gender,
+      emailVerified: true,
     });
 
     await user.save();
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Signup error:", error);
     return NextResponse.json(
-      { error: "Failed to create account" },
+      { error: error.message || "Failed to create account" },
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Methods": "POST",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }

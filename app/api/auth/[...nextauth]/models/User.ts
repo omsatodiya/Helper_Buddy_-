@@ -12,6 +12,16 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  firstName: String,
+  lastName: String,
+  address: String,
+  city: String,
+  state: String,
+  mobile: String,
+  gender: {
+    type: String,
+    enum: ["male", "female", "other"],
+  },
   emailVerified: {
     type: Boolean,
     default: false,
@@ -22,7 +32,6 @@ const UserSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving
 UserSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 10);
@@ -30,7 +39,6 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
-// Method to check password
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ) {
