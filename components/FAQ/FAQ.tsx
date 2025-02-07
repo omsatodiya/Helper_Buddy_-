@@ -1,3 +1,4 @@
+"use client";
 import React , { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,28 +12,28 @@ const FAQ = () => {
 
   const faqData: FAQItem[] = [
     {
-      question: "What services do you offer?",
-      answer: "We offer a wide range of services including web development, mobile app development, and digital marketing solutions."
+      question: "What is HelperBuddy?",
+      answer: "HelperBuddy is a cleaning service that helps keep your home and office clean. We also clean air conditioning units. Our goal is to make your spaces fresh and healthy."
     },
     {
-      question: "How can I contact customer support?",
-      answer: "You can reach our customer support team through email at support@example.com or call us at (123) 456-7890 during business hours."
+      question: "What cleaning services do you offer?",
+      answer: "We offer a variety of cleaning services, including home cleaning, office cleaning, and AC cleaning. Whether you need a deep clean or regular maintenance, we’ve got you covered."
     },
     {
-      question: "What are your business hours?",
-      answer: "Our business hours are Monday through Friday, 9:00 AM to 6:00 PM EST."
+      question: "How do I book a cleaning service?",
+      answer: "Booking is easy! Just give us a call or fill out our online form. We’ll set up a time that works best for you."
     },
     {
-      question: "Do you offer refunds?",
-      answer: "Yes, we offer a 30-day money-back guarantee on all our services. Terms and conditions apply."
+      question: "How much does your service cost?",
+      answer: "The cost depends on the size of your home or office and the type of cleaning you need. We have options for every budget. For exact prices, check our pricing page/contact us."
     },
     {
-      question: "How long does it take to complete a project?",
-      answer: "Project timelines vary depending on complexity and requirements. Typically, small projects take 2-4 weeks, while larger projects may take 2-3 months."
+      question: "Is HelperBuddy the best cleaning service in India?",
+      answer: "Many of our customers think so! We pride ourselves on quality service and customer satisfaction. Check our reviews to see what others are saying."
     },
     {
-      question: "Do you provide maintenance and support?",
-      answer: "Yes, we offer ongoing maintenance and support packages to ensure your project continues to run smoothly after launch."
+      question: "How can I find good cleaning services near me?",
+      answer: "If you're looking for reliable cleaning services nearby, Helper Buddy is the answer. We connect you with experienced cleaners who can handle everything from regular home cleaning to deep cleaning. Simply book through our platform, and we’ll send a trusted professional to your home."
     }
   ];
 
