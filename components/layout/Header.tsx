@@ -285,7 +285,8 @@ const Header = () => {
                       {navItems.map((item) => (
                         <NavigationMenuItem key={item.label}>
                           <Link href={item.href} legacyBehavior passHref>
-                            <NavigationMenuLink className="text-lg uppercase tracking-wide font-bold font-newYork text-white transition-all duration-300 hover:no-underline relative before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] before:bottom-0 before:left-0 before:bg-current before:scale-x-0 hover:before:scale-x-100 before:transition-transform before:duration-300 before:origin-left before:transform-gpu">
+                            <NavigationMenuLink 
+                              className="text-base uppercase tracking-wide font-montserrat font-medium text-white transition-all duration-300 hover:no-underline relative before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] before:bottom-0 before:left-0 before:bg-current before:scale-x-0 hover:before:scale-x-100 before:transition-transform before:duration-300 before:origin-left before:transform-gpu">
                               {item.label}
                             </NavigationMenuLink>
                           </Link>
@@ -373,7 +374,7 @@ const Header = () => {
                           {/* Menu item content */}
                           <div className="relative flex items-center justify-between">
                             {/* Text */}
-                            <span className="text-4xl font-adallyn text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
+                            <span className="text-3xl font-montserrat font-medium text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
                               {item.label}
                             </span>
 

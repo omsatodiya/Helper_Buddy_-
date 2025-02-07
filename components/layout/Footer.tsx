@@ -28,40 +28,38 @@ const Footer = () => {
 
   useEffect(() => {
     if (footerRef.current) {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: "top bottom-=100",
+          once: true
+        }
+      });
+
       // Initial footer animation
-      gsap.fromTo(
+      tl.fromTo(
         footerRef.current,
         { opacity: 0, y: 50 },
         {
           opacity: 1,
           y: 0,
           duration: 0.5,
-          scrollTrigger: {
-            trigger: footerRef.current,
-            start: "top bottom-=100",
-            toggleActions: "play none none reverse"
-          }
         }
       );
 
       // Animate columns
       columnsRef.current.forEach((column, index) => {
         if (column) {
-          gsap.fromTo(
+          tl.fromTo(
             column,
             { opacity: 0, y: 30 },
             {
               opacity: 1,
               y: 0,
               duration: 0.5,
-              delay: index * 0.2,
               ease: "power2.out",
-              scrollTrigger: {
-                trigger: column,
-                start: "top bottom-=50",
-                toggleActions: "play none none reverse"
-              }
-            }
+            },
+            "-=0.3"
           );
         }
       });
@@ -69,41 +67,31 @@ const Footer = () => {
       // Animate social icons
       socialIconsRef.current.forEach((icon, index) => {
         if (icon) {
-          gsap.fromTo(
+          tl.fromTo(
             icon,
             { scale: 0, rotation: -180 },
             {
               scale: 1,
               rotation: 0,
               duration: 0.5,
-              delay: 0.5 + index * 0.1,
               ease: "back.out(1.7)",
-              scrollTrigger: {
-                trigger: icon,
-                start: "top bottom-=50",
-                toggleActions: "play none none reverse"
-              }
-            }
+            },
+            "-=0.3"
           );
         }
       });
 
       // Animate copyright
       if (copyrightRef.current) {
-        gsap.fromTo(
+        tl.fromTo(
           copyrightRef.current,
           { opacity: 0, y: 20 },
           {
             opacity: 1,
             y: 0,
             duration: 0.5,
-            delay: 0.8,
-            scrollTrigger: {
-              trigger: copyrightRef.current,
-              start: "top bottom-=50",
-              toggleActions: "play none none reverse"
-            }
-          }
+          },
+          "-=0.3"
         );
       }
     }
@@ -146,33 +134,33 @@ const Footer = () => {
   return (
     <footer ref={footerRef} className="bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 font-newYork md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div ref={(el) => addToColumnsRef(el, 0)} className="space-y-4">
             <Link href="/" className="block">
-              <h3 className="text-xl font-bold mb-4">Helper Buddy</h3>
+              <h3 className="text-2xl font-montserrat font-bold mb-4">Helper Buddy</h3>
             </Link>
-            <p className="text-gray-300">
+            <p className="text-gray-300 font-inter text-sm leading-relaxed">
               Your trusted partner for finding reliable household services and
               professionals.
             </p>
             <div className="mt-4">
-              <h4 className="font-semibold mb-2">Contact Us</h4>
-              <p className="text-gray-300">Email: info@helperbuddy.in</p>
-              <p className="text-gray-300">Phone: +91 XXXXX XXXXX</p>
+              <h4 className="font-montserrat font-semibold mb-2">Contact Us</h4>
+              <p className="text-gray-300 font-inter">Email: info@helperbuddy.in</p>
+              <p className="text-gray-300 font-inter">Phone: +91 XXXXX XXXXX</p>
             </div>
           </div>
 
           {/* Quick Links */}
           <div ref={(el) => addToColumnsRef(el, 1)}>
-            <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+            <h3 className="text-xl font-montserrat font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               {["Home", "About Us", "Services", "Contact", "Careers"].map(
                 (item) => (
                   <li key={item}>
                     <Link
                       href={`/${item.toLowerCase().replace(" ", "-")}`}
-                      className="text-gray-300 hover:text-white transition-colors tracking-wide block"
+                      className="text-gray-300 hover:text-white transition-colors font-inter tracking-wide block"
                       onMouseEnter={(e) => handleHover(e.currentTarget)}
                       onMouseLeave={(e) => handleHoverExit(e.currentTarget)}
                     >
@@ -186,7 +174,7 @@ const Footer = () => {
 
           {/* Services */}
           <div ref={(el) => addToColumnsRef(el, 2)}>
-            <h3 className="text-xl font-bold mb-4">Our Services</h3>
+            <h3 className="text-xl font-montserrat font-bold mb-4">Our Services</h3>
             <ul className="space-y-2">
               {[
                 "House Cleaning",
@@ -197,7 +185,7 @@ const Footer = () => {
                 <li key={service}>
                   <Link
                     href={`/services/${service.toLowerCase().replace(" ", "-")}`}
-                    className="text-gray-300 hover:text-white transition-colors tracking-wide block"
+                    className="text-gray-300 hover:text-white transition-colors font-inter tracking-wide block"
                     onMouseEnter={(e) => handleHover(e.currentTarget)}
                     onMouseLeave={(e) => handleHoverExit(e.currentTarget)}
                   >
@@ -210,9 +198,9 @@ const Footer = () => {
 
           {/* Social Media Section */}
           <div ref={(el) => addToColumnsRef(el, 3)}>
-            <h3 className="text-xl font-bold mb-4">Follow us</h3>
+            <h3 className="text-xl font-montserrat font-bold mb-4">Follow us</h3>
             <div className="flex flex-col space-y-4">
-              <p className="text-gray-300 mb-4">
+              <p className="text-gray-300 font-inter text-sm leading-relaxed">
                 Stay connected with us on social media for updates and offers.
               </p>
               <div className="flex space-x-6">
@@ -243,11 +231,10 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div
-          ref={copyrightRef}
-          className="mt-8 text-center text-gray-400 text-sm"
-        >
-          <p>© {new Date().getFullYear()} Helper Buddy. All rights reserved.</p>
+        <div ref={copyrightRef} className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
+          <p className="font-inter text-sm">
+            © {new Date().getFullYear()} Helper Buddy. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

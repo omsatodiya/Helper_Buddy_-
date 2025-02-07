@@ -16,6 +16,7 @@ import {
   Pencil,
 } from "lucide-react";
 import gsap from "gsap";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 type Gender = "Male" | "Female" | "Other";
 
@@ -98,15 +99,19 @@ export default function ProfilePage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-black" />
-      </div>
+      <main className="relative min-h-screen">
+        <AnimatedBackground />
+        <div className="relative z-10 min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-black" />
+        </div>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-12 px-4">
-      <Card className="max-w-4xl mx-auto border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <main className="relative min-h-screen py-12 px-4">
+      <AnimatedBackground />
+      <Card className="relative z-10 max-w-4xl mx-auto bg-white/80 backdrop-blur-md border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardContent className="p-8">
           <div
             ref={headerRef}
