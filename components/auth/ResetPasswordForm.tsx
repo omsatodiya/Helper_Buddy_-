@@ -40,33 +40,35 @@ export function ResetPasswordForm({
   const reqsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initial animation
     const tl = gsap.timeline();
     
-    tl.fromTo(formRef.current,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.5 }
-    );
-
-    tl.fromTo(titleRef.current,
+    tl.fromTo(
+      formRef.current,
       { opacity: 0 },
-      { opacity: 1, duration: 0.3 },
-      "-=0.2"
+      { opacity: 1, duration: 0.5 }
     );
 
-    tl.fromTo(inputsRef.current,
-      { x: -20, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.3 },
-      "-=0.1"
+    tl.fromTo(
+      titleRef.current,
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+      "-=0.3"
+    );
+
+    tl.fromTo(
+      inputsRef.current,
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+      "-=0.2"
     );
   }, []);
 
-  // Password requirements animation
   useEffect(() => {
     if (showReqs && reqsRef.current) {
-      gsap.fromTo(reqsRef.current,
+      gsap.fromTo(
+        reqsRef.current,
         { opacity: 0, y: -10 },
-        { opacity: 1, y: 0, duration: 0.3 }
+        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
       );
     }
   }, [showReqs]);
