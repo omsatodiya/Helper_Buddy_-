@@ -29,6 +29,31 @@ const defaultReviews = [
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
     avatar: "/api/placeholder/32/32"
   }
+  ,
+  {
+    id: 4,
+    name: "Jayyyyy",
+    rating: 4,
+    text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
+    avatar: "/api/placeholder/32/32"
+  }
+  ,
+  {
+    id: 5,
+    name: "Puraaaaaaaaaaa",
+    rating: 4,
+    text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
+    avatar: "/api/placeholder/32/32"
+  }
+  ,
+  {
+    id: 6,
+    name: "Satuuuuuuuuu",
+    rating: 4,
+    text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
+    avatar: "/api/placeholder/32/32"
+  }
+
 ];
 
 const Testimonials = ({ initialReviews = defaultReviews }) => {
@@ -83,6 +108,8 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
       carousel.appendChild(clonedItems);
       clonedItems = carousel.children[2].cloneNode(true);
       carousel.appendChild(clonedItems);
+      clonedItems = carousel.children[0].cloneNode(true);
+      carousel.appendChild(clonedItems);
       
       createInfiniteScroll();
     };
@@ -134,7 +161,7 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
 
   return (
     <div className="py-12 px-4 bg-[#141414]">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-screen mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4 text-[#EAEAEA]">
             What Our Customers Say
