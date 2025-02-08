@@ -130,95 +130,104 @@ const Blog: React.FC = () => {
   }
 
   return (
-    <section className="py-16 bg-gray-50" ref={containerRef}>
-      <div className="container mx-auto px-4">
-        <h2 className="blog-title text-3xl font-bold text-center mb-12">
+    <section className="py-12 bg-gray-50" ref={containerRef}>
+      <div className="container mx-auto px-4 max-w-7xl">
+        <h2 className="blog-title text-3xl font-bold text-center mb-8 text-gray-800">
           Our Blog
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {blogPosts.map((post, index) => (
             <div 
               key={post._id}
               ref={el => cardsRef.current[index] = el}
-              className="blog-card bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full"
-              onMouseEnter={(e) => {
-                gsap.to(e.currentTarget, {
-                  y: -8,
-                  duration: 0.2,
-                  ease: 'power2.out'
-                });
-              }}
-              onMouseLeave={(e) => {
-                gsap.to(e.currentTarget, {
-                  y: 0,
-                  duration: 0.2,
-                  ease: 'power2.out'
-                });
-              }}
+              className="blog-card bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-[520px] border border-gray-100"
+              style={{ opacity: 1 }}
             >
-              <div className="relative h-64 w-full overflow-hidden cursor-pointer">
-                <div className="absolute inset-0">
-                  {post.imageUrl ? (
-                    <img
-                      src={post.imageUrl}
-                      alt={post.title}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400">No image available</span>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10"></div>
+              <div 
+                className="relative h-80 overflow-hidden bg-white cursor-pointer"
+                onClick={() => handleEdit(post._id)}
+              >
+                {post.imageUrl ? (
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105 cursor-pointer"
+                    style={{
+                      imageRendering: '-webkit-optimize-contrast',
+                      backfaceVisibility: 'hidden',
+                      transform: 'translateZ(0)',
+                      willChange: 'transform',
+                      opacity: 1
+                    }}
+                    loading="eager"
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (img.naturalWidth === 0) {
+                        img.src = post.imageUrl;
+                      }
+                      img.style.opacity = '1';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center cursor-pointer">
+                    <span className="text-gray-400">No image available</span>
+                  </div>
+                )}
               </div>
               
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-semibold mb-3 text-gray-800 hover:text-blue-600 transition-colors">
-                  {post.title}
-                </h3>
-                
-                <div className="flex flex-col mb-4">
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium">By {post.author}</p>
-                    <div className="flex items-center text-gray-500 mt-1">
-                      <span>{formatDate(post.publishedDate)}</span>
-                      <span className="mx-2">•</span>
-                      <span>{post.readTime}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {post.tags.map((tag, tagIndex) => (
+              <div className="p-4 flex flex-col flex-grow bg-white" style={{ opacity: 1 }}>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {post.tags.slice(0, 2).map((tag, tagIndex) => (
                     <span 
                       key={tagIndex}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
                     >
                       {tag}
                     </span>
                   ))}
+                  {post.tags.length > 2 && (
+                    <span className="text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
+                      +{post.tags.length - 2} more
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-2xl font-semibold mb-2 text-gray-800 line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+                  {post.title}
+                </h3>
+                
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                  <span className="font-medium text-gray-700">by {post.author}</span>
+                  <div className="flex items-center space-x-1">
+                    <span>{formatDate(post.publishedDate)}</span>
+                    <span>•</span>
+                    <span>{post.readTime}</span>
+                  </div>
                 </div>
                 
-                <p className="text-gray-600 flex-grow line-clamp-3">
+                <p className="text-gray-600 text-sm line-clamp-2 mb-3 flex-grow">
                   {post.description}
                 </p>
-                
-                <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
-                  <Button
-                    onClick={() => handleEdit(post._id)}
-                    variant="outline"
-                    className="bg-blue-50 hover:bg-blue-100"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(post._id)}
-                    variant="outline"
-                    className="bg-red-50 hover:bg-red-100 text-red-600"
-                  >
-                    Delete
-                  </Button>
+
+                <div className="mt-auto">
+                  <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                    <Button
+                      onClick={() => handleEdit(post._id)}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(post._id)}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white hover:bg-red-50 text-red-600 border-red-200"
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -226,12 +235,12 @@ const Blog: React.FC = () => {
 
           <Button
             onClick={() => router.push('/blog/newblog')}
-            className="relative bg-white h-full min-h-[24rem] rounded-lg shadow-md overflow-hidden flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+            className="relative bg-white h-[520px] rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col items-center justify-center p-8 border border-dashed border-gray-200 hover:border-blue-400 hover:bg-white group"
           >
             <div className="flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
                 <svg
-                  className="w-8 h-8 text-blue-500"
+                  className="w-6 h-6 text-blue-500 group-hover:text-blue-600 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -244,8 +253,10 @@ const Blog: React.FC = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-800">Add New Blog</h3>
-              <p className="text-gray-500 text-center mt-2">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                Add New Blog
+              </h3>
+              <p className="text-gray-500 text-sm text-center group-hover:text-gray-600 transition-colors">
                 Click here to create a new blog post
               </p>
             </div>
