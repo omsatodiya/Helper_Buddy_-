@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
-import Blog from '@/app/blog/BlogModel';  // Update this path to your actual Blog model path
+import Blog from '@/app/blog/BlogModel';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -81,6 +81,72 @@ export async function POST(request: Request) {
     console.error('POST Error:', error);
     return NextResponse.json(
       { error: 'Failed to create blog' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT (update) blog
+export async function PUT(request: Request) {
+  try {
+    await connectDB();
+    
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: 'Invalid blog ID' },
+        { status: 400 }
+      );
+    }
+
+    // First, get the existing blog
+    const existingBlog = await Blog.findById(id);
+    if (!existingBlog) {
+      return NextResponse.json(
+        { error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get update data from request body
+    const body = await request.json();
+    console.log('Received update data:', body);
+
+    // Create update object by merging existing data with new data
+    const updateData = {
+      title: body.title || existingBlog.title,
+      author: body.author || existingBlog.author,
+      readTime: body.readTime || existingBlog.readTime,
+      description: body.description || existingBlog.description,
+      imageUrl: body.imageUrl || existingBlog.imageUrl,
+      tags: body.tags || existingBlog.tags,
+      updatedAt: new Date()
+    };
+
+    console.log('Processed update data:', updateData);
+
+    // Perform update with merged data
+    const updatedBlog = await Blog.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { 
+        new: true,
+        runValidators: false
+      }
+    );
+
+    console.log('Update successful:', updatedBlog);
+    return NextResponse.json(updatedBlog);
+
+  } catch (error) {
+    console.error('PUT Error:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to update blog',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

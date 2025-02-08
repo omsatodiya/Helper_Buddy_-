@@ -30,31 +30,34 @@ export default function EditBlog() {
       }
 
       try {
-        const response = await fetch(`/api/blogs/${id}`, {
+        const response = await fetch(`/api/blogs?id=${id}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
           },
         });
-        
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch blog');
+          throw new Error('Failed to fetch blog');
         }
-        
-        const blog = await response.json();
-        
-        setFormData({
-          title: blog.title || '',
-          author: blog.author || '',
-          readTime: blog.readTime || '',
-          description: blog.description || '',
-          imageUrl: blog.imageUrl || '',
-          tags: blog.tags || []
-        });
+
+        const data = await response.json();
+        console.log('Fetched blog data:', data);
+
+        if (data) {
+          setFormData({
+            title: data.title || '',
+            author: data.author || '',
+            readTime: data.readTime || '',
+            description: data.description || '',
+            imageUrl: data.imageUrl || '',
+            tags: Array.isArray(data.tags) ? data.tags : []
+          });
+        }
       } catch (error) {
         console.error('Fetch error:', error);
-        alert(error instanceof Error ? error.message : 'Failed to fetch blog details');
+        alert('Failed to fetch blog details');
         router.push('/blog');
       } finally {
         setIsLoading(false);
@@ -68,26 +71,47 @@ export default function EditBlog() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (!id) {
+      alert('Blog ID is missing');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      console.log('Updating blog with ID:', id);
-      const response = await fetch(`/api/blogs/${id}`, {
+      console.log('Sending update with data:', { id, formData });
+
+      const response = await fetch(`/api/blogs?id=${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title,
+          author: formData.author,
+          readTime: formData.readTime,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          tags: formData.tags
+        }),
       });
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to update blog');
       }
 
-      console.log('Blog updated successfully');
+      const updatedBlog = await response.json();
+      console.log('Successfully updated blog:', updatedBlog);
+
+      alert('Blog updated successfully!');
       router.push('/blog');
       router.refresh();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Update error:', error);
       alert(error instanceof Error ? error.message : 'Failed to update blog');
     } finally {
       setIsSubmitting(false);
@@ -120,72 +144,67 @@ export default function EditBlog() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Title *
+            Title
           </label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Author *
+            Author
           </label>
           <input
             type="text"
             value={formData.author}
             onChange={(e) => setFormData({ ...formData, author: e.target.value })}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Read Time *
+            Read Time
           </label>
           <input
             type="text"
             value={formData.readTime}
             onChange={(e) => setFormData({ ...formData, readTime: e.target.value })}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description *
+            Description
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             rows={6}
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Image URL *
+            Image URL
           </label>
           <input
             type="url"
             value={formData.imageUrl}
             onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            required
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tags * (Select at least one)
+            Tags
           </label>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
@@ -203,19 +222,14 @@ export default function EditBlog() {
               </button>
             ))}
           </div>
-          {formData.tags.length === 0 && (
-            <p className="text-red-500 text-sm mt-1">
-              Please select at least one tag
-            </p>
-          )}
         </div>
 
         <div className="flex space-x-4 pt-4">
           <Button
             type="submit"
-            disabled={isSubmitting || formData.tags.length === 0}
+            disabled={isSubmitting}
             className={`bg-blue-500 text-white px-6 py-2 rounded-md
-              ${isSubmitting || formData.tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+              ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
           >
             {isSubmitting ? 'Updating...' : 'Update Blog Post'}
           </Button>
