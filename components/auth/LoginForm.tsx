@@ -278,6 +278,7 @@ export default function LoginForm() {
     const profileData = {
       ...userData,
       email: loginData.email,
+      role: "user",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

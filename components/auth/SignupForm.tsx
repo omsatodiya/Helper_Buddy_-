@@ -235,6 +235,7 @@ export default function SignupForm() {
           pincode: formData.pincode,
           gender: formData.gender,
           displayName: `${formData.firstName} ${formData.lastName}`,
+          role: "user",
         };
 
         // Make sure to store the data before sending verification email
@@ -260,6 +261,7 @@ export default function SignupForm() {
         state: formData.state,
         pincode: formData.pincode,
         gender: formData.gender,
+        role: "user",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
