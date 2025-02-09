@@ -1,10 +1,15 @@
 import { Suspense } from "react";
-import VerifyEmail from "@/components/auth/VerifyEmail";
+import dynamic from "next/dynamic";
+
+const VerifyEmailHandler = dynamic(
+  () => import("@/components/auth/VerifyEmailHandler"),
+  { ssr: false }
+);
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <VerifyEmail />
+    <Suspense>
+      <VerifyEmailHandler />
     </Suspense>
   );
 } 

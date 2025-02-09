@@ -1,16 +1,28 @@
-"use client";
-import React from "react";
-import AnimatedBackground from "@/components/AnimatedBackground";
-import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
 
-export default function ResetPassword() {
+const ResetPasswordForm = dynamic(
+  () => import("@/components/auth/ResetPasswordForm"),
+  { ssr: false }
+);
+
+const AnimatedBackground = dynamic(
+  () => import("@/components/AnimatedBackground"),
+  { ssr: false }
+);
+
+export default function ResetPasswordPage() {
   return (
     <main className="min-h-screen relative">
       <div className="absolute inset-0">
-        <AnimatedBackground />
+        <Suspense>
+          <AnimatedBackground />
+        </Suspense>
       </div>
       <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <ResetPasswordForm />
+        <Suspense>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </main>
   );
