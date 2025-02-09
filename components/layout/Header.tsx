@@ -175,7 +175,7 @@ const Header = () => {
       {!isLoading && (
         <header
           ref={headerRef}
-          className="fixed top-0 w-full z-50 bg-black opacity-0">
+          className="fixed top-0 w-full z-50 bg-black/95 backdrop-blur-sm opacity-0">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-24">
               {/* Mobile Layout */}
