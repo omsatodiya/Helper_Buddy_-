@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 
 interface Dot {
   x: number;
@@ -18,6 +19,7 @@ const AnimatedBackground = () => {
   });
   const dotsRef = useRef<Dot[]>([]);
   const animationFrameRef = useRef<number | null>(null);
+  const { theme } = useTheme();
 
   // Initialize dots
   useEffect(() => {
@@ -80,8 +82,9 @@ const AnimatedBackground = () => {
       const ctx = canvas?.getContext("2d");
       if (!canvas || !ctx) return;
 
+      const isDark = theme === "dark";
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "black";
+      ctx.fillStyle = isDark ? "white" : "black";
 
       const mouseRadius = 100; // Radius of mouse influence
       const maxDistance = 30; // Maximum distance dots can move from original position
@@ -130,10 +133,10 @@ const AnimatedBackground = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [mousePosition]);
+  }, [mousePosition, theme]);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden bg-white">
+    <div className={`fixed inset-0 z-0 overflow-hidden ${theme === "dark" ? "bg-black" : "bg-white"}`}>
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   );
