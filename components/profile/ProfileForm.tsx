@@ -2,7 +2,7 @@
 import { useState, useEffect, memo } from "react";
 import { auth } from "@/lib/firebase";
 import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { deleteUser } from "firebase/auth";
+import { deleteUser, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { INDIAN_STATES } from "@/lib/constants/states";
+import { getCityFromPincode } from "@/lib/utils/pincode";
 
 interface UserData {
   firstName: string;
@@ -110,8 +112,20 @@ export default function ProfileForm() {
     fetchUserData();
   }, [router]);
 
-  const handleInputChange = (name: keyof UserData, value: string) => {
+  const handleInputChange = async (name: keyof UserData, value: string) => {
     setUserData(prev => ({ ...prev, [name]: value }));
+
+    // Handle pincode auto-fill
+    if (name === 'pincode' && value.length === 6) {
+      const data = await getCityFromPincode(value);
+      if (data) {
+        setUserData(prev => ({
+          ...prev,
+          city: data.city,
+          state: data.state
+        }));
+      }
+    }
   };
 
   const handleUpdate = async () => {
@@ -158,8 +172,8 @@ export default function ProfileForm() {
   };
 
   return (
-    <Card className="w-[95%] max-w-4xl mx-auto border-0 shadow-xl bg-white/95 backdrop-blur-xl ring-1 ring-black/5">
-      <CardHeader className="space-y-3 pb-2">
+    <Card className="w-[95%] max-w-4xl mx-auto border-0 shadow-xl bg-background/95 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10">
+      <CardHeader className="space-y-3 pb-6 border-b">
         <div className="flex items-center">
           <Button
             variant="ghost"
@@ -169,84 +183,54 @@ export default function ProfileForm() {
             <ArrowLeft className="h-4 w-4" />
             <span className="sr-only">Back to home</span>
           </Button>
-          <CardTitle className="text-xl sm:text-2xl font-bold flex-1 text-center pr-8">
-            Profile Settings
-          </CardTitle>
+          <div className="flex-1 text-center pr-8">
+            <CardTitle className="text-xl sm:text-2xl font-bold">
+              Profile Settings
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your account details
+            </p>
+          </div>
         </div>
-        <p className="text-center text-muted-foreground text-sm px-4">
-          Manage your account details
-        </p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-            {/* Left Column */}
-            <div className="space-y-4 lg:space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField 
-                  name="firstName" 
-                  label="First Name"
-                  value={userData.firstName}
-                  onChange={(value) => handleInputChange("firstName", value)}
-                  disabled={!isEditing}
-                />
-                <InputField 
-                  name="lastName" 
-                  label="Last Name"
-                  value={userData.lastName}
-                  onChange={(value) => handleInputChange("lastName", value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <InputField 
-                name="email" 
-                label="Email" 
-                type="email"
-                value={userData.email}
-                onChange={(value) => handleInputChange("email", value)}
-                disabled={true}
-              />
-              <InputField 
-                name="mobile" 
-                label="Mobile Number" 
-                type="tel"
-                value={userData.mobile}
-                onChange={(value) => handleInputChange("mobile", value)}
-                disabled={!isEditing}
-              />
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-4 lg:space-y-6">
-              <InputField 
-                name="address" 
-                label="Address"
-                value={userData.address}
-                onChange={(value) => handleInputChange("address", value)}
-                disabled={!isEditing}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <CardContent className="p-6">
+        <div className="space-y-8">
+          {/* Personal Information Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField 
+                    name="firstName" 
+                    label="First Name"
+                    value={userData.firstName}
+                    onChange={(value) => handleInputChange("firstName", value)}
+                    disabled={!isEditing}
+                  />
+                  <InputField 
+                    name="lastName" 
+                    label="Last Name"
+                    value={userData.lastName}
+                    onChange={(value) => handleInputChange("lastName", value)}
+                    disabled={!isEditing}
+                  />
+                </div>
                 <InputField 
-                  name="city" 
-                  label="City"
-                  value={userData.city}
-                  onChange={(value) => handleInputChange("city", value)}
-                  disabled={!isEditing}
+                  name="email" 
+                  label="Email" 
+                  type="email"
+                  value={userData.email}
+                  onChange={(value) => handleInputChange("email", value)}
+                  disabled={true}
                 />
                 <InputField 
-                  name="state" 
-                  label="State"
-                  value={userData.state}
-                  onChange={(value) => handleInputChange("state", value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField 
-                  name="pincode" 
-                  label="Pincode"
-                  value={userData.pincode}
-                  onChange={(value) => handleInputChange("pincode", value)}
+                  name="mobile" 
+                  label="Mobile Number" 
+                  type="tel"
+                  value={userData.mobile}
+                  onChange={(value) => handleInputChange("mobile", value)}
                   disabled={!isEditing}
                 />
                 <div className="space-y-2">
@@ -266,6 +250,71 @@ export default function ProfileForm() {
                   </Select>
                 </div>
               </div>
+
+              {/* Address Information */}
+              <div className="space-y-4">
+                <InputField 
+                  name="address" 
+                  label="Address"
+                  value={userData.address}
+                  onChange={(value) => handleInputChange("address", value)}
+                  disabled={!isEditing}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField 
+                    name="pincode" 
+                    label="Pincode"
+                    value={userData.pincode}
+                    onChange={(value) => handleInputChange("pincode", value)}
+                    disabled={!isEditing}
+                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
+                    <Select
+                      disabled={!isEditing}
+                      value={userData.gender}
+                      onValueChange={(value) => handleInputChange("gender", value)}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField 
+                    name="city" 
+                    label="City"
+                    value={userData.city}
+                    onChange={(value) => handleInputChange("city", value)}
+                    disabled={true}
+                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="state" className="text-sm font-medium">State</Label>
+                    <Select
+                      disabled={true}
+                      value={userData.state}
+                      onValueChange={(value) => handleInputChange("state", value)}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -276,13 +325,14 @@ export default function ProfileForm() {
             </Alert>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
             {isEditing ? (
               <>
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={() => setIsEditing(false)}
                   disabled={loading}
                 >
@@ -290,7 +340,7 @@ export default function ProfileForm() {
                 </Button>
                 <Button
                   type="button"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={handleUpdate}
                   disabled={loading}
                 >
@@ -308,15 +358,30 @@ export default function ProfileForm() {
               <>
                 <Button
                   type="button"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={() => setIsEditing(true)}
                 >
                   Edit Profile
                 </Button>
                 <Button
                   type="button"
+                  variant="outline"
+                  className="flex-1 h-11"
+                  onClick={async () => {
+                    try {
+                      await signOut(auth);
+                      router.push("/");
+                    } catch (err) {
+                      setError("Failed to sign out");
+                    }
+                  }}
+                >
+                  Sign Out
+                </Button>
+                <Button
+                  type="button"
                   variant="destructive"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={() => setShowDeleteDialog(true)}
                 >
                   Delete Account

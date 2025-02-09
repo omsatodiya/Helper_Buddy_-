@@ -19,17 +19,12 @@ import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
 import { useRouter } from "next/navigation";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useLoadingStore } from "@/store/loading-store";
+import { Button } from "@/components/ui/button";
 import gsap from "gsap";
 import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
-import { Button } from "@/components/ui/button";
+import { useLoadingStore } from "@/store/loading-store";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface NavItem {
   label: string;
@@ -47,7 +42,7 @@ const navItems: NavItem[] = [
 const Header = () => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isLoading = useLoadingStore((state) => state.isLoading);
+  const isLoading = useLoadingStore((state: any) => state.isLoading);
   const [user, setUser] = useState<FirebaseUser | null>(null);
 
   // Refs for GSAP animations
@@ -169,14 +164,6 @@ const Header = () => {
     });
   };
 
-  const handleProfileClick = () => {
-    if (user) {
-      router.push('/profile');
-    } else {
-      router.push('/auth/login');
-    }
-  };
-
   const addToMenuItemsRef = (el: HTMLDivElement | null, index: number) => {
     if (el && !menuItemsRef.current.includes(el)) {
       menuItemsRef.current[index] = el;
@@ -238,36 +225,19 @@ const Header = () => {
                 </Link>
 
                 {/* Mobile Layout - Profile Icon */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="outline-none">
+                <div className="flex items-center gap-4">
+                  <ThemeToggle />
+                  <div
+                    onClick={() => router.push(user ? "/profile" : "/auth/login")}
+                    className="cursor-pointer"
+                  >
                     <User
-                      className={user ? "text-green-400" : "text-white"}
+                      className={`${user ? "text-green-400" : "text-white dark:text-white"} hover:opacity-80 transition-opacity`}
                       size={28}
                       strokeWidth={2}
                     />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-48 font-lora bg-black/95 border border-white/10">
-                    <DropdownMenuItem
-                      onClick={handleProfileClick}
-                      className="cursor-pointer text-white hover:bg-white/10">
-                      {user ? 'Profile' : 'Sign in'}
-                    </DropdownMenuItem>
-                    {user && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => router.push("/settings")}
-                          className="cursor-pointer text-white hover:bg-white/10">
-                          Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => router.push("/auth/signout")}
-                          className="cursor-pointer text-white hover:bg-white/10">
-                          Sign out
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </div>
+                </div>
               </div>
 
               {/* Desktop Layout */}
@@ -293,7 +263,14 @@ const Header = () => {
                       {navItems.map((item) => (
                         <NavigationMenuItem key={item.label}>
                           <Link href={item.href} legacyBehavior passHref>
-                            <NavigationMenuLink className="text-lg uppercase tracking-wide font-bold font-newYork text-white transition-all duration-300 hover:no-underline relative before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] before:bottom-0 before:left-0 before:bg-current before:scale-x-0 hover:before:scale-x-100 before:transition-transform before:duration-300 before:origin-left before:transform-gpu">
+                            <NavigationMenuLink 
+                              className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
+                              text-white dark:text-white
+                              before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
+                              before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
+                              hover:before:scale-x-100 before:transition-transform before:duration-300 
+                              before:origin-left before:transform-gpu"
+                            >
                               {item.label}
                             </NavigationMenuLink>
                           </Link>
@@ -303,37 +280,22 @@ const Header = () => {
                   </NavigationMenu>
 
                   <div className="flex items-center space-x-6">
-                    {/* Desktop Layout - Profile Icon */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="outline-none">
+                    <div className="flex items-center gap-4">
+                      <ThemeToggle />
+                      <div
+                        onClick={() => router.push(user ? "/profile" : "/auth/login")}
+                        className="cursor-pointer"
+                        onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
+                        onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
+                        onMouseDown={(e) => handleTapScale(e.currentTarget)}
+                      >
                         <User
-                          className={user ? "text-green-400" : "text-white"}
+                          className={`${user ? "text-green-400" : "text-white dark:text-white"} hover:opacity-80 transition-opacity`}
                           size={28}
                           strokeWidth={2}
                         />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-48 bg-black/95 border border-white/10">
-                        <DropdownMenuItem
-                          onClick={handleProfileClick}
-                          className="cursor-pointer text-white hover:bg-white/10">
-                          {user ? 'Profile' : 'Sign in'}
-                        </DropdownMenuItem>
-                        {user && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={() => router.push("/settings")}
-                              className="cursor-pointer text-white hover:bg-white/10">
-                              Settings
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => router.push("/auth/signout")}
-                              className="cursor-pointer text-white hover:bg-white/10">
-                              Sign out
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </div>
+                    </div>
 
                     <div
                       className="cursor-pointer"
@@ -343,7 +305,7 @@ const Header = () => {
                       }
                       onMouseDown={(e) => handleTapScale(e.currentTarget)}>
                       <ShoppingCart
-                        className="text-white"
+                        className="text-white dark:text-white hover:opacity-80 transition-opacity"
                         size={28}
                         strokeWidth={2}
                       />
@@ -384,7 +346,7 @@ const Header = () => {
                           {/* Menu item content */}
                           <div className="relative flex items-center justify-between">
                             {/* Text */}
-                            <span className="text-4xl font-adallyn text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
+                            <span className="text-4xl font-montserrat text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
                               {item.label}
                             </span>
 

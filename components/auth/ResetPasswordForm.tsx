@@ -152,7 +152,7 @@ export default function ResetPasswordForm() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link
-            href="/forgot-password"
+            href="/auth/forgot-password"
             className="text-sm text-muted-foreground hover:text-primary flex items-center gap-2"
           >
             Request new link
