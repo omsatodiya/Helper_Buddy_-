@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import SafeImage from '@/components/SafeImage';
 import gsap from 'gsap';
 
+// Updated interface to match MongoDB document structure
 interface BlogPost {
   _id: string;
   title: string;
@@ -15,7 +16,11 @@ interface BlogPost {
   description: string;
   imageUrl: string;
   tags: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
+
 
 const Blog: React.FC = () => {
   const router = useRouter();
@@ -45,7 +50,7 @@ const Blog: React.FC = () => {
   // GSAP animations
   useEffect(() => {
     if (!isLoading && containerRef.current) {
-      // Fade in the title
+      // Fade in the title only
       gsap.from('.blog-title', {
         opacity: 0,
         y: -20,
@@ -53,16 +58,19 @@ const Blog: React.FC = () => {
         ease: 'power2.out'
       });
 
-      // Stagger the cards
-      gsap.from(cardsRef.current, {
-        opacity: 0,
-        y: 50,
-        duration: 0.5,
-        stagger: 0.2,
-        ease: 'power2.out'
+      // Remove the stagger animation for cards
+      gsap.set(cardsRef.current, {
+        opacity: 1,  // Set cards to fully visible immediately
+        y: 0        // No vertical offset
       });
     }
   }, [isLoading]);
+
+  // Updated to use query parameter approach
+  const handleBlogClick = (id: string) => {
+    console.log('Clicking blog with ID:', id);
+    router.push(`/blog/wholeblog?id=${id}&type=whole`);  // Changed to use query parameter
+  };
 
   const handleEdit = (id: string) => {
     router.push(`/blog/editblog?id=${id}`);
@@ -70,28 +78,20 @@ const Blog: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this blog?')) return;
-  
+
     try {
-      console.log('Deleting blog with ID:', id);
       const response = await fetch(`/api/blogs?id=${id}`, {
         method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
       });
-  
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete blog');
+        throw new Error('Failed to delete blog');
       }
-  
-      // Remove the blog from state
+
       setBlogPosts(prevPosts => prevPosts.filter(post => post._id !== id));
-      console.log('Blog deleted successfully');
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete blog');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete blog');
     }
   };
 
@@ -141,63 +141,48 @@ const Blog: React.FC = () => {
               key={post._id}
               ref={el => cardsRef.current[index] = el}
               className="blog-card bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-[520px] border border-gray-100"
-              style={{ opacity: 1 }}
             >
               <div 
+                onClick={() => handleBlogClick(post._id)}
                 className="relative h-80 overflow-hidden bg-white cursor-pointer"
-                onClick={() => handleEdit(post._id)}
               >
                 {post.imageUrl ? (
                   <img
                     src={post.imageUrl}
                     alt={post.title}
-                    className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105 cursor-pointer"
-                    style={{
-                      imageRendering: '-webkit-optimize-contrast',
-                      backfaceVisibility: 'hidden',
-                      transform: 'translateZ(0)',
-                      willChange: 'transform',
-                      opacity: 1
-                    }}
-                    loading="eager"
-                    onLoad={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      if (img.naturalWidth === 0) {
-                        img.src = post.imageUrl;
-                      }
-                      img.style.opacity = '1';
-                    }}
+                    onClick={() => handleBlogClick(post._id)}
+                    className="cursor-pointer w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center cursor-pointer">
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                     <span className="text-gray-400">No image available</span>
                   </div>
                 )}
               </div>
               
-              <div className="p-4 flex flex-col flex-grow bg-white" style={{ opacity: 1 }}>
-                <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="p-5 flex flex-col flex-grow bg-white">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                   {post.tags.slice(0, 2).map((tag, tagIndex) => (
                     <span 
                       key={tagIndex}
-                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium"
                     >
                       {tag}
                     </span>
                   ))}
                   {post.tags.length > 2 && (
-                    <span className="text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
+                    <span className="text-xs text-gray-500">
                       +{post.tags.length - 2} more
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-2xl font-semibold mb-2 text-gray-800 line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+                <h3 className="text-lg font-semibold mb-2 text-gray-800 line-clamp-2">
                   {post.title}
                 </h3>
-                
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                  <span className="font-medium text-gray-700">by {post.author}</span>
+
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                  <span className="font-medium text-gray-700">{post.author}</span>
                   <div className="flex items-center space-x-1">
                     <span>{formatDate(post.publishedDate)}</span>
                     <span>•</span>
@@ -205,15 +190,15 @@ const Blog: React.FC = () => {
                   </div>
                 </div>
                 
-                <p className="text-gray-600 text-sm line-clamp-2 mb-3 flex-grow">
+                <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow">
                   {post.description}
                 </p>
 
                 <div className="mt-auto">
-                  <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                  <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
                     <Button
                       onClick={() => handleEdit(post._id)}
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
                       className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200"
                     >
@@ -221,7 +206,7 @@ const Blog: React.FC = () => {
                     </Button>
                     <Button
                       onClick={() => handleDelete(post._id)}
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
                       className="bg-white hover:bg-red-50 text-red-600 border-red-200"
                     >

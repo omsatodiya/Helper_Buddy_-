@@ -13,7 +13,8 @@ export default function NewBlog() {
     readTime: '',
     description: '',
     imageUrl: '',
-    tags: [] as string[]
+    tags: [] as string[],
+    fullDescription: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,6 +43,16 @@ export default function NewBlog() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleTagToggle = (tag: string) => {
@@ -125,7 +136,14 @@ export default function NewBlog() {
             required
           />
         </div>
-
+        <textarea
+          name="fullDescription"
+          value={formData.fullDescription}
+          onChange={handleInputChange}
+          placeholder="Enter the full blog content..."
+          className="w-full h-64 p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tags * (Select at least one)
@@ -152,7 +170,7 @@ export default function NewBlog() {
             </p>
           )}
         </div>
-
+        
         <div className="flex space-x-4 pt-4">
           <Button
             type="submit"

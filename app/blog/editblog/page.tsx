@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 
 const tags = ['beauty', 'lifestyle', 'homepage', 'fashion', 'health', 'food'];
 
-export default function EditBlog() {
+const EditBlog = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
+
+  const [originalData, setOriginalData] = useState({
+    title: '',
+    author: '',
+    readTime: '',
+    description: '',
+    imageUrl: '',
+    tags: [] as string[],
+    fullDescription: '',
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -16,8 +26,10 @@ export default function EditBlog() {
     readTime: '',
     description: '',
     imageUrl: '',
-    tags: [] as string[]
+    tags: [] as string[],
+    fullDescription: '',
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,31 +42,21 @@ export default function EditBlog() {
       }
 
       try {
-        const response = await fetch(`/api/blogs?id=${id}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache'
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch blog');
-        }
-
+        const response = await fetch(`/api/blogs?id=${id}`);
+        if (!response.ok) throw new Error('Failed to fetch blog');
+        
         const data = await response.json();
-        console.log('Fetched blog data:', data);
-
-        if (data) {
-          setFormData({
-            title: data.title || '',
-            author: data.author || '',
-            readTime: data.readTime || '',
-            description: data.description || '',
-            imageUrl: data.imageUrl || '',
-            tags: Array.isArray(data.tags) ? data.tags : []
-          });
-        }
+        const initialData = {
+          title: data.title || '',
+          author: data.author || '',
+          readTime: data.readTime || '',
+          description: data.description || '',
+          imageUrl: data.imageUrl || '',
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          fullDescription: data.fullDescription || '',
+        };
+        setOriginalData(initialData);
+        setFormData(initialData);
       } catch (error) {
         console.error('Fetch error:', error);
         alert('Failed to fetch blog details');
@@ -71,41 +73,33 @@ export default function EditBlog() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (!id) {
-      alert('Blog ID is missing');
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      console.log('Sending update with data:', { id, formData });
+      // Only include fields that have been changed
+      const changedFields = Object.entries(formData).reduce((acc, [key, value]) => {
+        if (JSON.stringify(value) !== JSON.stringify(originalData[key as keyof typeof originalData])) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      // If no fields were changed, return early
+      if (Object.keys(changedFields).length === 0) {
+        alert('No changes were made');
+        return;
+      }
 
       const response = await fetch(`/api/blogs?id=${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          title: formData.title,
-          author: formData.author,
-          readTime: formData.readTime,
-          description: formData.description,
-          imageUrl: formData.imageUrl,
-          tags: formData.tags
-        }),
+        body: JSON.stringify(changedFields),
       });
-
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to update blog');
       }
-
-      const updatedBlog = await response.json();
-      console.log('Successfully updated blog:', updatedBlog);
 
       alert('Blog updated successfully!');
       router.push('/blog');
@@ -116,6 +110,16 @@ export default function EditBlog() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleTagToggle = (tag: string) => {
@@ -148,8 +152,9 @@ export default function EditBlog() {
           </label>
           <input
             type="text"
+            name="title"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -160,8 +165,9 @@ export default function EditBlog() {
           </label>
           <input
             type="text"
+            name="author"
             value={formData.author}
-            onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -172,8 +178,9 @@ export default function EditBlog() {
           </label>
           <input
             type="text"
+            name="readTime"
             value={formData.readTime}
-            onChange={(e) => setFormData({ ...formData, readTime: e.target.value })}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -183,10 +190,25 @@ export default function EditBlog() {
             Description
           </label>
           <textarea
+            name="description"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            rows={6}
+            rows={4}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Full Description
+          </label>
+          <textarea
+            name="fullDescription"
+            value={formData.fullDescription}
+            onChange={handleInputChange}
+            className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            rows={8}
+            placeholder="Enter full blog content (optional)"
           />
         </div>
 
@@ -196,8 +218,9 @@ export default function EditBlog() {
           </label>
           <input
             type="url"
+            name="imageUrl"
             value={formData.imageUrl}
-            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -245,4 +268,6 @@ export default function EditBlog() {
       </form>
     </div>
   );
-}
+};
+
+export default EditBlog;

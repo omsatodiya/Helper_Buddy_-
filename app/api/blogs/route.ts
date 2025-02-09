@@ -21,16 +21,72 @@ const connectDB = async () => {
   }
 };
 
-// GET all blogs
-export async function GET() {
+// GET handler for both single and multiple blogs
+export async function GET(request: Request) {
+  console.log('Blog route handler called');
   try {
     await connectDB();
-    const blogs = await Blog.find().sort({ createdAt: -1 });
-    return NextResponse.json(blogs);
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const type = searchParams.get('type');
+    console.log('Received ID:', id, 'Type:', type);
+
+    // If no ID is provided, return all blogs
+    if (!id) {
+      const allBlogs = await Blog.find({})
+        .sort({ publishedDate: -1 })
+        .lean();
+
+      // Properly format each blog document
+      const formattedBlogs = allBlogs.map(blog => ({
+        ...blog,
+        _id: blog._id.toString(),
+        createdAt: blog.createdAt?.toISOString() || null,
+        updatedAt: blog.updatedAt?.toISOString() || null,
+      }));
+
+      return NextResponse.json(formattedBlogs);
+    }
+
+    // Validate ID if provided
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: 'Invalid blog ID' },
+        { status: 400 }
+      );
+    }
+
+    const blog = await Blog.findById(id).lean();
+
+    if (!blog) {
+      return NextResponse.json(
+        { error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
+
+    // Format the blog document
+    const formattedBlog = {
+      ...blog,
+      _id: blog._id.toString(),
+      // createdAt: blog.createdAt?.toISOString() || null,
+      // updatedAt: blog.updatedAt?.toISOString() || null,
+    };
+
+    if (type === 'whole') {
+      return NextResponse.json(formattedBlog);
+    }
+
+    return NextResponse.json(formattedBlog);
+
   } catch (error) {
     console.error('GET Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch blogs' },
+      {
+        error: 'Failed to fetch blog',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
