@@ -1,13 +1,15 @@
-import { Metadata } from "next";
-import { LoginForm } from "@/components/auth/LoginForm";
-import Image from "next/image";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import LoginForm from "@/components/auth/LoginForm";
 
-export default function LoginPage() {
+export default function Login() {
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 md:py-12">
-      <AnimatedBackground />
-      <LoginForm className="relative z-10" />
+    <main className="min-h-screen relative">
+      <div className="absolute inset-0">
+        <AnimatedBackground />
+      </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <LoginForm />
+      </div>
     </main>
   );
 }
