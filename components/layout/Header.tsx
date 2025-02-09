@@ -10,6 +10,7 @@ import {
   Instagram,
   Twitter,
   Linkedin,
+  User,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -17,7 +18,6 @@ import {
   NavigationMenuList,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -27,6 +27,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLoadingStore } from "@/store/loading-store";
 import gsap from "gsap";
+import { auth } from '@/lib/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
+import { Button } from "@/components/ui/button";
 
 interface NavItem {
   label: string;
@@ -42,10 +45,10 @@ const navItems: NavItem[] = [
 ];
 
 const Header = () => {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoading = useLoadingStore((state) => state.isLoading);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   // Refs for GSAP animations
   const headerRef = useRef<HTMLDivElement>(null);
@@ -132,6 +135,14 @@ const Header = () => {
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleHoverScale = (target: HTMLElement) => {
     gsap.to(target, {
       scale: 1.1,
@@ -158,19 +169,13 @@ const Header = () => {
     });
   };
 
-  const ProfileIcon = () => (
-    <div
-      className="cursor-pointer"
-      onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-      onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
-      onMouseDown={(e) => handleTapScale(e.currentTarget)}>
-      <UserCircle2
-        className={status === "authenticated" ? "text-green-400" : "text-white"}
-        size={28}
-        strokeWidth={2}
-      />
-    </div>
-  );
+  const handleProfileClick = () => {
+    if (user) {
+      router.push('/profile');
+    } else {
+      router.push('/auth/login');
+    }
+  };
 
   const addToMenuItemsRef = (el: HTMLDivElement | null, index: number) => {
     if (el && !menuItemsRef.current.includes(el)) {
@@ -232,34 +237,37 @@ const Header = () => {
                   </div>
                 </Link>
 
-                {status === "authenticated" ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="outline-none">
-                      <ProfileIcon />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48 font-lora bg-black/95 border border-white/10">
-                      <DropdownMenuItem
-                        onClick={() => router.push("/profile")}
-                        className="cursor-pointer text-white hover:bg-white/10">
-                        Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.push("/settings")}
-                        className="cursor-pointer text-white hover:bg-white/10">
-                        Settings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.push("/auth/signout")}
-                        className="cursor-pointer text-white hover:bg-white/10">
-                        Sign out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <div onClick={() => router.push("/auth/login")}>
-                    <ProfileIcon />
-                  </div>
-                )}
+                {/* Mobile Layout - Profile Icon */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="outline-none">
+                    <User
+                      className={user ? "text-green-400" : "text-white"}
+                      size={28}
+                      strokeWidth={2}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48 font-lora bg-black/95 border border-white/10">
+                    <DropdownMenuItem
+                      onClick={handleProfileClick}
+                      className="cursor-pointer text-white hover:bg-white/10">
+                      {user ? 'Profile' : 'Sign in'}
+                    </DropdownMenuItem>
+                    {user && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => router.push("/settings")}
+                          className="cursor-pointer text-white hover:bg-white/10">
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => router.push("/auth/signout")}
+                          className="cursor-pointer text-white hover:bg-white/10">
+                          Sign out
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Desktop Layout */}
@@ -295,34 +303,37 @@ const Header = () => {
                   </NavigationMenu>
 
                   <div className="flex items-center space-x-6">
-                    {status === "authenticated" ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="outline-none">
-                          <ProfileIcon />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-48 bg-black/95 border border-white/10">
-                          <DropdownMenuItem
-                            onClick={() => router.push("/profile")}
-                            className="cursor-pointer text-white hover:bg-white/10">
-                            Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => router.push("/settings")}
-                            className="cursor-pointer text-white hover:bg-white/10">
-                            Settings
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => router.push("/auth/signout")}
-                            className="cursor-pointer text-white hover:bg-white/10">
-                            Sign out
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <div onClick={() => router.push("/auth/login")}>
-                        <ProfileIcon />
-                      </div>
-                    )}
+                    {/* Desktop Layout - Profile Icon */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="outline-none">
+                        <User
+                          className={user ? "text-green-400" : "text-white"}
+                          size={28}
+                          strokeWidth={2}
+                        />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-48 bg-black/95 border border-white/10">
+                        <DropdownMenuItem
+                          onClick={handleProfileClick}
+                          className="cursor-pointer text-white hover:bg-white/10">
+                          {user ? 'Profile' : 'Sign in'}
+                        </DropdownMenuItem>
+                        {user && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => router.push("/settings")}
+                              className="cursor-pointer text-white hover:bg-white/10">
+                              Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push("/auth/signout")}
+                              className="cursor-pointer text-white hover:bg-white/10">
+                              Sign out
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <div
                       className="cursor-pointer"
