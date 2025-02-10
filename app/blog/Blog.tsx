@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { BlogModel } from './BlogModel';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PlusCircle, Clock, User, Tag } from 'lucide-react';
+import { PlusCircle, Clock, User, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { auth } from '@/lib/firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -23,6 +23,8 @@ interface BlogPost {
   updatedAt?: string;
 }
 
+const ITEMS_PER_PAGE = 6;
+
 const Blog: React.FC = () => {
   const router = useRouter();
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
@@ -35,6 +37,7 @@ const Blog: React.FC = () => {
   const blogCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -92,13 +95,27 @@ const Blog: React.FC = () => {
       ))
     : blogPosts;
 
+  const paginatedPosts = filteredPosts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedTag]);
+
   useEffect(() => {
     if (!isLoading) {
-      // Reset opacity of all cards to 0 before animating
-      gsap.set(blogCardsRef.current, { opacity: 0, y: 20 });
+      // Reset opacity of all cards
+      const cardsToAnimate = [...blogCardsRef.current].slice(0, paginatedPosts.length + (isAdmin && currentPage === 1 ? 1 : 0));
       
-      // Animate visible cards
-      gsap.to(blogCardsRef.current, {
+      // Reset all cards to initial state
+      gsap.set(cardsToAnimate, { opacity: 0, y: 20 });
+      
+      // Animate cards
+      gsap.to(cardsToAnimate, {
         opacity: 1,
         y: 0,
         duration: 0.5,
@@ -106,7 +123,7 @@ const Blog: React.FC = () => {
         ease: "power2.out"
       });
     }
-  }, [isLoading, filteredPosts]);
+  }, [isLoading, paginatedPosts, isAdmin, currentPage]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -163,39 +180,51 @@ const Blog: React.FC = () => {
         </div>
 
         <div className="mb-12">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <Button
-              onClick={() => setSelectedTag(null)}
-              variant={selectedTag === null ? "default" : "outline"}
-              className={cn(
-                "rounded-full",
-                selectedTag === null 
-                  ? "bg-black text-white dark:bg-white dark:text-black" 
-                  : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-              )}
-            >
-              All Posts
-            </Button>
-            {getAllTags().map((tag) => (
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <Button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
-                variant={selectedTag === tag ? "default" : "outline"}
+                onClick={() => setSelectedTag(null)}
+                variant={selectedTag === null ? "default" : "outline"}
                 className={cn(
-                  "rounded-full whitespace-nowrap",
-                  selectedTag === tag 
+                  "rounded-full",
+                  selectedTag === null 
                     ? "bg-black text-white dark:bg-white dark:text-black" 
                     : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                 )}
               >
-                {tag}
+                All Posts
               </Button>
-            ))}
+              {getAllTags().map((tag) => (
+                <Button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  variant={selectedTag === tag ? "default" : "outline"}
+                  className={cn(
+                    "rounded-full whitespace-nowrap",
+                    selectedTag === tag 
+                      ? "bg-black text-white dark:bg-white dark:text-black" 
+                      : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  )}
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
+            
+            {isAdmin && (
+              <Button
+                onClick={() => router.push('/blog/newblog')}
+                className="flex items-center gap-2 rounded-full bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Create Post</span>
+              </Button>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPosts.map((post, index) => (
+          {paginatedPosts.map((post, index) => (
             <div
               key={post.id}
               ref={(el: HTMLDivElement | null) => {
@@ -203,11 +232,11 @@ const Blog: React.FC = () => {
               }}
               className="opacity-0 group relative bg-white dark:bg-black rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white"
             >
-              <div className="aspect-w-16 aspect-h-10 relative overflow-hidden">
+              <div className="relative w-full pt-[56.25%]">
                 <img
                   src={post.imageUrl}
                   alt={post.title}
-                  className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700"
+                  className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
@@ -279,29 +308,49 @@ const Blog: React.FC = () => {
               )}
             </div>
           ))}
-
-          {isAdmin && (
-            <div
-              ref={(el: HTMLDivElement | null) => {
-                if (el) blogCardsRef.current[filteredPosts.length] = el;
-              }}
-              onClick={() => router.push('/blog/newblog')}
-              className="opacity-0 group cursor-pointer relative border-2 border-dashed border-black/50 dark:border-white/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-black dark:hover:border-white bg-white dark:bg-black transition-all duration-300"
-            >
-              <div className="transform group-hover:scale-110 transition-transform duration-300">
-                <div className="bg-black/5 dark:bg-white/5 rounded-full p-4 mb-4">
-                  <PlusCircle className="w-8 h-8 text-black dark:text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
-                  Create New Blog
-                </h3>
-                <p className="text-black/75 dark:text-white/75">
-                  Share your thoughts with the world
-                </p>
-              </div>
-            </div>
-          )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-12 flex justify-center items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-10 h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  onClick={() => setCurrentPage(page)}
+                  className={cn(
+                    "w-10 h-10 rounded-full",
+                    currentPage === page
+                      ? "bg-black text-white dark:bg-white dark:text-black"
+                      : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  )}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="w-10 h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="bg-white dark:bg-black border border-black dark:border-white">
