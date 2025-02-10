@@ -30,18 +30,19 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-black">
+      <header className="sticky top-0 z-40 w-full border-b border-black/10 dark:border-white/10 bg-white dark:bg-black">
         <div className="flex h-14 items-center px-4">
           <Button 
             variant="ghost" 
             size="icon"
+            className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h2 className="ml-4 text-lg font-semibold">Admin Dashboard</h2>
+          <h2 className="ml-4 text-lg font-semibold text-black dark:text-white">Admin Dashboard</h2>
         </div>
       </header>
 
@@ -55,14 +56,14 @@ export default function AdminDashboard() {
               value="1,234"
               icon={Users}
               trend={{ value: 12, isPositive: true }}
-              className="bg-black/20"
+              className="bg-white dark:bg-black"
             />
             <DashboardCard
               title="Growth"
               value="24.5%"
               icon={TrendingUp}
               trend={{ value: 5, isPositive: true }}
-              className="bg-black/20"
+              className="bg-white dark:bg-black"
             />
           </div>
 

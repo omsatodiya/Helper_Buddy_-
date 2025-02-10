@@ -53,34 +53,26 @@ export function UsersCard() {
   }
 
   return (
-    <Card className="col-span-full bg-black/20">
-      <CardHeader className="p-4 border-b border-white/10">
+    <Card className="col-span-full border border-black/10 dark:border-white/10">
+      <CardHeader className="p-4 border-b border-black/10 dark:border-white/10">
         <div className="flex flex-col gap-4">
-          <CardTitle>All Users</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="text-xs bg-black/50">
-              Export
-            </Button>
-            <Button size="sm" className="text-xs bg-white text-black">
-              Add User
-            </Button>
-          </div>
+          <CardTitle className="text-black dark:text-white">All Users</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm text-black dark:text-white">
             <thead>
-              <tr className="border-b border-white/10 bg-black/50">
+              <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
                 <th className="p-3 text-left font-medium">Name</th>
                 <th className="p-3 text-left font-medium">Email</th>
                 <th className="p-3 text-left font-medium">Role</th>
                 <th className="p-3 text-left font-medium">Coins</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-black/10 dark:divide-white/10">
               {users.map((user, i) => (
-                <tr key={i} className="bg-black/20">
+                <tr key={i} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="p-3">
                     <div className="flex flex-col">
                       <span className="font-medium">{user.firstName} {user.lastName}</span>
@@ -95,7 +87,9 @@ export function UsersCard() {
                   <td className="p-3">
                     <span className={cn(
                       "px-2 py-1 rounded-full text-xs",
-                      user.role === 'admin' ? "bg-white/10 text-white" : "bg-black/50 text-muted-foreground"
+                      user.role === 'admin' 
+                        ? "bg-black text-white dark:bg-white dark:text-black" 
+                        : "bg-black/10 dark:bg-white/10"
                     )}>
                       {user.role}
                     </span>

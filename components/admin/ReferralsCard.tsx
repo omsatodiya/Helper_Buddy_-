@@ -62,53 +62,50 @@ export function ReferralsCard() {
   }
 
   return (
-    <Card className="col-span-full bg-black/20">
-      <CardHeader className="p-4 border-b border-white/10">
+    <Card className="col-span-full border border-black/10 dark:border-white/10">
+      <CardHeader className="p-4 border-b border-black/10 dark:border-white/10">
         <div className="flex flex-col gap-4">
-          <CardTitle>Referral History</CardTitle>
-          <Button variant="outline" size="sm" className="text-xs bg-black/50 w-full sm:w-auto">
-            Export History
-          </Button>
+          <CardTitle className="text-black dark:text-white">Referral History</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm text-black dark:text-white">
             <thead>
-              <tr className="border-b border-white/10 bg-black/50">
+              <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
                 <th className="p-3 text-left font-medium">Referrer</th>
-                <th className="p-3 text-left font-medium">Coins</th>
-                <th className="p-3 text-left font-medium">R.Coins</th>
+                <th className="p-3 text-left font-medium">Referrer Coins</th>
+                <th className="p-3 text-left font-medium">Referred User</th>
+                <th className="p-3 text-left font-medium">Referred Coins</th>
+                <th className="p-3 text-left font-medium">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-black/10 dark:divide-white/10">
               {referrals.map((user, i) => (
                 user.referralHistory?.map((referral, j) => (
-                  <tr key={`${i}-${j}`} className="bg-black/20">
+                  <tr key={`${i}-${j}`} className="hover:bg-black/5 dark:hover:bg-white/5">
                     <td className="p-3">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-xs">{user.email}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(referral.referralDate).toLocaleDateString()}
-                        </span>
+                      <span className="font-medium">{user.email}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1 text-xs text-black/60 dark:text-white/60">
+                        <Coins className="h-3 w-3" />
+                        <span>{user.coins}</span>
                       </div>
                     </td>
                     <td className="p-3">
-                      <div className="flex items-center gap-1">
-                        <Coins className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs">{user.coins}</span>
+                      <span className="font-medium">{referral.referredEmail}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1 text-xs text-black/60 dark:text-white/60">
+                        <Coins className="h-3 w-3" />
+                        <span>{allUsers[referral.referredEmail]?.coins || 0}</span>
                       </div>
                     </td>
                     <td className="p-3">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                          <Coins className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs">{allUsers[referral.referredEmail]?.coins || 0}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                          {referral.referredEmail}
-                        </span>
-                      </div>
+                      <span className="text-xs text-black/60 dark:text-white/60">
+                        {new Date(referral.referralDate).toLocaleDateString()}
+                      </span>
                     </td>
                   </tr>
                 ))

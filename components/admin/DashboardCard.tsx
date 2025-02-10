@@ -48,25 +48,22 @@ export function DashboardCard({
     <Card
       ref={cardRef}
       className={cn(
-        "p-4 sm:p-6 opacity-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all",
+        "p-4 sm:p-6 opacity-0 bg-white dark:bg-black border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all",
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
+          <p className="text-sm font-medium text-black/60 dark:text-white/60">{title}</p>
+          <h3 className="text-2xl font-bold tracking-tight text-black dark:text-white">{value}</h3>
           {trend && (
-            <p className={cn(
-              "text-sm flex items-center gap-1 font-medium",
-              trend.isPositive ? "text-green-500" : "text-red-500"
-            )}>
+            <p className="text-sm flex items-center gap-1 font-medium text-black dark:text-white">
               {trend.isPositive ? "↑" : "↓"} {trend.value}%
             </p>
           )}
         </div>
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="h-10 w-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-black dark:text-white" />
         </div>
       </div>
     </Card>
