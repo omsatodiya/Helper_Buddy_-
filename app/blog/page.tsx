@@ -1,12 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import Blog from "@/app/blog/Blog";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
-import Testimonials from "@/components/FAQ/Testimonials";
-import FAQ from "@/components/FAQ/FAQ";
 
-export default function Home() {
+export default function BlogPage() {
   const [loading, setLoading] = useState(true);
 
   const handleLoadingComplete = () => {
@@ -20,7 +19,6 @@ export default function Home() {
 
     return () => clearTimeout(timer);
   }, []);
-
   return (
     <>
       {loading && <Preloader onLoadingComplete={handleLoadingComplete} />}
@@ -29,9 +27,8 @@ export default function Home() {
           loading ? "opacity-0" : "opacity-100"
         }`}>
         <Header />
-        <div className="h-16"></div>
-        <FAQ />
-        <Testimonials />
+        <div className="h-20"></div>
+        <Blog />
         <Footer />
       </main>
     </>
