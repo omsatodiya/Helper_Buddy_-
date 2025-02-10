@@ -2,17 +2,33 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { Users, ShoppingCart, DollarSign, TrendingUp, Menu, X } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, TrendingUp, Menu, X, Home } from 'lucide-react';
 import { DashboardCard } from '@/components/admin/DashboardCard';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReferralsCard } from '@/components/admin/ReferralsCard';
 import { UsersCard } from '@/components/admin/UsersCard';
 import { cn } from '@/lib/utils';
+import { getFirestore, getDocs, collection } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+
+interface UserStats {
+  totalUsers: number;
+  totalServiceProviders: number;
+  totalRevenue: number;
+  growthRate: number;
+}
 
 export default function AdminDashboard() {
   const headerRef = useRef<HTMLDivElement>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [stats, setStats] = useState<UserStats>({
+    totalUsers: 0,
+    totalServiceProviders: 0,
+    totalRevenue: 0,
+    growthRate: 0
+  });
+  const router = useRouter();
 
   useEffect(() => {
     const header = headerRef.current;
@@ -29,16 +45,89 @@ export default function AdminDashboard() {
     );
   }, []);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const db = getFirestore();
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const users = usersSnapshot.docs.map(doc => doc.data());
+        
+        const totalUsers = users.length;
+        const serviceProviders = users.filter(user => user.role === 'service_provider').length;
+        const totalRevenue = users.reduce((sum, user) => sum + (user.revenue || 0), 0);
+
+        // Calculate growth rate (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentUsers = users.filter(user => 
+          new Date(user.createdAt) > thirtyDaysAgo
+        );
+        const growthRate = (recentUsers.length / totalUsers) * 100;
+
+        setStats({
+          totalUsers,
+          totalServiceProviders: serviceProviders,
+          totalRevenue,
+          growthRate: Math.round(growthRate * 10) / 10
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 w-64 bg-white dark:bg-black border-r border-black/10 dark:border-white/10 transform transition-transform duration-200 ease-in-out z-50",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="p-4 border-b border-black/10 dark:border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-black dark:text-white">Menu</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+            onClick={() => router.push('/')}
+          >
+            <Home className="mr-2 h-5 w-5" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-black/10 dark:border-white/10 bg-white dark:bg-black">
+      <header className="sticky top-0 z-30 w-full border-b border-black/10 dark:border-white/10 bg-white dark:bg-black">
         <div className="flex h-14 items-center px-4">
           <Button 
             variant="ghost" 
             size="icon"
             className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={() => setIsSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -50,19 +139,30 @@ export default function AdminDashboard() {
         {/* Main Content */}
         <main className="p-4 space-y-4">
           {/* Stats Grid */}
-          <div className="grid gap-4 grid-cols-1 xs:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <DashboardCard
               title="Total Users"
-              value="1,234"
+              value={stats.totalUsers}
               icon={Users}
-              trend={{ value: 12, isPositive: true }}
+              trend={{ value: stats.growthRate, isPositive: stats.growthRate > 0 }}
+              className="bg-white dark:bg-black"
+            />
+            <DashboardCard
+              title="Service Providers"
+              value={stats.totalServiceProviders}
+              icon={Users}
+              className="bg-white dark:bg-black"
+            />
+            <DashboardCard
+              title="Revenue"
+              value={`₹${stats.totalRevenue.toLocaleString()}`}
+              icon={DollarSign}
               className="bg-white dark:bg-black"
             />
             <DashboardCard
               title="Growth"
-              value="24.5%"
+              value={`${stats.growthRate}%`}
               icon={TrendingUp}
-              trend={{ value: 5, isPositive: true }}
               className="bg-white dark:bg-black"
             />
           </div>
