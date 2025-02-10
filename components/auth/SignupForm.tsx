@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { generateReferralCode } from '@/lib/utils/referral';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -236,6 +237,8 @@ export default function SignupForm() {
           gender: formData.gender,
           displayName: `${formData.firstName} ${formData.lastName}`,
           role: "user",
+          coins: 0,
+          referralCode: generateReferralCode(),
         };
 
         // Make sure to store the data before sending verification email
@@ -262,6 +265,8 @@ export default function SignupForm() {
         pincode: formData.pincode,
         gender: formData.gender,
         role: "user",
+        coins: 0,
+        referralCode: generateReferralCode(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

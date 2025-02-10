@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, Coins, Copy, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -38,6 +38,8 @@ interface UserData {
   state: string;
   pincode: string;
   gender: string;
+  coins: number;
+  referralCode: string;
 }
 
 // Memoize the InputField component
@@ -84,11 +86,15 @@ export default function ProfileForm() {
     state: "",
     pincode: "",
     gender: "",
+    coins: 0,
+    referralCode: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -171,6 +177,23 @@ export default function ProfileForm() {
     }
   };
 
+  const copyReferralCode = async () => {
+    if (!userData?.referralCode) return;
+    
+    try {
+      await navigator.clipboard.writeText(userData.referralCode);
+      setCopied(true);
+      setCopyStatus('Copied!');
+      setTimeout(() => {
+        setCopied(false);
+        setCopyStatus('');
+      }, 2000);
+    } catch (err) {
+      setCopyStatus('Failed to copy');
+      setTimeout(() => setCopyStatus(''), 2000);
+    }
+  };
+
   return (
     <Card className="w-[95%] max-w-4xl mx-auto border-0 shadow-xl bg-background/95 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10">
       <CardHeader className="space-y-3 pb-6 border-b">
@@ -196,6 +219,42 @@ export default function ProfileForm() {
 
       <CardContent className="p-6">
         <div className="space-y-8">
+          {/* Coins and Referral Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Account Information</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Coins</Label>
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-background">
+                  <Coins className="h-4 w-4 text-muted-foreground" />
+                  <span>{userData.coins}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Referral Code</Label>
+                <div className="flex items-center justify-between h-10 px-3 rounded-md border bg-background">
+                  <code className="font-mono">{userData.referralCode}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyReferralCode}
+                    className="h-8 px-2"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copyStatus && (
+                      <span className="ml-2 text-sm">{copyStatus}</span>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Personal Information Section */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>

@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { generateReferralCode } from '@/lib/utils/referral';
 
 import {
   Card,
@@ -71,7 +72,7 @@ const InputField = memo(function InputField({
   return (
     <div className="space-y-2">
       <Label htmlFor={name} className="text-sm font-medium">
-        {label}
+        {label}<span className="text-destructive">*</span>
       </Label>
       <Input
         id={name}
@@ -184,10 +185,13 @@ const ProfileFields = memo(function ProfileFields({
           onChange={handlePincodeChange}
         />
         <div className="space-y-2">
-          <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
+          <Label htmlFor="gender" className="text-sm font-medium">
+            Gender<span className="text-destructive">*</span>
+          </Label>
           <Select
             value={userData.gender}
             onValueChange={onGenderChange}
+            required
           >
             <SelectTrigger id="gender" className="h-11">
               <SelectValue placeholder="Select gender" />
@@ -279,6 +283,8 @@ export default function LoginForm() {
       ...userData,
       email: loginData.email,
       role: "user",
+      coins: 0,
+      referralCode: generateReferralCode(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -350,6 +356,16 @@ export default function LoginForm() {
 
         setNeedsProfile(true);
       } else {
+        // Add validation for profile fields
+        const requiredFields = ['firstName', 'lastName', 'mobile', 'address', 'pincode', 'gender'];
+        const emptyFields = requiredFields.filter(field => !userData[field as keyof UserData]);
+        
+        if (emptyFields.length > 0) {
+          setError('Please fill in all required fields');
+          setLoading(false);
+          return;
+        }
+
         if (!auth.currentUser) throw new Error("No authenticated user found");
         await saveUserProfile(auth.currentUser.uid);
         router.push("/");

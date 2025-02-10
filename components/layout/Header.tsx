@@ -11,6 +11,7 @@ import {
   Twitter,
   Linkedin,
   User,
+  Coins,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -25,6 +26,7 @@ import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useLoadingStore } from "@/store/loading-store";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 interface NavItem {
   label: string;
@@ -36,7 +38,6 @@ const navItems: NavItem[] = [
   { label: "Services", href: "/services" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
-  { label: "About", href: "/about" },
 ];
 
 const Header = () => {
@@ -44,6 +45,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoading = useLoadingStore((state: any) => state.isLoading);
   const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [coins, setCoins] = useState<number>(0);
 
   // Refs for GSAP animations
   const headerRef = useRef<HTMLDivElement>(null);
@@ -138,6 +140,24 @@ const Header = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchUserCoins = async () => {
+      if (!user) return;
+      
+      try {
+        const db = getFirestore();
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setCoins(userDoc.data().coins || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching coins:", error);
+      }
+    };
+
+    fetchUserCoins();
+  }, [user]);
+
   const handleHoverScale = (target: HTMLElement) => {
     gsap.to(target, {
       scale: 1.1,
@@ -169,6 +189,74 @@ const Header = () => {
       menuItemsRef.current[index] = el;
     }
   };
+
+  const DesktopProfile = () => (
+    <div className="flex items-center space-x-8">
+      <NavigationMenu>
+        <NavigationMenuList className="flex gap-8">
+          {navItems.map((item) => (
+            <NavigationMenuItem key={item.label}>
+              <Link href={item.href} legacyBehavior passHref>
+                <NavigationMenuLink 
+                  className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
+                  text-white dark:text-white
+                  before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
+                  before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
+                  hover:before:scale-x-100 before:transition-transform before:duration-300 
+                  before:origin-left before:transform-gpu"
+                >
+                  {item.label}
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          ))}
+          {!user && (
+            <NavigationMenuItem>
+              <Link href="/auth/login" legacyBehavior passHref>
+                <NavigationMenuLink 
+                  className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
+                  text-white dark:text-white
+                  before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
+                  before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
+                  hover:before:scale-x-100 before:transition-transform before:duration-300 
+                  before:origin-left before:transform-gpu"
+                >
+                  Login
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          )}
+        </NavigationMenuList>
+      </NavigationMenu>
+      {user && (
+        <div className="flex items-center gap-2 text-white">
+          <Coins className="h-4 w-4" />
+          <span className="text-sm font-medium">{coins}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const AuthSection = () => (
+    <div className="flex items-center gap-4">
+      <ThemeToggle />
+      {user && (
+        <div
+          onClick={() => router.push("/profile")}
+          className="cursor-pointer"
+          onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
+          onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
+          onMouseDown={(e) => handleTapScale(e.currentTarget)}
+        >
+          <User
+            className="text-green-400 hover:opacity-80 transition-opacity"
+            size={28}
+            strokeWidth={2}
+          />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -225,19 +313,7 @@ const Header = () => {
                 </Link>
 
                 {/* Mobile Layout - Profile Icon */}
-                <div className="flex items-center gap-4">
-                  <ThemeToggle />
-                  <div
-                    onClick={() => router.push(user ? "/profile" : "/auth/login")}
-                    className="cursor-pointer"
-                  >
-                    <User
-                      className={`${user ? "text-green-400" : "text-white dark:text-white"} hover:opacity-80 transition-opacity`}
-                      size={28}
-                      strokeWidth={2}
-                    />
-                  </div>
-                </div>
+                <AuthSection />
               </div>
 
               {/* Desktop Layout */}
@@ -258,58 +334,25 @@ const Header = () => {
                 </Link>
 
                 <div className="flex items-center space-x-8">
-                  <NavigationMenu>
-                    <NavigationMenuList className="flex gap-8">
-                      {navItems.map((item) => (
-                        <NavigationMenuItem key={item.label}>
-                          <Link href={item.href} legacyBehavior passHref>
-                            <NavigationMenuLink 
-                              className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
-                              text-white dark:text-white
-                              before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
-                              before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
-                              hover:before:scale-x-100 before:transition-transform before:duration-300 
-                              before:origin-left before:transform-gpu"
-                            >
-                              {item.label}
-                            </NavigationMenuLink>
-                          </Link>
-                        </NavigationMenuItem>
-                      ))}
-                    </NavigationMenuList>
-                  </NavigationMenu>
+                  <DesktopProfile />
 
                   <div className="flex items-center space-x-6">
-                    <div className="flex items-center gap-4">
-                      <ThemeToggle />
+                    <AuthSection />
+
+                    {user && (
                       <div
-                        onClick={() => router.push(user ? "/profile" : "/auth/login")}
                         className="cursor-pointer"
                         onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
                         onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
                         onMouseDown={(e) => handleTapScale(e.currentTarget)}
                       >
-                        <User
-                          className={`${user ? "text-green-400" : "text-white dark:text-white"} hover:opacity-80 transition-opacity`}
+                        <ShoppingCart
+                          className="text-white dark:text-white hover:opacity-80 transition-opacity"
                           size={28}
                           strokeWidth={2}
                         />
                       </div>
-                    </div>
-
-                    <div
-                      className="cursor-pointer"
-                      onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                      onMouseLeave={(e) =>
-                        handleHoverScaleExit(e.currentTarget)
-                      }
-                      onMouseDown={(e) => handleTapScale(e.currentTarget)}>
-                      <ShoppingCart
-                        className="text-white dark:text-white hover:opacity-80 transition-opacity"
-                        size={28}
-                        strokeWidth={2}
-                      />
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -368,7 +411,7 @@ const Header = () => {
                           </div>
                         </div>
                       </Link>
-                      {/* Divider - only show between items, not after the last one */}
+                      {/* Divider - only show between items */}
                       {index < navItems.length - 1 && (
                         <div className="mx-8">
                           <div className="h-px bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
@@ -376,6 +419,39 @@ const Header = () => {
                       )}
                     </div>
                   ))}
+                  {!user && (
+                    <div
+                      ref={(el) => addToMenuItemsRef(el, navItems.length)}
+                      className="opacity-0">
+                      <Link
+                        href="/auth/login"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="group block">
+                        <div className="relative py-5 px-8">
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-2" />
+                          <div className="relative flex items-center justify-between">
+                            <span className="text-4xl font-montserrat text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
+                              Login
+                            </span>
+                            <div className="opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                              <svg
+                                className="w-6 h-6 text-white/70"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
