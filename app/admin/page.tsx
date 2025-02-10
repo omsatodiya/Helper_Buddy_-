@@ -12,6 +12,8 @@ import { PaymentsCard } from '@/components/admin/PaymentsCard';
 import { cn } from '@/lib/utils';
 import { getFirestore, getDocs, collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface UserStats {
   totalUsers: number;
@@ -30,6 +32,7 @@ export default function AdminDashboard() {
     growthRate: 0
   });
   const router = useRouter();
+  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals
 
   useEffect(() => {
     const header = headerRef.current;
@@ -78,6 +81,17 @@ export default function AdminDashboard() {
 
     fetchStats();
   }, []);
+
+  const renderTable = () => {
+    switch (activeTable) {
+      case "payments":
+        return <PaymentsCard />;
+      case "referrals":
+        return <ReferralsCard />;
+      default:
+        return <UsersCard />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
@@ -168,12 +182,31 @@ export default function AdminDashboard() {
             />
           </div>
 
-          {/* Users and Referrals */}
-          <div className="space-y-4">
-            <UsersCard />
-            <PaymentsCard />
-            <ReferralsCard />
+          {/* Table Selection */}
+          <div className="flex items-center space-x-6">
+            <RadioGroup
+              defaultValue="users"
+              value={activeTable}
+              onValueChange={setActiveTable}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="users" id="users" />
+                <Label htmlFor="users">All Users</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="payments" id="payments" />
+                <Label htmlFor="payments">Recent Payments</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="referrals" id="referrals" />
+                <Label htmlFor="referrals">Referral History</Label>
+              </div>
+            </RadioGroup>
           </div>
+
+          {/* Dynamic Table */}
+          {renderTable()}
         </main>
       </div>
     </div>

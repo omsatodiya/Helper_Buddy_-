@@ -63,7 +63,7 @@ export function PaymentsCard() {
           <table className="w-full table-fixed text-sm text-black dark:text-white">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                <th className={columnStyles.name}>Type</th>
+                <th className={columnStyles.name}>Time</th>
                 <th className={columnStyles.email}>Email</th>
                 <th className={columnStyles.role}>Amount</th>
                 <th className={columnStyles.coins}>Status</th>
@@ -74,7 +74,11 @@ export function PaymentsCard() {
               {payments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="p-4">
-                    <span className="font-medium">Payment</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-black/60 dark:text-white/60">
+                        {new Date(payment.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
                   </td>
                   <td className="p-4 truncate text-black/60 dark:text-white/60">
                     {payment.userEmail}
