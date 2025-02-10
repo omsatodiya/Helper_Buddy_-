@@ -145,7 +145,7 @@ const Blog: React.FC = () => {
               className="blog-card bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-[480px] border border-gray-100 transform hover:-translate-y-1"
             >
               <div 
-                onClick={() => handleBlogClick(post.id)}
+                onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
                 className="relative h-72 overflow-hidden bg-gray-100 cursor-pointer group/image"
               >
                 {post.imageUrl ? (
@@ -155,10 +155,16 @@ const Blog: React.FC = () => {
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <span className="text-white font-medium text-sm bg-black/40 px-4 py-2 rounded-full opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0 transition-all duration-300">
+                        View Full Post
+                      </span>
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <div 
+                    className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover/image:bg-gray-150 transition-colors"
+                  >
                     <span className="text-gray-400 font-medium">No image available</span>
                   </div>
                 )}

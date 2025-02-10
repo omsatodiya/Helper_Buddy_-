@@ -1,23 +1,24 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { BlogModel } from '../BlogModel';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
 interface BlogPost {
-  _id: string;
+  id: string;
   title: string;
   author: string;
-  publishedDate: string;
-  readTime: string;
+  publishedDate?: string;
+  readTime?: string;
   description: string;
-  fullDescription: string;
-  imageUrl: string;
-  tags: string[];
+  fullDescription?: string;
+  imageUrl?: string;
+  tags?: string[];
 }
 
 export default function WholeBlog() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [blog, setBlog] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,20 +26,13 @@ export default function WholeBlog() {
   useEffect(() => {
     const fetchBlog = async () => {
       try {
-        console.log('Fetching blog with ID:', params.id);
-        // Updated fetch URL to match your API route
-        const response = await fetch(`/api/blogs/wholeblog?id=${params.id}`);
-        console.log('Response status:', response.status);
+        const id = searchParams.get('id');
+        if (!id) throw new Error('Blog ID is missing');
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Error response:', errorData);
-          throw new Error('Failed to fetch blog');
-        }
+        const blogData = await BlogModel.getById(id);
+        if (!blogData) throw new Error('Blog not found');
         
-        const data = await response.json();
-        console.log('Received blog data:', data);
-        setBlog(data);
+        setBlog(blogData);
       } catch (error) {
         console.error('Fetch error:', error);
         router.push('/blog');
@@ -47,18 +41,31 @@ export default function WholeBlog() {
       }
     };
 
-    if (params.id) {
-      fetchBlog();
+    fetchBlog();
+  }, [searchParams, router]);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return '';
     }
-  }, [params.id, router]);
+  };
 
   if (isLoading) {
     return (
       <>
         <Header />
-        <main className="min-h-screen pt-20 bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
           <div className="flex justify-center items-center min-h-[60vh]">
-            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
           </div>
         </main>
         <Footer />
@@ -70,12 +77,12 @@ export default function WholeBlog() {
     return (
       <>
         <Header />
-        <main className="min-h-screen pt-20 bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-12">
           <div className="text-center py-20">
             <h1 className="text-2xl font-bold text-gray-800">Blog not found</h1>
             <button 
               onClick={() => router.push('/blog')}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="mt-4 px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               Back to Blogs
             </button>
@@ -89,57 +96,71 @@ export default function WholeBlog() {
   return (
     <>
       <Header />
-      <main className="min-h-screen pt-20 bg-gray-50">
-        <article className="max-w-5xl mx-auto px-4 py-12">
-          {/* Hero Image */}
-          <div className="relative w-full h-[500px] rounded-2xl overflow-hidden mb-8">
-            <img
-              src={blog.imageUrl}
-              alt={blog.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Content */}
-          <div className="bg-white rounded-2xl p-8 shadow-sm">
-            {/* Title */}
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">
-              {blog.title}
-            </h1>
-
-            {/* Meta Info */}
-            <div className="flex items-center justify-between text-gray-600 mb-8">
-              <div className="flex items-center space-x-4">
-                <span className="font-medium text-gray-900">{blog.author}</span>
-                <span>•</span>
-                <time>
-                  {new Date(blog.publishedDate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </time>
+      <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <article className="max-w-4xl mx-auto px-4">
+          <div className="pt-32 pb-16">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 font-playfair leading-tight">
+                {blog.title}
+              </h1>
+              <div className="flex flex-col items-center space-y-4">
+                <div className="text-lg text-gray-600">
+                  By <span className="font-semibold text-gray-900">{blog.author}</span>
+                </div>
+                {blog.publishedDate && (
+                  <div className="flex items-center space-x-2 text-gray-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm">Released on {formatDate(blog.publishedDate)}</span>
+                  </div>
+                )}
               </div>
-              <span>{blog.readTime}</span>
             </div>
 
-            {/* Description */}
-            <div className="text-gray-700 leading-relaxed space-y-6">
-              <p className="text-xl font-medium text-gray-600">
+            {blog.imageUrl && (
+              <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden mb-12 shadow-xl">
+                <img
+                  src={blog.imageUrl}
+                  alt={blog.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            <div className="prose prose-lg max-w-none">
+              <div className="text-xl md:text-2xl text-gray-600 mb-12 font-medium leading-relaxed border-l-4 border-gray-900 pl-6">
                 {blog.description}
-              </p>
-              <div className="whitespace-pre-wrap">
-                {blog.fullDescription}
               </div>
+              
+              {blog.fullDescription && (
+                <div className="text-gray-800 leading-relaxed space-y-6">
+                  {blog.fullDescription.split('\n\n').map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Back Button */}
-            <div className="mt-12 text-center">
+            <div className="mt-16 text-center">
               <button 
                 onClick={() => router.push('/blog')}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                className="group px-8 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all duration-300 inline-flex items-center space-x-3 hover:-translate-x-1"
               >
-                Back to Blogs
+                <svg 
+                  className="w-5 h-5 transform transition-transform duration-300 group-hover:-translate-x-1" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                <span>Back to Blogs</span>
               </button>
             </div>
           </div>
