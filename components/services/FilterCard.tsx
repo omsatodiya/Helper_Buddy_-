@@ -3,6 +3,13 @@ import React from "react";
 import Image from "next/image";
 import { Star, X } from "lucide-react";
 import { Button } from "../ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface ServiceOption {
   id: string;
@@ -23,9 +30,11 @@ interface FilterCardProps {
   selectedService: string | null;
   selectedPriceRanges: string[];
   minReviewRating: number | null;
+  sortOption: string;
   onServiceSelect: (serviceId: string) => void;
   onPriceRangeChange: (priceRanges: string[]) => void;
   onReviewRatingChange: (rating: number) => void;
+  onSortChange: (option: string) => void;
   onClearServiceFilter: () => void;
   onClearPriceRange: (rangeId: string) => void;
   onClearReviewFilter: () => void;
@@ -36,9 +45,11 @@ function FilterCard({
   selectedService,
   selectedPriceRanges,
   minReviewRating,
+  sortOption,
   onServiceSelect,
   onPriceRangeChange,
   onReviewRatingChange,
+  onSortChange,
   onClearServiceFilter,
   onClearPriceRange,
   onClearReviewFilter,
@@ -70,6 +81,16 @@ function FilterCard({
     { rating: 2, label: "2 Star and above" },
   ];
 
+  const sortOptions = [
+    { id: "newest", label: "Newest First" },
+    { id: "oldest", label: "Oldest First" },
+    { id: "trending", label: "Trending" },
+    { id: "price_low_high", label: "Price: Low to High" },
+    { id: "price_high_low", label: "Price: High to Low" },
+    { id: "rating_high_low", label: "Rating: High to Low" },
+    { id: "most_reviewed", label: "Most Reviewed" },
+  ];
+
   const handlePriceRangeClick = (rangeId: string) => {
     const newSelectedRanges = selectedPriceRanges.includes(rangeId)
       ? selectedPriceRanges.filter((id) => id !== rangeId)
@@ -79,6 +100,25 @@ function FilterCard({
 
   return (
     <div className="rounded-lg p-4 my-5 border md:w-[350px]">
+      {/* Sort Options Dropdown - Moved to top */}
+      <div className="border-b p-3">
+        <h2 className="text-lg font-semibold ml-2 text-gray-500 mb-4">
+          Sort By
+        </h2>
+        <Select value={sortOption} onValueChange={onSortChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select sorting option" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Active Filters */}
       {(selectedService ||
         selectedPriceRanges.length > 0 ||
@@ -127,7 +167,7 @@ function FilterCard({
       )}
 
       {/* Services Selection */}
-      <h2 className="text-lg hidden md:block font-semibold ml-2 text-gray-500 mb-4">
+      {/* <h2 className="text-lg hidden md:block font-semibold ml-2 text-gray-500 mb-4">
         Select a service
       </h2>
       <div className="grid grid-cols-3 border-b pb-4 gap-4">
@@ -160,7 +200,7 @@ function FilterCard({
             </span>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Price Ranges */}
       <div className="border-b p-3">
@@ -232,11 +272,7 @@ function FilterCard({
 
       {/* Reset Filters Button */}
       <div className="flex w-full items-center justify-center">
-        <Button
-          variant={"destructive"}
-          className="mt-3 "
-          onClick={onResetFilters}
-        >
+        <Button variant="destructive" className="mt-3" onClick={onResetFilters}>
           Reset Filters
         </Button>
       </div>

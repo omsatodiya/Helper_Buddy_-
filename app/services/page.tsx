@@ -4,26 +4,76 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import FilterCard from "@/components/services/FilterCard";
 import ServiceCard from "@/components/services/ServiceCard";
+import ServiceModal from "@/components/services/serviceModal";
 import { Filter, X } from "lucide-react";
+import Header from "@/components/layout/Header";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  query,
+  where,
+} from "firebase/firestore";
+import AddServiceForm from "@/components/services/AddServiceForm";
+import { Button } from "@/components/ui/button";
+import { Service, SimpleService } from "@/types/service";
 
-interface Service {
-  _id: string;
-  name: string;
-  details: string;
-  price: number;
-  review: number;
-  category: string;
-  imageUrl?: string;
-}
+type ServiceCategory =
+  | "electrician"
+  | "plumber"
+  | "carpenter"
+  | "bathroom_kitchen_cleaning"
+  | "sofa_carpet_cleaning"
+  | "ac_repair"
+  | "chimney_repair"
+  | "water_purifier_repair"
+  | "microwave_repair"
+  | "refrigerator_repair";
 
-interface PriceRange {
+interface ServiceProvider {
   id: string;
-  label: string;
-  min: number;
-  max: number | null;
+  name: string;
+  email: string;
+  phone: string;
+  rating: number;
+  totalServices: number;
 }
 
-const priceRanges: PriceRange[] = [
+interface ServiceReview {
+  id: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment: string;
+  userName: string;
+  userEmail: string;
+  date: string;
+  helpful: number;
+  reply?: {
+    comment: string;
+    date: string;
+  };
+}
+
+interface ServiceImage {
+  url: string;
+  alt: string;
+  isPrimary: boolean;
+}
+
+interface ServicePricing {
+  basePrice: number;
+  discountedPrice?: number;
+  unit: "per_hour" | "fixed" | "per_day";
+  minimumCharge?: number;
+  additionalCharges?: {
+    name: string;
+    amount: number;
+    description?: string;
+  }[];
+}
+
+const priceRanges = [
   { id: "under-100", label: "Under ₹100", min: 0, max: 100 },
   { id: "100-500", label: "₹100 - ₹500", min: 100, max: 500 },
   { id: "500-1000", label: "₹500 - ₹1000", min: 500, max: 1000 },
@@ -36,51 +86,84 @@ export default function ServicesPage() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
 
-  // States for services and loading
-  const [services, setServices] = useState<Service[]>([]);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<SimpleService[]>([]);
+  const [filteredServices, setFilteredServices] = useState<SimpleService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   // Filter states
-  const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
   const [minReviewRating, setMinReviewRating] = useState<number | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Fetch services
-  useEffect(() => {
-    async function fetchServices() {
-      try {
-        setLoading(true);
-        const url = category
-          ? `/api/services?category=${category}`
-          : "/api/services";
+  // Add these state variables
+  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+  const [sortOption, setSortOption] = useState("newest");
 
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to fetch services");
+  // Extract fetchServices function outside useEffect
+  async function fetchServices() {
+    try {
+      setLoading(true);
+      let servicesQuery;
 
-        const data = await res.json();
-        setServices(data);
-        setFilteredServices(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      if (category) {
+        servicesQuery = query(
+          collection(db, "services"),
+          where("category", "==", category)
+        );
+      } else {
+        servicesQuery = collection(db, "services");
       }
-    }
 
+      const querySnapshot = await getDocs(servicesQuery);
+      const servicesData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Service[];
+
+      const transformedServices: SimpleService[] = servicesData.map(
+        (service) => ({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          details: service.details ?? "",
+          rating: service.rating ?? 0,
+          totalReviews: service.reviews?.length ?? 0,
+          category: service.category ?? "",
+          imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
+          createdAt: service.createdAt || new Date().toISOString(),
+          updatedAt: service.updatedAt || new Date().toISOString(),
+        })
+      );
+
+      setServices(transformedServices);
+      setFilteredServices(transformedServices);
+    } catch (err: any) {
+      console.error("Error fetching services:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Use fetchServices in useEffect
+  useEffect(() => {
     fetchServices();
   }, [category]);
 
-  // Apply filters
+  // Apply filters and sorting
   useEffect(() => {
     let filtered = services;
 
+    // Apply existing filters
     if (selectedService) {
       filtered = filtered.filter(
         (service) =>
-          service.category.toLowerCase() === selectedService.toLowerCase()
+          service.category?.toLowerCase() ===
+          selectedService.category?.toLowerCase()
       );
     }
 
@@ -89,7 +172,6 @@ export default function ServicesPage() {
         return selectedPriceRanges.some((rangeId) => {
           const range = priceRanges.find((r) => r.id === rangeId);
           if (!range) return false;
-
           if (range.max === null) {
             return service.price >= range.min;
           }
@@ -100,14 +182,54 @@ export default function ServicesPage() {
 
     if (minReviewRating !== null) {
       filtered = filtered.filter(
-        (service) => service.review >= minReviewRating
+        (service) =>
+          service.rating !== undefined && service.rating >= minReviewRating
       );
     }
 
-    setFilteredServices(filtered);
-  }, [selectedService, selectedPriceRanges, minReviewRating, services]);
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortOption) {
+        case "newest":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        case "trending":
+          // Sort by a combination of recent reviews and rating
+          const aScore =
+            a.rating * a.totalReviews +
+            new Date(a.updatedAt).getTime() / 1000000000;
+          const bScore =
+            b.rating * b.totalReviews +
+            new Date(b.updatedAt).getTime() / 1000000000;
+          return bScore - aScore;
+        case "price_low_high":
+          return a.price - b.price;
+        case "price_high_low":
+          return b.price - a.price;
+        case "rating_high_low":
+          return b.rating - a.rating;
+        case "most_reviewed":
+          return b.totalReviews - a.totalReviews;
+        default:
+          return 0;
+      }
+    });
 
-  // Filter clearing handlers
+    setFilteredServices(sorted);
+  }, [
+    selectedService,
+    selectedPriceRanges,
+    minReviewRating,
+    services,
+    sortOption,
+  ]);
+
+  // Filter handlers
   const handleClearServiceFilter = () => {
     setSelectedService(null);
   };
@@ -125,6 +247,7 @@ export default function ServicesPage() {
     setSelectedPriceRanges([]);
     setMinReviewRating(null);
     setIsFilterOpen(false);
+    setSortOption("newest");
   };
 
   const handleAddToCart = (serviceId: string) => {
@@ -133,6 +256,148 @@ export default function ServicesPage() {
 
   const handleBuyNow = (serviceId: string) => {
     console.log(`Buying service ${serviceId}`);
+  };
+
+  // Modal handlers
+  const handleServiceClick = async (service: SimpleService) => {
+    try {
+      const serviceDoc = await getDoc(doc(db, "services", service.id));
+
+      if (!serviceDoc.exists()) {
+        throw new Error("Service not found");
+      }
+
+      const fullService = {
+        id: serviceDoc.id,
+        ...serviceDoc.data(),
+      } as Service;
+
+      setSelectedService(fullService);
+      setIsModalOpen(true);
+
+      // Update the service in filteredServices with new data
+      setFilteredServices((prev) =>
+        prev.map((s) =>
+          s.id === service.id
+            ? {
+                ...s,
+                rating: fullService.rating ?? 0,
+                totalReviews: fullService.reviews?.length ?? 0,
+              }
+            : s
+        )
+      );
+    } catch (error) {
+      console.error("Error fetching service details:", error);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedService(null);
+  };
+
+  // Add this function to refresh services after adding a new one
+  const handleServiceAdded = () => {
+    // Refetch services
+    setServices([]); // Clear services first
+    fetchServices(); // Assuming fetchServices is the function that loads services
+  };
+
+  const handleServiceDeleted = () => {
+    // Remove the deleted service from the lists
+    const updatedServices = services.filter(
+      (s) => s.id !== selectedService?.id
+    );
+    const updatedFilteredServices = filteredServices.filter(
+      (s) => s.id !== selectedService?.id
+    );
+
+    setServices(updatedServices);
+    setFilteredServices(updatedFilteredServices);
+    setSelectedService(null);
+    setIsModalOpen(false);
+  };
+
+  const handleReviewAdded = (updatedService: Service) => {
+    // Update services list
+    setServices((prevServices) =>
+      prevServices.map((s) =>
+        s.id === updatedService.id
+          ? {
+              ...s,
+              rating: updatedService.rating ?? 0,
+              totalReviews: updatedService.reviews?.length ?? 0,
+            }
+          : s
+      )
+    );
+
+    // Update filtered services list
+    setFilteredServices((prevFiltered) =>
+      prevFiltered.map((s) =>
+        s.id === updatedService.id
+          ? {
+              ...s,
+              rating: updatedService.rating ?? 0,
+              totalReviews: updatedService.reviews?.length ?? 0,
+            }
+          : s
+      )
+    );
+
+    // Update selected service
+    setSelectedService(updatedService);
+  };
+
+  const handleServiceUpdated = (updatedService: Service) => {
+    // Update services list
+    setServices((prevServices) =>
+      prevServices.map((s) =>
+        s.id === updatedService.id
+          ? {
+              ...s,
+              name: updatedService.name,
+              description: updatedService.description,
+              price: updatedService.price,
+              details: updatedService.details ?? "",
+              rating: updatedService.rating ?? 0,
+              totalReviews: updatedService.reviews?.length ?? 0,
+              category: updatedService.category ?? "",
+              imageUrl:
+                updatedService.images?.[0]?.url || "/placeholder-image.jpg",
+            }
+          : s
+      )
+    );
+
+    // Update filtered services list
+    setFilteredServices((prevFiltered) =>
+      prevFiltered.map((s) =>
+        s.id === updatedService.id
+          ? {
+              ...s,
+              name: updatedService.name,
+              description: updatedService.description,
+              price: updatedService.price,
+              details: updatedService.details ?? "",
+              rating: updatedService.rating ?? 0,
+              totalReviews: updatedService.reviews?.length ?? 0,
+              category: updatedService.category ?? "",
+              imageUrl:
+                updatedService.images?.[0]?.url || "/placeholder-image.jpg",
+            }
+          : s
+      )
+    );
+
+    // Update selected service in modal
+    setSelectedService(updatedService);
+  };
+
+  // Add sort handler
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
   };
 
   if (loading) {
@@ -153,6 +418,13 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Add the AddServiceForm component */}
+      <AddServiceForm
+        isOpen={isAddServiceOpen}
+        onClose={() => setIsAddServiceOpen(false)}
+        onServiceAdded={handleServiceAdded}
+      />
+
       {/* Mobile Filter Button */}
       <div className="md:hidden fixed bottom-4 right-4 z-50">
         <button
@@ -175,47 +447,105 @@ export default function ServicesPage() {
                 <X className="w-6 h-6" />
               </button>
               <FilterCard
-                selectedService={selectedService}
+                selectedService={selectedService ? selectedService.id : null}
                 selectedPriceRanges={selectedPriceRanges}
                 minReviewRating={minReviewRating}
-                onServiceSelect={(service) => {
-                  setSelectedService(service);
+                sortOption={sortOption}
+                onServiceSelect={async (serviceId: string) => {
+                  try {
+                    const response = await fetch(`/api/services/${serviceId}`);
+                    if (!response.ok)
+                      throw new Error("Failed to fetch service details");
+
+                    const fullService: Service = await response.json();
+
+                    const serviceWithDetails: Service = {
+                      ...fullService,
+                      serviceTime: fullService.serviceTime,
+                    };
+
+                    setSelectedService(serviceWithDetails);
+                  } catch (error) {
+                    console.error("Error fetching service details:", error);
+                  }
                   setIsFilterOpen(false);
                 }}
                 onPriceRangeChange={setSelectedPriceRanges}
                 onReviewRatingChange={setMinReviewRating}
+                onSortChange={handleSortChange}
                 onClearServiceFilter={handleClearServiceFilter}
                 onClearPriceRange={handleClearPriceRange}
                 onClearReviewFilter={handleClearReviewFilter}
-                onResetFilters={handleResetFilters}
+                onResetFilters={() => {
+                  handleResetFilters();
+                  setSortOption("newest");
+                }}
               />
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto p-4">
-        {/* Page Header */}
-        <h1 className="text-2xl md:text-3xl font-bold mb-6">
-          {category
-            ? category.charAt(0).toUpperCase() + category.slice(1)
-            : "All Services"}
-        </h1>
+      {/* Service Modal */}
+      {isModalOpen && selectedService && (
+        <ServiceModal
+          service={selectedService}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onServiceDeleted={handleServiceDeleted}
+          onReviewAdded={handleReviewAdded}
+          onServiceUpdated={handleServiceUpdated}
+        />
+      )}
+
+      <Header />
+      <div className="max-w-7xl mx-auto mt-20 p-4">
+        {/* Add the Add Service button in the header section */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {category
+              ? category.charAt(0).toUpperCase() + category.slice(1)
+              : "All Services"}
+          </h1>
+          <Button onClick={() => setIsAddServiceOpen(true)}>Add Service</Button>
+        </div>
 
         <div className="flex flex-col md:flex-row md:gap-14">
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard
-              selectedService={selectedService}
+              selectedService={selectedService ? selectedService.id : null}
               selectedPriceRanges={selectedPriceRanges}
               minReviewRating={minReviewRating}
-              onServiceSelect={setSelectedService}
+              sortOption={sortOption}
+              onServiceSelect={async (serviceId: string) => {
+                try {
+                  const response = await fetch(`/api/services/${serviceId}`);
+                  if (!response.ok)
+                    throw new Error("Failed to fetch service details");
+
+                  const fullService: Service = await response.json();
+
+                  const serviceWithDetails: Service = {
+                    ...fullService,
+                    serviceTime: fullService.serviceTime,
+                  };
+
+                  setSelectedService(serviceWithDetails);
+                } catch (error) {
+                  console.error("Error fetching service details:", error);
+                }
+              }}
               onPriceRangeChange={setSelectedPriceRanges}
               onReviewRatingChange={setMinReviewRating}
+              onSortChange={handleSortChange}
               onClearServiceFilter={handleClearServiceFilter}
               onClearPriceRange={handleClearPriceRange}
               onClearReviewFilter={handleClearReviewFilter}
-              onResetFilters={handleResetFilters}
+              onResetFilters={() => {
+                handleResetFilters();
+                setSortOption("newest");
+              }}
             />
           </div>
 
@@ -228,7 +558,6 @@ export default function ServicesPage() {
                 minReviewRating) && (
                 <div className="flex flex-wrap gap-2">
                   <span className="text-sm text-gray-500">Active filters:</span>
-                  {/* ... (filter tags) */}
                 </div>
               )}
             </div>
@@ -241,15 +570,16 @@ export default function ServicesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {filteredServices.map((service) => (
                   <ServiceCard
-                    key={service._id}
+                    key={service.id}
                     title={service.name}
                     price={service.price}
-                    rating={service.review}
-                    totalRatings={3}
-                    description={service.details}
+                    rating={service.rating}
+                    totalRatings={service.totalReviews}
+                    description={service.description}
                     imageUrl={service.imageUrl || "/api/placeholder/400/300"}
-                    onAddToCart={() => handleAddToCart(service._id)}
-                    onBuyNow={() => handleBuyNow(service._id)}
+                    onAddToCart={() => handleAddToCart(service.id)}
+                    onBuyNow={() => handleBuyNow(service.id)}
+                    onClick={() => handleServiceClick(service)}
                   />
                 ))}
               </div>
