@@ -1,14 +1,16 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import FAQ from '@/components/faq/FAQ'
+import Testimonials from "@/components/ui/Testimonials"
 
 export default function Home() {
+
+
+
   return (
     <>
       <Header />
-      <div className="h-screen">
-        <FAQ />
-      </div>
+      <div className="h-screen"></div>  
+      <Testimonials  />
       <Footer />
     </>
   );
