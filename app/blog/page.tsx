@@ -27,7 +27,7 @@ export default function BlogPage() {
           loading ? "opacity-0" : "opacity-100"
         }`}>
         <Header />
-        <div className="h-10"></div>
+        <div className="h-20"></div>
         <Blog />
         <Footer />
       </main>
