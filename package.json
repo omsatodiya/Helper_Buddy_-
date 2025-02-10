@@ -31,7 +31,11 @@
     "razorpay": "^2.9.5",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "add": "^2.0.6",
+    "button": "^1.1.1",
+    "dialog": "^0.3.1",
     "react-icons": "^5.4.0",
+    "shadcn-ui": "^0.9.4",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.3"
