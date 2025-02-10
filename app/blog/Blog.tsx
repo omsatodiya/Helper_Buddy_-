@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
-import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
-import SafeImage from '@/components/SafeImage';
 import gsap from 'gsap';
 import { BlogModel } from './BlogModel';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PlusCircle, Clock, User, Tag } from 'lucide-react';
 
 interface BlogPost {
   id: string;
@@ -26,19 +25,18 @@ const Blog: React.FC = () => {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Add state for dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'edit' | 'delete'>('edit');
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const blogCardsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
         const blogs = await BlogModel.getAll();
-        setBlogPosts(blogs);
+        setBlogPosts(blogs as BlogPost[]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -49,266 +47,242 @@ const Blog: React.FC = () => {
     fetchBlogs();
   }, []);
 
+  const getAllTags = () => {
+    const tags = blogPosts.flatMap(post => post.tags);
+    return Array.from(new Set(tags));
+  };
+
+  const filteredPosts = selectedTag
+    ? blogPosts.filter(post => post.tags.includes(selectedTag))
+    : blogPosts;
+
   useEffect(() => {
-    if (!isLoading && containerRef.current) {
-      gsap.from('.blog-title', {
-        opacity: 0,
-        y: -20,
-        duration: 0.5,
-        ease: 'power2.out'
-      });
-
-      gsap.set(cardsRef.current, {
-        opacity: 1,
-        y: 0
-      });
+    if (!isLoading && blogCardsRef.current.length > 0) {
+      gsap.fromTo(
+        blogCardsRef.current,
+        { 
+          opacity: 0, 
+          y: 20 
+        },
+        { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out"
+        }
+      );
     }
-  }, [isLoading]);
-
-  const handleBlogClick = (id: string) => {
-    router.push(`/blog/wholeblog?id=${id}&type=whole`);
-  };
-
-  const handleEditClick = (blog: BlogPost) => {
-    setSelectedBlog(blog);
-    setDialogType('edit');
-    setDialogOpen(true);
-  };
-
-  const handleDeleteClick = (blog: BlogPost) => {
-    setSelectedBlog(blog);
-    setDialogType('delete');
-    setDialogOpen(true);
-  };
-
-  const handleConfirmDialog = async () => {
-    if (!selectedBlog) return;
-
-    try {
-      if (dialogType === 'delete') {
-        await BlogModel.delete(selectedBlog.id);
-        setBlogPosts(prevPosts => prevPosts.filter(post => post.id !== selectedBlog.id));
-      } else {
-        router.push(`/blog/editblog?id=${selectedBlog.id}`);
-      }
-    } catch (error) {
-      console.error(`${dialogType} error:`, error);
-    } finally {
-      setDialogOpen(false);
-      setSelectedBlog(null);
-    }
-  };
+  }, [isLoading, filteredPosts]);
 
   const formatDate = (dateString: string) => {
-    const date = dateString ? new Date(dateString) : new Date();
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return date.toLocaleDateString('en-US', options);
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-pulse space-y-8 w-full max-w-6xl">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-gray-100 h-64 rounded-xl"></div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center text-red-500 p-4">
-        Error: {error}
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="bg-red-50 rounded-full p-4 mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Blogs</h3>
+        <p className="text-gray-600">{error}</p>
+        <Button 
+          onClick={() => window.location.reload()} 
+          className="mt-4"
+          variant="outline"
+        >
+          Try Again
+        </Button>
       </div>
     );
   }
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-16" ref={containerRef}>
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="text-center mb-16">
-          <h2 className="blog-title text-4xl md:text-5xl font-bold text-gray-800 font-playfair mb-4">
-            Our Blog
-          </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto font-inter">
-            Discover our latest thoughts, ideas, and insights about beauty, lifestyle, and wellness.
-          </p>
+    <section className="py-16 px-4" ref={containerRef}>
+      <div className="max-w-7xl mx-auto">
+        {/* Tags Filter */}
+        <div className="mb-8 overflow-x-auto">
+          <div className="flex space-x-2 pb-2">
+            <Button
+              onClick={() => setSelectedTag(null)}
+              variant={selectedTag === null ? "default" : "outline"}
+              className="whitespace-nowrap"
+            >
+              All Posts
+            </Button>
+            {getAllTags().map((tag) => (
+              <Button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                variant={selectedTag === tag ? "default" : "outline"}
+                className="whitespace-nowrap"
+              >
+                {tag}
+              </Button>
+            ))}
+          </div>
         </div>
 
+        {/* Blog Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogPosts.map((post, index) => (
-            <div 
+          {filteredPosts.map((post, index) => (
+            <div
               key={post.id}
-              ref={el => cardsRef.current[index] = el}
-              className="blog-card bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-[480px] border border-gray-100 transform hover:-translate-y-1"
+              ref={(el: HTMLDivElement | null) => {
+                if (el) {
+                  blogCardsRef.current[index] = el;
+                }
+              }}
+              className="opacity-0 group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
-              <div 
-                onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
-                className="relative h-72 overflow-hidden bg-gray-100 cursor-pointer group/image"
-              >
-                {post.imageUrl ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={post.imageUrl}
-                      alt={post.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <span className="text-white font-medium text-sm bg-black/40 px-4 py-2 rounded-full opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0 transition-all duration-300">
-                        View Full Post
-                      </span>
+              <div className="aspect-w-16 aspect-h-9 relative overflow-hidden">
+                <img
+                  src={post.imageUrl}
+                  alt={post.title}
+                  className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/blog/editblog?id=${post.id}`);
+                        }}
+                        size="sm"
+                        variant="secondary"
+                        className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300"
+                      >
+                        Edit
+                      </Button>
                     </div>
                   </div>
-                ) : (
-                  <div 
-                    className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover/image:bg-gray-150 transition-colors"
-                  >
-                    <span className="text-gray-400 font-medium">No image available</span>
-                  </div>
-                )}
+                </div>
               </div>
-              
-              <div className="p-5 flex flex-col flex-grow bg-white">
-                {post.tags && post.tags.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    {post.tags.slice(0, 2).map((tag, tagIndex) => (
-                      <span 
-                        key={tagIndex}
-                        className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold uppercase tracking-wide"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {post.tags.length > 2 && (
-                      <span className="text-xs font-medium text-gray-500">
-                        +{post.tags.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                )}
 
-                <h3 className="text-lg font-bold mb-2 text-gray-800 line-clamp-2 font-playfair hover:text-blue-600 transition-colors cursor-pointer">
+              <div className="p-6">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {post.tags.map((tag, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <h3 
+                  className="text-xl font-semibold mb-2 text-gray-900 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2"
+                  onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
+                >
                   {post.title}
                 </h3>
 
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-semibold text-gray-700">{post.author}</span>
-                  <div className="flex items-center space-x-2 text-gray-500">
-                    <span className="font-medium">{formatDate(post.publishedDate)}</span>
-                    {post.readTime && (
-                      <>
-                        <span>•</span>
-                        <span className="font-medium">{post.readTime}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow font-inter leading-relaxed">
+                <p className="text-gray-600 line-clamp-2 mb-4">
                   {post.description}
                 </p>
 
-                <div className="mt-auto pt-3 border-t border-gray-100">
-                  <div className="flex justify-end space-x-3">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditClick(post);
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="px-4 py-2 text-sm font-semibold bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 transition-all duration-200"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(post);
-                      }}
-                      variant="destructive"
-                      size="sm"
-                      className="px-4 py-2 text-sm font-semibold bg-white hover:bg-red-50 text-red-600 border-red-200 hover:border-red-300 transition-all duration-200"
-                    >
-                      Delete
-                    </Button>
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span>{post.author}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4" />
+                    <span>{post.readTime}</span>
                   </div>
                 </div>
               </div>
             </div>
           ))}
 
-          <Button
+          {/* Add New Blog Card */}
+          <div
+            ref={(el: HTMLDivElement | null) => {
+              if (el) {
+                blogCardsRef.current[filteredPosts.length] = el;
+              }
+            }}
+            className="opacity-0 border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 cursor-pointer group"
             onClick={() => router.push('/blog/newblog')}
-            className="relative bg-white h-[480px] rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50 group transform hover:-translate-y-1"
           >
-            <div className="flex flex-col items-center justify-center transform group-hover:scale-105 transition-transform duration-300">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-100 transition-colors">
-                <svg
-                  className="w-8 h-8 text-blue-500 group-hover:text-blue-600 transition-colors"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors font-playfair">
-                Add New Blog
-              </h3>
-              <p className="text-gray-500 text-base text-center font-medium group-hover:text-gray-600 transition-colors max-w-xs">
-                Create New Blog
-              </p>
-            </div>
-          </Button>
+            <PlusCircle className="w-12 h-12 text-blue-500 mb-4 group-hover:scale-110 transition-transform duration-300" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Create New Blog</h3>
+            <p className="text-gray-500">Share your thoughts with the world</p>
+          </div>
         </div>
+
+        {/* Empty State */}
+        {filteredPosts.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <div className="bg-gray-50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <Tag className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts found</h3>
+            <p className="text-gray-600">
+              {selectedTag 
+                ? `No posts found with the tag "${selectedTag}"`
+                : "Start by creating your first blog post"
+              }
+            </p>
+          </div>
+        )}
       </div>
 
+      {/* Confirmation Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-white rounded-2xl p-6">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900 font-playfair">
-              {dialogType === 'delete' ? 'Delete Blog' : 'Edit Blog'}
+            <DialogTitle>
+              {dialogType === 'delete' ? 'Delete Blog Post' : 'Edit Blog Post'}
             </DialogTitle>
-            <DialogDescription className="text-gray-600 mt-2 text-base">
+            <DialogDescription>
               {dialogType === 'delete' 
-                ? 'Are you sure you want to delete this blog? This action cannot be undone.'
-                : 'You are about to edit this blog post. Continue?'}
+                ? 'Are you sure you want to delete this blog post? This action cannot be undone.'
+                : 'You are about to edit this blog post.'}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedBlog && (
-            <div className="py-4 border-t border-b border-gray-100">
-              <h4 className="font-semibold text-gray-900 mb-2">{selectedBlog.title}</h4>
-              <p className="text-sm text-gray-600 leading-relaxed">{selectedBlog.description}</p>
-            </div>
-          )}
-
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="mr-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant={dialogType === 'delete' ? 'destructive' : 'default'}
-              onClick={handleConfirmDialog}
-              className={dialogType === 'delete' 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-gray-900 hover:bg-gray-800 text-white'}
+            <Button 
+              variant={dialogType === 'delete' ? "destructive" : "default"}
+              onClick={() => {
+                if (selectedBlog) {
+                  if (dialogType === 'delete') {
+                    BlogModel.delete(selectedBlog.id);
+                    setBlogPosts(posts => posts.filter(p => p.id !== selectedBlog.id));
+                  } else {
+                    router.push(`/blog/editblog?id=${selectedBlog.id}`);
+                  }
+                }
+                setDialogOpen(false);
+              }}
             >
-              {dialogType === 'delete' ? 'Delete' : 'Continue'}
+              {dialogType === 'delete' ? 'Delete' : 'Edit'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
-import Testimonials from "@/components/ui/Testimonials"
-import FAQ from "@/components/FAQ/FAQ"
+import Testimonials from "@/components/ui/Testimonials";
+import FAQ from "@/components/FAQ/FAQ";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -27,13 +27,11 @@ export default function Home() {
       <main
         className={`transition-opacity duration-300 ${
           loading ? "opacity-0" : "opacity-100"
-        }`}
-      >
+        }`}>
         <Header />
-        <div className="h-screen">
-          <FAQ />
-          <Testimonials />
-        </div>
+        <div className="h-screen"></div>
+        <FAQ />
+        <Testimonials />
         <Footer />
       </main>
     </>
