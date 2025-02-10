@@ -7,6 +7,8 @@ import { BlogModel } from './BlogModel';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlusCircle, Clock, User, Tag } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { auth } from '@/lib/firebase';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 interface BlogPost {
   id: string;
@@ -32,6 +34,7 @@ const Blog: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const blogCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -46,6 +49,36 @@ const Blog: React.FC = () => {
     };
 
     fetchBlogs();
+  }, []);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const db = getFirestore();
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data();
+        setIsAdmin(userData?.role === 'admin');
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        checkAdminStatus();
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const getAllTags = () => {
@@ -214,60 +247,62 @@ const Blog: React.FC = () => {
                 </div>
               </div>
 
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/blog/editblog?id=${post.id}`);
-                    }}
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white dark:bg-black border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedBlog(post);
-                      setDialogType('delete');
-                      setDialogOpen(true);
-                    }}
-                    size="sm"
-                    variant="destructive"
-                    className="bg-white dark:bg-black border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                  >
-                    Delete
-                  </Button>
+              {isAdmin && (
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/blog/editblog?id=${post.id}`);
+                      }}
+                      size="sm"
+                      variant="secondary"
+                      className="bg-white dark:bg-black border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBlog(post);
+                        setDialogType('delete');
+                        setDialogOpen(true);
+                      }}
+                      size="sm"
+                      variant="destructive"
+                      className="bg-white dark:bg-black border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
 
-          {/* Add New Blog Card */}
-          <div
-            ref={(el: HTMLDivElement | null) => {
-              if (el) blogCardsRef.current[filteredPosts.length] = el;
-            }}
-            onClick={() => router.push('/blog/newblog')}
-            className="opacity-0 group cursor-pointer relative border-2 border-dashed border-black/50 dark:border-white/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-black dark:hover:border-white bg-white dark:bg-black transition-all duration-300"
-          >
-            <div className="transform group-hover:scale-110 transition-transform duration-300">
-              <div className="bg-black/5 dark:bg-white/5 rounded-full p-4 mb-4">
-                <PlusCircle className="w-8 h-8 text-black dark:text-white" />
+          {isAdmin && (
+            <div
+              ref={(el: HTMLDivElement | null) => {
+                if (el) blogCardsRef.current[filteredPosts.length] = el;
+              }}
+              onClick={() => router.push('/blog/newblog')}
+              className="opacity-0 group cursor-pointer relative border-2 border-dashed border-black/50 dark:border-white/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-black dark:hover:border-white bg-white dark:bg-black transition-all duration-300"
+            >
+              <div className="transform group-hover:scale-110 transition-transform duration-300">
+                <div className="bg-black/5 dark:bg-white/5 rounded-full p-4 mb-4">
+                  <PlusCircle className="w-8 h-8 text-black dark:text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
+                  Create New Blog
+                </h3>
+                <p className="text-black/75 dark:text-white/75">
+                  Share your thoughts with the world
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
-                Create New Blog
-              </h3>
-              <p className="text-black/75 dark:text-white/75">
-                Share your thoughts with the world
-              </p>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Confirmation Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="bg-white dark:bg-black border border-black dark:border-white">
             <DialogHeader>
