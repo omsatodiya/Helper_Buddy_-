@@ -12,7 +12,7 @@ import { auth } from "@/lib/firebase";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { generateReferralCode } from '@/lib/utils/referral';
+import { generateReferralCode, processReferral } from '@/lib/utils/referral';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ interface FormData {
   state: string;
   pincode: string;
   gender: string;
+  referralCode?: string;
 }
 
 interface ValidationErrors {
@@ -105,6 +106,7 @@ export default function SignupForm() {
     {}
   );
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
@@ -248,6 +250,16 @@ export default function SignupForm() {
         // Send verification email
         await sendEmailVerification(userCredential.user);
         router.push(`/auth/verify-email?email=${formData.email}`);
+
+        // Process referral code if provided
+        if (referralCode) {
+          const success = await processReferral(referralCode, userId, formData.email);
+          if (!success) {
+            setError("Invalid or already used referral code");
+            return;
+          }
+        }
+
         return;
       }
 
@@ -272,6 +284,16 @@ export default function SignupForm() {
       };
 
       await setDoc(doc(db, "users", userId), userData);
+
+      // Process referral code if provided
+      if (referralCode) {
+        const success = await processReferral(referralCode, userId, formData.email);
+        if (!success) {
+          setError("Invalid or already used referral code");
+          return;
+        }
+      }
+
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -397,6 +419,18 @@ export default function SignupForm() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="referralCode">Have a referral code?</Label>
+                <Input
+                  id="referralCode"
+                  name="referralCode"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder="Enter referral code (optional)"
+                  className="h-10"
+                />
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full h-11" 
@@ -518,6 +552,18 @@ export default function SignupForm() {
                     </Select>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referralCode">Have a referral code?</Label>
+                <Input
+                  id="referralCode"
+                  name="referralCode"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder="Enter referral code (optional)"
+                  className="h-10"
+                />
               </div>
 
               {validationErrors.password && (

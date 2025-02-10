@@ -12,7 +12,7 @@ import { auth } from "@/lib/firebase";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { generateReferralCode } from '@/lib/utils/referral';
+import { generateReferralCode, processReferral } from '@/lib/utils/referral';
 
 import {
   Card,
@@ -49,6 +49,7 @@ interface UserData {
   state: string;
   pincode: string;
   gender: string;
+  referralCode?: string;
 }
 
 // Memoized Input Field Component
@@ -247,6 +248,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   const handleLoginChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,6 +292,15 @@ export default function LoginForm() {
     };
 
     await setDoc(doc(db, "users", uid), profileData);
+    
+    if (referralCode) {
+      const success = await processReferral(referralCode, uid, loginData.email);
+      if (!success) {
+        setError("Invalid or already used referral code");
+        return;
+      }
+    }
+
     if (!isGoogleUser) {
       await updateProfile(auth.currentUser!, {
         displayName: `${userData.firstName} ${userData.lastName}`,
@@ -488,6 +499,18 @@ export default function LoginForm() {
                   onChange={handleUserDataChange}
                   onGenderChange={handleGenderChange}
                 />
+
+                <div className="space-y-2">
+                  <Label htmlFor="referralCode">Have a referral code?</Label>
+                  <Input
+                    id="referralCode"
+                    name="referralCode"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    placeholder="Enter referral code (optional)"
+                    className="h-10"
+                  />
+                </div>
                 
                 <Button 
                   type="submit" 
