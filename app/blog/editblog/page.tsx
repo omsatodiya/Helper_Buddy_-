@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, Image as ImageIcon, Clock, User, FileText, Tags, Save, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import AdminProtected from '@/components/auth/AdminProtected';
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
@@ -442,4 +443,10 @@ const EditBlog = () => {
   );
 };
 
-export default EditBlog;
+export default function ProtectedEditBlog() {
+  return (
+    <AdminProtected>
+      <EditBlog />
+    </AdminProtected>
+  );
+}

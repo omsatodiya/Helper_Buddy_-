@@ -6,10 +6,11 @@ import { BlogModel } from '../BlogModel';
 import gsap from 'gsap';
 import { ArrowLeft, Image as ImageIcon, Clock, User, FileText, Tags } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import AdminProtected from '@/components/auth/AdminProtected';
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
-export default function NewBlog() {
+function NewBlog() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
@@ -505,5 +506,14 @@ export default function NewBlog() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the NewBlog component with AdminProtected
+export default function ProtectedNewBlog() {
+  return (
+    <AdminProtected>
+      <NewBlog />
+    </AdminProtected>
   );
 }
