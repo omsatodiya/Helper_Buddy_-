@@ -5,6 +5,7 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { columnStyles } from '@/components/shared/TableLayout';
 
 interface ReferralRecord {
   referredEmail: string;
@@ -70,42 +71,40 @@ export function ReferralsCard() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-auto">
-          <table className="w-full text-sm text-black dark:text-white">
+          <table className="w-full table-fixed text-sm text-black dark:text-white">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                <th className="p-3 text-left font-medium w-[25%]">Referrer</th>
-                <th className="p-3 text-left font-medium w-[15%]">Referrer Coins</th>
-                <th className="p-3 text-left font-medium w-[25%]">Referred User</th>
-                <th className="p-3 text-left font-medium w-[15%]">Referred Coins</th>
-                <th className="p-3 text-left font-medium w-[20%]">Date</th>
+                <th className={columnStyles.name}>Referrer</th>
+                <th className={columnStyles.email}>Referred User</th>
+                <th className={columnStyles.role}>Referrer Coins</th>
+                <th className={columnStyles.coins}>Referred Coins</th>
+                <th className={columnStyles.actions}>Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
-              {referrals.map((user, i) => (
+              {referrals.slice(0, 5).map((user, i) => (
                 user.referralHistory?.map((referral, j) => (
                   <tr key={`${i}-${j}`} className="hover:bg-black/5 dark:hover:bg-white/5">
-                    <td className="p-3">
-                      <span className="font-medium">{user.email}</span>
+                    <td className="p-4 truncate text-black/60 dark:text-white/60">
+                      {user.email}
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1 text-xs text-black/60 dark:text-white/60">
-                        <Coins className="h-3 w-3" />
-                        <span>{user.coins}</span>
+                    <td className="p-4 truncate text-black/60 dark:text-white/60">
+                      {referral.referredEmail}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-start gap-2">
+                        <Coins className="h-4 w-4" />
+                        <span>{user.coins.toLocaleString()}</span>
                       </div>
                     </td>
-                    <td className="p-3">
-                      <span className="font-medium">{referral.referredEmail}</span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1 text-xs text-black/60 dark:text-white/60">
-                        <Coins className="h-3 w-3" />
-                        <span>{allUsers[referral.referredEmail]?.coins || 0}</span>
+                    <td className="p-4">
+                      <div className="flex items-start gap-2">
+                        <Coins className="h-4 w-4" />
+                        <span>{allUsers[referral.referredEmail]?.coins.toLocaleString() || 0}</span>
                       </div>
                     </td>
-                    <td className="p-3">
-                      <span className="text-xs text-black/60 dark:text-white/60">
-                        {new Date(referral.referralDate).toLocaleDateString()}
-                      </span>
+                    <td className="p-4 text-black/60 dark:text-white/60">
+                      {new Date(referral.referralDate).toLocaleDateString()}
                     </td>
                   </tr>
                 ))

@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { columnStyles } from '@/components/shared/TableLayout';
 
 interface UserData {
   id: string;
@@ -119,17 +120,17 @@ export function UsersCard() {
           <table className="w-full table-fixed text-sm text-black dark:text-white">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                <th className="p-3 text-left font-medium w-[20%]">Name</th>
-                <th className="p-3 text-left font-medium w-[45%]">Email</th>
-                <th className="p-3 text-left font-medium w-[15%]">Role</th>
-                <th className="p-3 text-left font-medium w-[10%]">Coins</th>
-                <th className="p-3 text-left font-medium w-[10%]">Actions</th>
+                <th className={columnStyles.name}>Name</th>
+                <th className={columnStyles.email}>Email</th>
+                <th className={columnStyles.role}>Role</th>
+                <th className={columnStyles.coins}>Coins</th>
+                <th className={columnStyles.actions}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5">
-                  <td className="p-3">
+                  <td className="p-4">
                     <div className="flex flex-col">
                       <span className="font-medium">{user.firstName} {user.lastName}</span>
                       <span className="text-xs text-black/60 dark:text-white/60">
@@ -137,58 +138,62 @@ export function UsersCard() {
                       </span>
                     </div>
                   </td>
-                  <td className="p-3 truncate text-black/60 dark:text-white/60 text-xs">
+                  <td className="p-4 truncate text-black/60 dark:text-white/60">
                     {user.email}
                   </td>
-                  <td className="p-3">
-                    <span className={cn(
-                      "px-2 py-1 rounded-full text-xs",
-                      user.role === 'admin' 
-                        ? "bg-black text-white dark:bg-white dark:text-black" 
-                        : "bg-black/10 dark:bg-white/10"
-                    )}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1">
-                      <Coins className="h-3 w-3 text-black/60 dark:text-white/60" />
-                      <span className="text-xs">{user.coins}</span>
+                  <td className="p-4">
+                    <div className="flex items-start gap-2">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-xs font-medium inline-block",
+                        user.role === 'admin' 
+                          ? "bg-black text-white dark:bg-white dark:text-black" 
+                          : "bg-black/10 dark:bg-white/10"
+                      )}>
+                        {user.role}
+                      </span>
                     </div>
                   </td>
-                  <td className="p-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8 text-black/60 dark:text-white/60"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingUser(user);
-                            setShowEditDialog(true);
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600 dark:text-red-400"
-                          onClick={() => {
-                            setEditingUser(user);
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <td className="p-4">
+                    <div className="flex items-start gap-2">
+                      <Coins className="h-4 w-4" />
+                      <span>{user.coins.toLocaleString()}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center justify-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-black/60 dark:text-white/60"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingUser(user);
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600 dark:text-red-400"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </td>
                 </tr>
               ))}
