@@ -8,7 +8,17 @@ export default {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         adallyn: ["Adallyn-Light", "sans-serif"],
         adallynBold: ["Adallyn-Bold", "sans-serif"],

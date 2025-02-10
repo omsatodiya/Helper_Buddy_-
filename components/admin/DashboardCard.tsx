@@ -10,7 +10,6 @@ interface DashboardCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  description?: string;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -23,7 +22,6 @@ export function DashboardCard({
   title,
   value,
   icon: Icon,
-  description,
   trend,
   className,
   index = 0,
@@ -32,12 +30,10 @@ export function DashboardCard({
 
   useEffect(() => {
     const card = cardRef.current;
+    if (!card) return;
     
     gsap.fromTo(card, 
-      { 
-        opacity: 0,
-        y: 50,
-      },
+      { opacity: 0, y: 20 },
       {
         opacity: 1,
         y: 0,
@@ -52,28 +48,25 @@ export function DashboardCard({
     <Card
       ref={cardRef}
       className={cn(
-        "p-4 sm:p-6 opacity-0 transition-all hover:shadow-lg",
+        "p-4 sm:p-6 opacity-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all",
         className
       )}
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+      <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h3 className="text-xl sm:text-2xl font-bold">{value}</h3>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
+          <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
           {trend && (
             <p className={cn(
               "text-sm flex items-center gap-1 font-medium",
-              trend.isPositive ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"
+              trend.isPositive ? "text-green-500" : "text-red-500"
             )}>
               {trend.isPositive ? "↑" : "↓"} {trend.value}%
             </p>
           )}
         </div>
-        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-primary" />
         </div>
       </div>
     </Card>
