@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReferralsCard } from '@/components/admin/ReferralsCard';
 import { UsersCard } from '@/components/admin/UsersCard';
+import { PaymentsCard } from '@/components/admin/PaymentsCard';
 import { cn } from '@/lib/utils';
 import { getFirestore, getDocs, collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -170,6 +171,7 @@ export default function AdminDashboard() {
           {/* Users and Referrals */}
           <div className="space-y-4">
             <UsersCard />
+            <PaymentsCard />
             <ReferralsCard />
           </div>
         </main>

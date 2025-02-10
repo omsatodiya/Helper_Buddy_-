@@ -73,11 +73,11 @@ export function ReferralsCard() {
           <table className="w-full text-sm text-black dark:text-white">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                <th className="p-3 text-left font-medium">Referrer</th>
-                <th className="p-3 text-left font-medium">Referrer Coins</th>
-                <th className="p-3 text-left font-medium">Referred User</th>
-                <th className="p-3 text-left font-medium">Referred Coins</th>
-                <th className="p-3 text-left font-medium">Date</th>
+                <th className="p-3 text-left font-medium w-[25%]">Referrer</th>
+                <th className="p-3 text-left font-medium w-[15%]">Referrer Coins</th>
+                <th className="p-3 text-left font-medium w-[25%]">Referred User</th>
+                <th className="p-3 text-left font-medium w-[15%]">Referred Coins</th>
+                <th className="p-3 text-left font-medium w-[20%]">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">

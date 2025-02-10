@@ -116,14 +116,14 @@ export function UsersCard() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-auto">
-          <table className="w-full text-sm text-black dark:text-white">
+          <table className="w-full table-fixed text-sm text-black dark:text-white">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                <th className="p-3 text-left font-medium">Name</th>
-                <th className="p-3 text-left font-medium">Email</th>
-                <th className="p-3 text-left font-medium">Role</th>
-                <th className="p-3 text-left font-medium">Coins</th>
-                <th className="p-3 text-left font-medium">Actions</th>
+                <th className="p-3 text-left font-medium w-[20%]">Name</th>
+                <th className="p-3 text-left font-medium w-[45%]">Email</th>
+                <th className="p-3 text-left font-medium w-[15%]">Role</th>
+                <th className="p-3 text-left font-medium w-[10%]">Coins</th>
+                <th className="p-3 text-left font-medium w-[10%]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
@@ -137,7 +137,7 @@ export function UsersCard() {
                       </span>
                     </div>
                   </td>
-                  <td className="p-3 text-black/60 dark:text-white/60 text-xs">
+                  <td className="p-3 truncate text-black/60 dark:text-white/60 text-xs">
                     {user.email}
                   </td>
                   <td className="p-3">

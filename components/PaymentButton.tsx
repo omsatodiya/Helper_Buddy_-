@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { PaymentProps } from "../app/types/payment";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { collection, addDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import { IndianRupee, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
 
 declare global {
   interface Window {
@@ -9,101 +13,82 @@ declare global {
   }
 }
 
-export default function PaymentButton({ amount }: PaymentProps) {
+interface PaymentButtonProps {
+  amount: number;
+}
+
+export default function PaymentButton({ amount }: PaymentButtonProps) {
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handlePayment = async () => {
+    if (!user?.email) {
+      alert('Please login to make a payment');
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: amount * 100, // amount in paisa
+        currency: 'INR',
+        name: 'Helper Buddy',
+        description: 'Add Coins',
+        handler: async function (response: any) {
+          const paymentData = {
+            userId: user.uid,
+            userEmail: user.email,
+            amount: amount,
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+            paymentId: response.razorpay_payment_id
+          };
 
-      // Create order on the server
-      const response = await fetch("/api/razorpay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+          await addDoc(collection(db, 'payments'), paymentData);
         },
-        body: JSON.stringify({ amount }),
-      });
-
-      const data = await response.json();
-
-      if (!data.orderId) {
-        throw new Error("Failed to create order");
-      }
-
-      // Load Razorpay SDK
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      document.body.appendChild(script);
-
-      script.onload = () => {
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: amount * 100,
-          currency: "INR",
-          name: "Your Company Name",
-          description: "Payment for your service",
-          order_id: data.orderId,
-          handler: function (response: any) {
-            console.log("Payment successful:", response);
-            // Handle successful payment here
-          },
-          prefill: {
-            name: "",
-            email: "",
-            contact: "",
-          },
-          theme: {
-            color: "#000000",
-          },
-        };
-
-        const paymentObject = new window.Razorpay(options);
-        paymentObject.open();
+        prefill: {
+          email: user.email,
+        },
+        theme: {
+          color: '#000000',
+        },
       };
 
-      script.onerror = () => {
-        throw new Error("Failed to load Razorpay SDK");
-      };
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
     } catch (error) {
-      console.error("Payment error:", error);
-      alert("Payment failed. Please try again.");
+      console.error('Payment error:', error);
+      alert('Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <button
+    <Button
       onClick={handlePayment}
       disabled={loading}
-      className="bg-black hover:bg-gray-800 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+      className="w-full sm:w-auto"
+    >
       {loading ? (
-        <span className="flex items-center">
-          <svg
-            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          Processing...
-        </span>
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        "Pay Now"
+        <>
+          <IndianRupee className="mr-2 h-4 w-4" />
+          Pay ₹{amount}
+        </>
       )}
-    </button>
+    </Button>
   );
 }
