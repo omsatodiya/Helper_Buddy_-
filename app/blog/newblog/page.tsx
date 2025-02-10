@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
+import { BlogModel } from '../BlogModel';
 
 const tags = ['beauty', 'lifestyle', 'homepage', 'fashion', 'health', 'food'];
 
@@ -15,6 +16,7 @@ export default function NewBlog() {
     imageUrl: '',
     tags: [] as string[],
     fullDescription: '',
+    publishedDate: new Date().toISOString(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,23 +25,23 @@ export default function NewBlog() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/blogs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create blog post');
+      if (!BlogModel.validateBlog(formData)) {
+        throw new Error('Please fill in all required fields');
       }
 
+      const blogData = {
+        ...formData,
+        publishedDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await BlogModel.create(blogData);
       router.push('/blog');
       router.refresh();
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to create blog post');
+      alert(error instanceof Error ? error.message : 'Failed to create blog post');
     } finally {
       setIsSubmitting(false);
     }
@@ -182,7 +184,6 @@ export default function NewBlog() {
           </Button>
           <Button
             type="button"
-            variant="outline"
             onClick={() => router.back()}
             className="border-gray-300 hover:bg-gray-100"
           >

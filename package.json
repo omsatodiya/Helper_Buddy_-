@@ -19,7 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dialog": "^0.3.1",
-    "firebase": "^11.2.0",
+    "firebase": "^11.3.0",
     "framer-motion": "^12.3.1",
     "gsap": "^3.12.7",
     "lucide-react": "^0.474.0",

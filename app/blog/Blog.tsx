@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import SafeImage from '@/components/SafeImage';
 import gsap from 'gsap';
+import { BlogModel } from './BlogModel';
 
-// Updated interface to match MongoDB document structure
+// Add Dialog components from shadcn/ui
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 interface BlogPost {
-  _id: string;
+  id: string;
   title: string;
   author: string;
   publishedDate: string;
@@ -18,9 +28,7 @@ interface BlogPost {
   tags: string[];
   createdAt?: string;
   updatedAt?: string;
-  __v?: number;
 }
-
 
 const Blog: React.FC = () => {
   const router = useRouter();
@@ -30,13 +38,16 @@ const Blog: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Add state for dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'edit' | 'delete'>('edit');
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await fetch('/api/blogs');
-        if (!response.ok) throw new Error('Failed to fetch blogs');
-        const data = await response.json();
-        setBlogPosts(data);
+        const blogs = await BlogModel.getAll();
+        setBlogPosts(blogs);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -47,10 +58,8 @@ const Blog: React.FC = () => {
     fetchBlogs();
   }, []);
 
-  // GSAP animations
   useEffect(() => {
     if (!isLoading && containerRef.current) {
-      // Fade in the title only
       gsap.from('.blog-title', {
         opacity: 0,
         y: -20,
@@ -58,51 +67,55 @@ const Blog: React.FC = () => {
         ease: 'power2.out'
       });
 
-      // Remove the stagger animation for cards
       gsap.set(cardsRef.current, {
-        opacity: 1,  // Set cards to fully visible immediately
-        y: 0        // No vertical offset
+        opacity: 1,
+        y: 0
       });
     }
   }, [isLoading]);
 
-  // Updated to use query parameter approach
   const handleBlogClick = (id: string) => {
-    console.log('Clicking blog with ID:', id);
-    router.push(`/blog/wholeblog?id=${id}&type=whole`);  // Changed to use query parameter
+    router.push(`/blog/wholeblog?id=${id}&type=whole`);
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/blog/editblog?id=${id}`);
+  const handleEditClick = (blog: BlogPost) => {
+    setSelectedBlog(blog);
+    setDialogType('edit');
+    setDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this blog?')) return;
+  const handleDeleteClick = (blog: BlogPost) => {
+    setSelectedBlog(blog);
+    setDialogType('delete');
+    setDialogOpen(true);
+  };
+
+  const handleConfirmDialog = async () => {
+    if (!selectedBlog) return;
 
     try {
-      const response = await fetch(`/api/blogs?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete blog');
+      if (dialogType === 'delete') {
+        await BlogModel.delete(selectedBlog.id);
+        setBlogPosts(prevPosts => prevPosts.filter(post => post.id !== selectedBlog.id));
+      } else {
+        router.push(`/blog/editblog?id=${selectedBlog.id}`);
       }
-
-      setBlogPosts(prevPosts => prevPosts.filter(post => post._id !== id));
     } catch (error) {
-      console.error('Delete error:', error);
-      alert('Failed to delete blog');
+      console.error(`${dialogType} error:`, error);
+    } finally {
+      setDialogOpen(false);
+      setSelectedBlog(null);
     }
   };
 
-  // Helper function to format date
   const formatDate = (dateString: string) => {
+    const date = dateString ? new Date(dateString) : new Date();
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    return date.toLocaleDateString('en-US', options);
   };
 
   if (isLoading) {
@@ -121,134 +134,179 @@ const Blog: React.FC = () => {
     );
   }
 
-  if (!blogPosts || blogPosts.length === 0) {
-    return (
-      <div className="text-center p-4">
-        No blog posts available.
-      </div>
-    );
-  }
-
   return (
-    <section className="py-12 bg-gray-50" ref={containerRef}>
-      <div className="container mx-auto px-4 max-w-7xl">
-        <h2 className="blog-title text-3xl font-bold text-center mb-8 text-gray-800">
-          Our Blog
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {blogPosts.map((post, index) => (
-            <div 
-              key={post._id}
-              ref={el => cardsRef.current[index] = el}
-              className="blog-card bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-[520px] border border-gray-100"
-            >
+    <>
+      <section className="py-16 bg-gray-50" ref={containerRef}>
+        <div className="container mx-auto px-4 max-w-7xl">
+          <h2 className="blog-title text-4xl font-bold text-center mb-12 text-gray-800 font-playfair">
+            Our Blog
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {blogPosts.map((post, index) => (
               <div 
-                onClick={() => handleBlogClick(post._id)}
-                className="relative h-80 overflow-hidden bg-white cursor-pointer"
+                key={post.id}
+                ref={el => cardsRef.current[index] = el}
+                className="blog-card bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-[480px] border border-gray-100"
               >
-                {post.imageUrl ? (
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title}
-                    onClick={() => handleBlogClick(post._id)}
-                    className="cursor-pointer w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-gray-400">No image available</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="p-5 flex flex-col flex-grow bg-white">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {post.tags.slice(0, 2).map((tag, tagIndex) => (
-                    <span 
-                      key={tagIndex}
-                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {post.tags.length > 2 && (
-                    <span className="text-xs text-gray-500">
-                      +{post.tags.length - 2} more
-                    </span>
+                <div 
+                  onClick={() => handleBlogClick(post.id)}
+                  className="relative h-72 overflow-hidden bg-gray-100 cursor-pointer group/image"
+                >
+                  {post.imageUrl ? (
+                    <img
+                      src={post.imageUrl}
+                      alt={post.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                      <span className="text-gray-400 font-medium">No image available</span>
+                    </div>
                   )}
                 </div>
-
-                <h3 className="text-lg font-semibold mb-2 text-gray-800 line-clamp-2">
-                  {post.title}
-                </h3>
-
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                  <span className="font-medium text-gray-700">{post.author}</span>
-                  <div className="flex items-center space-x-1">
-                    <span>{formatDate(post.publishedDate)}</span>
-                    <span>•</span>
-                    <span>{post.readTime}</span>
-                  </div>
-                </div>
                 
-                <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow">
-                  {post.description}
-                </p>
+                <div className="p-5 flex flex-col flex-grow bg-white">
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {post.tags.slice(0, 2).map((tag, tagIndex) => (
+                        <span 
+                          key={tagIndex}
+                          className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold uppercase tracking-wide"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {post.tags.length > 2 && (
+                        <span className="text-xs font-medium text-gray-500">
+                          +{post.tags.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                <div className="mt-auto">
-                  <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
-                    <Button
-                      onClick={() => handleEdit(post._id)}
-                      variant="destructive"
-                      size="sm"
-                      className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(post._id)}
-                      variant="destructive"
-                      size="sm"
-                      className="bg-white hover:bg-red-50 text-red-600 border-red-200"
-                    >
-                      Delete
-                    </Button>
+                  <h3 className="text-lg font-bold mb-2 text-gray-800 line-clamp-2 font-playfair group-hover:text-blue-600 transition-colors">
+                    {post.title}
+                  </h3>
+
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="font-semibold text-gray-700">by {post.author}</span>
+                    <div className="flex items-center space-x-2 text-gray-500">
+                      <span className="font-medium">{formatDate(post.publishedDate)}</span>
+                      {post.readTime && (
+                        <>
+                          <span>•</span>
+                          <span className="font-medium">{post.readTime}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow font-inter leading-relaxed">
+                    {post.description}
+                  </p>
+
+                  <div className="mt-auto pt-3 border-t border-gray-100">
+                    <div className="flex justify-end space-x-3">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(post);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="px-4 py-2 text-sm font-semibold bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 transition-all duration-200"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(post);
+                        }}
+                        variant="destructive"
+                        size="sm"
+                        className="px-4 py-2 text-sm font-semibold bg-white hover:bg-red-50 text-red-600 border-red-200 hover:border-red-300 transition-all duration-200"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          <Button
-            onClick={() => router.push('/blog/newblog')}
-            className="relative bg-white h-[520px] rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col items-center justify-center p-8 border border-dashed border-gray-200 hover:border-blue-400 hover:bg-white group"
-          >
-            <div className="flex flex-col items-center justify-center">
-              <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
-                <svg
-                  className="w-6 h-6 text-blue-500 group-hover:text-blue-600 transition-colors"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
+            <Button
+              onClick={() => router.push('/blog/newblog')}
+              className="relative bg-white h-[480px] rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50 group"
+            >
+              <div className="flex flex-col items-center justify-center transform group-hover:scale-105 transition-transform duration-300 max-w-sm">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-100 transition-colors">
+                  <svg
+                    className="w-8 h-8 text-blue-500 group-hover:text-blue-600 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-4 group-hover:text-blue-600 transition-colors font-playfair text-center">
+                  Add New Blog
+                </h3>
+                <p className="text-gray-500 text-base text-center font-medium group-hover:text-gray-600 transition-colors px-4 leading-relaxed">
+                  Create a new blog 
+                </p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
-                Add New Blog
-              </h3>
-              <p className="text-gray-500 text-sm text-center group-hover:text-gray-600 transition-colors">
-                Click here to create a new blog post
-              </p>
-            </div>
-          </Button>
+            </Button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">
+              {dialogType === 'delete' ? 'Delete Blog' : 'Edit Blog'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 mt-2">
+              {dialogType === 'delete' 
+                ? 'Are you sure you want to delete this blog? This action cannot be undone.'
+                : 'You are about to edit this blog post. Continue?'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBlog && (
+            <div className="py-4">
+              <h4 className="font-medium text-gray-900">{selectedBlog.title}</h4>
+              <p className="text-sm text-gray-500 mt-1">{selectedBlog.description}</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              className="mr-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={dialogType === 'delete' ? 'destructive' : 'default'}
+              onClick={handleConfirmDialog}
+            >
+              {dialogType === 'delete' ? 'Delete' : 'Continue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
