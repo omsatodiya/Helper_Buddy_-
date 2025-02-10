@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
-import Testimonials from "@/components/ui/Testimonials";
+import Testimonials from "@/components/FAQ/Testimonials";
 import FAQ from "@/components/FAQ/FAQ";
 
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
           loading ? "opacity-0" : "opacity-100"
         }`}>
         <Header />
-        <div className="h-screen"></div>
+        <div className="h-16"></div>
         <FAQ />
         <Testimonials />
         <Footer />

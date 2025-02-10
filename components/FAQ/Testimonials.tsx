@@ -1,98 +1,109 @@
 "use client"
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import gsap from 'gsap';
 
+interface Review {
+  id: number;
+  name: string;
+  rating: number;
+  text: string;
+  avatar: string;
+}
+
 // Default reviews in case none are provided
-const defaultReviews = [
+const defaultReviews: Review[] = [
   {
     id: 1,
     name: "Priya Patel",
     rating: 5,
     text: "The AC cleaning service was thorough and efficient. My home feels fresh and cool again. Thank you.",
-    avatar: "/api/placeholder/32/32"
+    avatar: "https://picsum.photos/seed/priya/100/100"
   },
   {
     id: 2,
     name: "Purvi Patel",
     rating: 5,
     text: "Helper Buddy transformed my home with their exceptional cleaning service. Highly recommend for any cleaning needs.",
-    avatar: "/api/placeholder/32/32"
+    avatar: "https://picsum.photos/seed/purvi/100/100"
   },
   {
     id: 3,
     name: "Rahul Shah",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "/api/placeholder/32/32"
-  }
-  ,
+    avatar: "https://picsum.photos/seed/rahul/100/100"
+  },
   {
     id: 4,
-    name: "Jayyyyy",
+    name: "Jay Patel",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "/api/placeholder/32/32"
-  }
-  ,
+    avatar: "https://picsum.photos/seed/jay/100/100"
+  },
   {
     id: 5,
-    name: "Puraaaaaaaaaaa",
+    name: "Pura Shah",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "/api/placeholder/32/32"
-  }
-  ,
+    avatar: "https://picsum.photos/seed/pura/100/100"
+  },
   {
     id: 6,
-    name: "Satuuuuuuuuu",
+    name: "Satu Patel",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "/api/placeholder/32/32"
+    avatar: "https://picsum.photos/seed/satu/100/100"
   }
-
 ];
 
-const Testimonials = ({ initialReviews = defaultReviews }) => {
-  const [reviews, setReviews] = useState(Array.isArray(initialReviews) ? initialReviews : defaultReviews);
-  const carouselRef = useRef(null);
-  const carouselWrapperRef = useRef(null);
-  const animation = useRef(null);
+interface TestimonialsProps {
+  initialReviews?: Review[];
+}
+
+interface StarRatingProps {
+  rating: number;
+}
+
+const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultReviews }) => {
+  const reviews = Array.isArray(initialReviews) ? initialReviews : defaultReviews;
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const carouselWrapperRef = useRef<HTMLDivElement>(null);
+  const animation = useRef<gsap.core.Tween | null>(null);
 
   useEffect(() => {
-    if (!reviews.length) return; // Guard clause if reviews is empty
+    if (!reviews.length) return;
 
     const carousel = carouselRef.current;
-    if (!carousel) return; // Guard clause if ref isn't attached
+    if (!carousel) return;
 
-    const firstCard = carousel.children[0];
-    if (!firstCard) return; // Guard clause if no children
+    const firstCard = carousel.children[0] as HTMLElement;
+    if (!firstCard) return;
     
     // Reset position when animation completes
     const resetPosition = () => {
-      const lastCardWidth = carousel.children[reviews.length - 1].offsetWidth;
-      const totalGap = 32; // 8rem gap
+      const lastCard = carousel.children[reviews.length - 1] as HTMLElement;
+      const lastCardWidth = lastCard.offsetWidth;
+      const totalGap = 32;
       gsap.set(carousel, { x: -(lastCardWidth + totalGap) });
     };
 
     // Create seamless infinite scroll
     const createInfiniteScroll = () => {
       const cardWidth = firstCard.offsetWidth;
-      const totalGap = 32; // 8rem gap
+      const totalGap = 32;
       const totalWidth = (cardWidth + totalGap) * reviews.length;
 
-      // Kill previous animation if it exists
       if (animation.current) {
         animation.current.kill();
       }
 
-      // Create new animation
       animation.current = gsap.to(carousel, {
         x: -totalWidth,
-        duration: reviews.length *5, // Duration based on number of cards
+        duration: reviews.length * 5,
         ease: "none",
         repeat: -1,
         onRepeat: resetPosition,
@@ -101,79 +112,72 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
 
     // Initial setup
     const setupCarousel = () => {
-      // Clone first item and add to end
-      var clonedItems = carousel.children[0].cloneNode(true);
-      carousel.appendChild(clonedItems);
-      clonedItems = carousel.children[1].cloneNode(true);
-      carousel.appendChild(clonedItems);
-      clonedItems = carousel.children[2].cloneNode(true);
-      carousel.appendChild(clonedItems);
-      clonedItems = carousel.children[0].cloneNode(true);
-      carousel.appendChild(clonedItems);
+      Array.from(carousel.children).slice(0, 4).forEach(child => {
+        const clonedItem = child.cloneNode(true) as HTMLElement;
+        carousel.appendChild(clonedItem);
+      });
       
       createInfiniteScroll();
+
+      // Add hover handlers to each card
+      const cards = carousel.querySelectorAll('.review-card');
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', () => animation.current?.pause());
+        card.addEventListener('mouseleave', () => animation.current?.play());
+      });
     };
 
     setupCarousel();
 
-    // Pause on hover
-    const wrapper = carouselWrapperRef.current;
-    if (!wrapper) return;
-
-    const handleMouseEnter = () => animation.current?.pause();
-    const handleMouseLeave = () => animation.current?.play();
-
-    wrapper.addEventListener('mouseenter', handleMouseEnter);
-    wrapper.addEventListener('mouseleave', handleMouseLeave);
-
-    // Cleanup
     return () => {
-      if (animation.current) {
-        animation.current.kill();
-      }
-      wrapper.removeEventListener('mouseenter', handleMouseEnter);
-      wrapper.removeEventListener('mouseleave', handleMouseLeave);
+      animation.current?.kill();
+      // Remove event listeners if needed
+      const cards = carousel.querySelectorAll('.review-card');
+      cards.forEach(card => {
+        card.removeEventListener('mouseenter', () => animation.current?.pause());
+        card.removeEventListener('mouseleave', () => animation.current?.play());
+      });
     };
   }, [reviews]);
 
-  const StarRating = ({ rating }) => (
+  const StarRating: React.FC<StarRatingProps> = ({ rating }) => (
     <div className="flex gap-1">
       {[...Array(5)].map((_, index) => (
         <Star
           key={index}
           size={20}
           className={`${
-            index < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'
+            index < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
           }`}
         />
       ))}
     </div>
   );
 
-  // If no reviews, show loading or empty state
   if (!reviews.length) {
     return (
-      <div className="py-12 px-4 bg-[#141414] text-[#EAEAEA] text-center">
+      <div className="py-12 px-4 bg-background text-foreground text-center">
         No reviews available
       </div>
     );
   }
 
   return (
-    <div className="py-12 px-4 bg-[#141414]">
+    <div className="py-12 px-4 bg-background">
       <div className="max-w-screen mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#EAEAEA]">
+          <h2 className="text-3xl font-bold mb-4 text-foreground">
             What Our Customers Say
           </h2>
-          <p className="text-[#EAEAEA]/80 mb-8">
+          <p className="text-foreground/80 mb-8">
             Read trusted reviews from our happy customers
           </p>
           
           <Dialog>
             <DialogTrigger asChild>
               <Button 
-                className="bg-[#EAEAEA] hover:bg-[#EAEAEA]/90 text-[#141414] mb-8"
+                variant="outline"
+                className="mb-8 hover:bg-foreground hover:text-background"
                 onMouseEnter={(e) => {
                   gsap.to(e.currentTarget, {
                     scale: 1.05,
@@ -190,12 +194,12 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
                 Write a Review
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md bg-[#141414] border border-[#EAEAEA]/10">
+            <DialogContent className="bg-background border-border">
               <DialogHeader>
-                <DialogTitle className="text-[#EAEAEA]">Write Your Review</DialogTitle>
+                <DialogTitle className="text-foreground">Write Your Review</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <p className="text-[#EAEAEA]/80">This is a demo component. In a real application, this would contain a form to submit reviews.</p>
+                <p className="text-foreground/80">This is a demo component. In a real application, this would contain a form to submit reviews.</p>
               </div>
             </DialogContent>
           </Dialog>
@@ -213,9 +217,9 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
             {reviews.map((review) => (
               <div
                 key={review.id}
-                className="w-80 flex-shrink-0"
+                className="w-80 flex-shrink-0 review-card"
               >
-                <Card className="bg-[#141414] border border-[#EAEAEA]/10 shadow-lg h-full">
+                <Card className="bg-background border-border shadow-lg h-full hover:border-foreground/20 transition-colors duration-300">
                   <CardContent className="pt-6">
                     <div className="flex items-center mb-4">
                       <img
@@ -224,13 +228,13 @@ const Testimonials = ({ initialReviews = defaultReviews }) => {
                         className="w-12 h-12 rounded-full mr-4"
                       />
                       <div>
-                        <h3 className="font-semibold text-[#EAEAEA]">
+                        <h3 className="font-semibold text-foreground">
                           {review.name}
                         </h3>
                         <StarRating rating={review.rating} />
                       </div>
                     </div>
-                    <p className="text-[#EAEAEA]/80">
+                    <p className="text-foreground/80">
                       {review.text}
                     </p>
                   </CardContent>
