@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
+import Background from "./landing/page";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -28,8 +29,9 @@ export default function Home() {
         }`}
       >
         <Header />
-        <div className="h-screen"></div>
-        <Footer />
+        {/* <div className="h-screen"></div> */}
+        <Background />
+        {/* <Footer /> */}
       </main>
     </>
   );
