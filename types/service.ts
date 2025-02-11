@@ -85,6 +85,8 @@ export interface Service {
   };
   createdAt: string;
   updatedAt: string;
+  maxQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface SimpleService {

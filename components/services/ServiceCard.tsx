@@ -32,7 +32,7 @@ const ServiceCard = ({
 
   return (
     <div
-      className="group relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col"
+      className="group relative bg-white dark:bg-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col dark:border dark:border-gray-800"
       onClick={onClick}
     >
       {/* Image Container */}
@@ -45,20 +45,22 @@ const ServiceCard = ({
       </div>
 
       {/* Content Container */}
-      <div className="p-5 flex flex-col flex-grow">
+      <div className="p-5 flex flex-col flex-grow dark:bg-black">
         {/* Title and Description */}
         <div className="space-y-2 mb-4">
-          <h3 className="text-xl font-semibold text-gray-800 line-clamp-1">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white line-clamp-1">
             {title}
           </h3>
-          <p className="text-gray-600 text-sm line-clamp-2">{description}</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+            {description}
+          </p>
         </div>
 
         {/* Push buttons to bottom with auto-spacing */}
         <div className="mt-auto space-y-4">
           {/* Price and Rating */}
           <div className="flex justify-between items-center">
-            <span className="text-2xl font-bold text-primary">
+            <span className="text-2xl font-bold text-primary dark:text-primary/90">
               {formatPrice(price)}
             </span>
             <div className="flex items-center">
@@ -71,17 +73,17 @@ const ServiceCard = ({
                         className={`w-4 h-4 ${
                           star <= rating
                             ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
+                            : "text-gray-300 dark:text-gray-600"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600 ml-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
                     ({totalRatings})
                   </span>
                 </>
               ) : (
-                <span className="text-sm text-gray-500 italic">
+                <span className="text-sm text-gray-500 dark:text-gray-400 italic">
                   No reviews yet
                 </span>
               )}
@@ -92,7 +94,7 @@ const ServiceCard = ({
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"
-              className="w-full border-primary text-primary hover:bg-primary/5"
+              className="w-full border-primary text-primary dark:border-primary/80 dark:text-primary/90 hover:bg-primary/5 dark:hover:bg-primary/10"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddToCart();
@@ -101,7 +103,7 @@ const ServiceCard = ({
               Add to Cart
             </Button>
             <Button
-              className="w-full bg-primary hover:bg-primary/90 text-white transition-colors"
+              className="w-full bg-primary hover:bg-primary/90 text-white transition-colors dark:bg-primary/90 dark:hover:bg-primary"
               onClick={(e) => {
                 e.stopPropagation();
                 onBuyNow();

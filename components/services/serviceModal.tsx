@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Star, Clock, User, HelpCircle, Trash2, X, Edit2 } from "lucide-react";
+import {
+  Star,
+  Clock,
+  User,
+  HelpCircle,
+  Trash2,
+  X,
+  Edit2,
+  Plus,
+  Minus,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { Service } from "@/types/service";
@@ -21,6 +31,7 @@ import {
 } from "../ui/alert-dialog";
 import EditServiceForm from "./EditServiceForm";
 import { format, formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ServiceProvider {
   id: string;
@@ -67,6 +78,7 @@ interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   service: Service;
+  isAdminView?: boolean;
   onServiceDeleted?: () => void;
   onReviewAdded?: (updatedService: Service) => void;
   onServiceUpdated?: (updatedService: Service) => void;
@@ -76,6 +88,7 @@ const ServiceModal = ({
   isOpen,
   onClose,
   service,
+  isAdminView = false,
   onServiceDeleted,
   onReviewAdded,
   onServiceUpdated,
@@ -88,6 +101,8 @@ const ServiceModal = ({
   const [localService, setLocalService] = useState(service);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const { user } = useAuth();
 
   useEffect(() => {
     setLocalService(service);
@@ -142,10 +157,45 @@ const ServiceModal = ({
     }
   };
 
+  const handleReviewClick = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to write a review",
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              window.location.href = `/auth/signin?redirect=${window.location.pathname}`;
+            }}
+          >
+            Sign In
+          </Button>
+        ),
+      });
+      return;
+    }
+    setIsReviewModalOpen(true);
+  };
+
   const handleReviewAdded = async (newReview: ServiceReview) => {
     try {
+      if (!user) {
+        throw new Error("Must be logged in to add review");
+      }
+
+      // Create review with user data
+      const reviewWithUserData = {
+        ...newReview,
+        userName: user.displayName || "User", // Fallback if no display name
+        userEmail: user.email || "",
+        date: new Date().toISOString(),
+        id: crypto.randomUUID(), // Generate unique ID
+      };
+
       // Calculate new rating
-      const allReviews = [...(localService.reviews || []), newReview];
+      const allReviews = [...(localService.reviews || []), reviewWithUserData];
       const totalRating = allReviews.reduce(
         (sum, review) => sum + review.rating,
         0
@@ -161,17 +211,19 @@ const ServiceModal = ({
       };
 
       setLocalService(updatedService);
-
-      // Notify parent component
       onReviewAdded?.(updatedService);
 
       toast({
         title: "Review added successfully",
         variant: "default",
       });
+
+      setIsReviewModalOpen(false);
     } catch (error) {
       toast({
-        title: "Error updating review",
+        title: "Error adding review",
+        description:
+          error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     }
@@ -205,6 +257,13 @@ const ServiceModal = ({
     }
   };
 
+  const handleQuantityChange = (change: number) => {
+    const newQuantity = quantity + change;
+    if (newQuantity >= 1 && newQuantity <= 10) {
+      setQuantity(newQuantity);
+    }
+  };
+
   return (
     <div className="relative">
       {/* Close button outside the modal */}
@@ -234,17 +293,18 @@ const ServiceModal = ({
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsEditing(true)}
-                  className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-50"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
+              {/* Only show edit/delete buttons for admin */}
+              {isAdminView && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsEditing(true)}
+                    className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-50"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
 
-                {onServiceDeleted && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -253,8 +313,8 @@ const ServiceModal = ({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </DialogHeader>
 
@@ -363,25 +423,50 @@ const ServiceModal = ({
               </div>
             )}
 
-            {/* Action Buttons - Add before the reviews section */}
-            <div className="flex gap-4 my-6">
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  /* Add buy now logic */
-                }}
-              >
-                Buy Now
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  /* Add to cart logic */
-                }}
-              >
-                Add to Cart
-              </Button>
+            {/* Quantity and Action Buttons */}
+            <div className="space-y-4 my-6">
+              <div className="flex items-center justify-start gap-4">
+                <span className="text-sm font-medium">Quantity:</span>
+                <div className="flex items-center border rounded-md">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="px-4 py-2 min-w-[40px] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    /* Add buy now logic with quantity */
+                  }}
+                >
+                  Buy Now ({quantity})
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    /* Add to cart logic with quantity */
+                  }}
+                >
+                  Add to Cart ({quantity})
+                </Button>
+              </div>
             </div>
 
             {/* Add Review Button */}
@@ -389,13 +474,13 @@ const ServiceModal = ({
               <Button
                 variant="secondary"
                 className="w-full"
-                onClick={() => setIsReviewModalOpen(true)}
+                onClick={handleReviewClick}
               >
-                Add Review
+                {user ? "Write a Review" : "Sign in to Review"}
               </Button>
             </div>
 
-            {/* Reviews - Updated to handle optional reviews */}
+            {/* Reviews Section */}
             <div>
               <h3 className="text-lg font-semibold mb-4">
                 Reviews ({localService.reviews?.length || 0})
@@ -405,7 +490,9 @@ const ServiceModal = ({
                   {localService.reviews.map((review) => (
                     <div key={review.id} className="border-b pb-4">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">{review.userName}</span>
+                        <span className="font-medium">
+                          {review.userName || "Anonymous"}
+                        </span>
                         <span className="text-sm text-gray-500">
                           {formatDate(review.date)}
                         </span>
@@ -450,11 +537,14 @@ const ServiceModal = ({
         </DialogContent>
       </Dialog>
 
+      {/* Review Modal */}
       <AddReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         serviceId={service.id}
         onReviewAdded={handleReviewAdded}
+        userName={user?.displayName || ""}
+        userEmail={user?.email || ""}
       />
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
