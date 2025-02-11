@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import FilterCard from "@/components/services/FilterCard";
 import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
@@ -82,7 +82,8 @@ const priceRanges = [
   { id: "above-5000", label: "Above ₹5000", min: 5000, max: null },
 ];
 
-export default function ServicesPage() {
+// Create a separate component for the content that uses useSearchParams
+function ServicesContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
 
@@ -101,6 +102,7 @@ export default function ServicesPage() {
   // Add these state variables
   const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Extract fetchServices function outside useEffect
   async function fetchServices() {
@@ -157,6 +159,17 @@ export default function ServicesPage() {
   // Apply filters and sorting
   useEffect(() => {
     let filtered = services;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (service) =>
+          service.name.toLowerCase().includes(query) ||
+          service.description.toLowerCase().includes(query) ||
+          service.category.toLowerCase().includes(query)
+      );
+    }
 
     // Apply existing filters
     if (selectedService) {
@@ -227,6 +240,7 @@ export default function ServicesPage() {
     minReviewRating,
     services,
     sortOption,
+    searchQuery,
   ]);
 
   // Filter handlers
@@ -248,6 +262,7 @@ export default function ServicesPage() {
     setMinReviewRating(null);
     setIsFilterOpen(false);
     setSortOption("newest");
+    setSearchQuery("");
   };
 
   const handleAddToCart = (serviceId: string) => {
@@ -451,6 +466,8 @@ export default function ServicesPage() {
                 selectedPriceRanges={selectedPriceRanges}
                 minReviewRating={minReviewRating}
                 sortOption={sortOption}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
                 onServiceSelect={async (serviceId: string) => {
                   try {
                     const response = await fetch(`/api/services/${serviceId}`);
@@ -479,6 +496,7 @@ export default function ServicesPage() {
                 onResetFilters={() => {
                   handleResetFilters();
                   setSortOption("newest");
+                  setSearchQuery("");
                 }}
               />
             </div>
@@ -499,9 +517,9 @@ export default function ServicesPage() {
       )}
 
       <Header />
-      <div className="max-w-7xl mx-auto mt-20 p-4">
+      <div className="max-w-7xl mx-auto mt-24 p-4">
         {/* Add the Add Service button in the header section */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center ">
           <h1 className="text-2xl md:text-3xl font-bold">
             {category
               ? category.charAt(0).toUpperCase() + category.slice(1)
@@ -518,6 +536,8 @@ export default function ServicesPage() {
               selectedPriceRanges={selectedPriceRanges}
               minReviewRating={minReviewRating}
               sortOption={sortOption}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
               onServiceSelect={async (serviceId: string) => {
                 try {
                   const response = await fetch(`/api/services/${serviceId}`);
@@ -545,6 +565,7 @@ export default function ServicesPage() {
               onResetFilters={() => {
                 handleResetFilters();
                 setSortOption("newest");
+                setSearchQuery("");
               }}
             />
           </div>
@@ -588,5 +609,20 @@ export default function ServicesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component
+export default function ServicesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen p-4 flex items-center justify-center">
+          <div className="animate-pulse text-lg">Loading services...</div>
+        </div>
+      }
+    >
+      <ServicesContent />
+    </Suspense>
   );
 }
