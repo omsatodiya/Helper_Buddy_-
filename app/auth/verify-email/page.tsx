@@ -2,6 +2,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import LoadingSpinner from "@/components/ui/loading";
 
 const AnimatedBackground = dynamic(
   () => import("@/components/AnimatedBackground"),
@@ -12,11 +13,7 @@ const VerifyEmailForm = dynamic(
   () => import("@/components/auth/VerifyEmailForm"),
   {
     ssr: false,
-    loading: () => (
-      <div className="w-full max-w-md mx-auto animate-pulse">
-        <div className="bg-white/10 dark:bg-black/10 rounded-2xl h-[400px]"></div>
-      </div>
-    ),
+    loading: () => <LoadingSpinner />
   }
 );
 
@@ -37,7 +34,7 @@ export default function VerifyEmailPage() {
 
   return (
     <main className="min-h-screen relative">
-      <Suspense>
+      <Suspense fallback={<LoadingSpinner />}>
         <div className="absolute inset-0">
           <AnimatedBackground />
         </div>
