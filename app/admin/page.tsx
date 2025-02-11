@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { Users, ShoppingCart, DollarSign, TrendingUp, Menu, X, Home } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, TrendingUp, ArrowLeft } from 'lucide-react';
 import { DashboardCard } from '@/components/admin/DashboardCard';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,15 +24,14 @@ interface UserStats {
 
 export default function AdminDashboard() {
   const headerRef = useRef<HTMLDivElement>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const router = useRouter();
+  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals
   const [stats, setStats] = useState<UserStats>({
     totalUsers: 0,
     totalServiceProviders: 0,
     totalRevenue: 0,
     growthRate: 0
   });
-  const router = useRouter();
-  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals
 
   useEffect(() => {
     const header = headerRef.current;
@@ -54,11 +53,18 @@ export default function AdminDashboard() {
       try {
         const db = getFirestore();
         const usersSnapshot = await getDocs(collection(db, 'users'));
+        const paymentsSnapshot = await getDocs(collection(db, 'payments'));
+        
         const users = usersSnapshot.docs.map(doc => doc.data());
+        const payments = paymentsSnapshot.docs.map(doc => doc.data());
         
         const totalUsers = users.length;
         const serviceProviders = users.filter(user => user.role === 'service_provider').length;
-        const totalRevenue = users.reduce((sum, user) => sum + (user.revenue || 0), 0);
+        
+        // Calculate total revenue from completed payments
+        const totalRevenue = payments
+          .filter(payment => payment.status === 'completed')
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
         // Calculate growth rate (last 30 days)
         const thirtyDaysAgo = new Date();
@@ -95,56 +101,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 w-64 bg-white dark:bg-black border-r border-black/10 dark:border-white/10 transform transition-transform duration-200 ease-in-out z-50",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="p-4 border-b border-black/10 dark:border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-black dark:text-white">Menu</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-            onClick={() => router.push('/')}
-          >
-            <Home className="mr-2 h-5 w-5" />
-            Back to Home
-          </Button>
-        </div>
-      </div>
-
-      {/* Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Header */}
+      {/* Update Header */}
       <header className="sticky top-0 z-30 w-full border-b border-black/10 dark:border-white/10 bg-white dark:bg-black">
         <div className="flex h-14 items-center px-4">
           <Button 
             variant="ghost" 
             size="icon"
             className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-            onClick={() => setIsSidebarOpen(true)}
+            onClick={() => router.push('/')}
           >
-            <Menu className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <h2 className="ml-4 text-lg font-semibold text-black dark:text-white">Admin Dashboard</h2>
         </div>

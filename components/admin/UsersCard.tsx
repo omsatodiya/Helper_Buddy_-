@@ -124,7 +124,7 @@ export function UsersCard() {
                 <th className={columnStyles.email}>Email</th>
                 <th className={columnStyles.role}>Role</th>
                 <th className={columnStyles.coins}>Coins</th>
-                <th className={columnStyles.actions}>Actions</th>
+                <th className={columnStyles.actions}></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
@@ -149,7 +149,7 @@ export function UsersCard() {
                           ? "bg-black text-white dark:bg-white dark:text-black" 
                           : "bg-black/10 dark:bg-white/10"
                       )}>
-                        {user.role}
+                        {user.role === 'service_provider' ? 'service provider' : user.role}
                       </span>
                     </div>
                   </td>
