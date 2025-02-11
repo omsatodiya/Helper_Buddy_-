@@ -1,18 +1,19 @@
 "use client";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import AnimatedBackground from "@/components/AnimatedBackground";
 
-// Dynamically import handlers with loading fallback
+const AnimatedBackground = dynamic(
+  () => import("@/components/AnimatedBackground"),
+  { ssr: false }
+);
+
 const VerifyHandler = dynamic(
   () => import("@/components/auth/VerifyHandler"),
   {
     ssr: false,
     loading: () => (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-pulse text-black/50 dark:text-white/50">
-          Loading verification...
-        </div>
+      <div className="w-full max-w-md mx-auto animate-pulse">
+        <div className="bg-white/10 dark:bg-black/10 rounded-2xl h-[400px]"></div>
       </div>
     ),
   }
@@ -20,13 +21,15 @@ const VerifyHandler = dynamic(
 
 export default function VerifyPage() {
   return (
-    <div className="relative min-h-screen">
-      <AnimatedBackground />
-      <div className="container relative z-10 flex items-center justify-center min-h-screen py-8">
-        <Suspense>
+    <main className="min-h-screen relative">
+      <Suspense>
+        <div className="absolute inset-0">
+          <AnimatedBackground />
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
           <VerifyHandler />
-        </Suspense>
-      </div>
-    </div>
+        </div>
+      </Suspense>
+    </main>
   );
 } 
