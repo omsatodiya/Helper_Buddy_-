@@ -110,7 +110,7 @@ const FAQ = () => {
         {faqData.map((faq, index) => (
           <div 
             key={index}
-            ref={el => faqRefs.current[index] = el}
+            ref={(element) => { faqRefs.current[index] = element }}
             className="border border-gray-200 rounded-lg"
           >
             <button
