@@ -1,17 +1,35 @@
 "use client";
-import React from "react";
-import AnimatedBackground from "@/components/AnimatedBackground";
-import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+
+const AnimatedBackground = dynamic(
+  () => import("@/components/AnimatedBackground"),
+  { ssr: false }
+);
+
+const ForgotPasswordForm = dynamic(
+  () => import("@/components/auth/ForgotPasswordForm"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-md mx-auto animate-pulse">
+        <div className="bg-white/10 dark:bg-black/10 rounded-2xl h-[400px]"></div>
+      </div>
+    ),
+  }
+);
 
 export default function ForgotPassword() {
   return (
     <main className="min-h-screen relative">
-      <div className="absolute inset-0">
-        <AnimatedBackground />
-      </div>
-      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <ForgotPasswordForm />
-      </div>
+      <Suspense>
+        <div className="absolute inset-0">
+          <AnimatedBackground />
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+          <ForgotPasswordForm />
+        </div>
+      </Suspense>
     </main>
   );
 }
