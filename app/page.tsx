@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
 import Testimonials from "@/components/FAQ/Testimonials";
 import FAQ from "@/components/FAQ/FAQ";
+import ServiceFilters from "@/components/services/ServiceFilters";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,9 @@ export default function Home() {
         <div className="h-16"></div>
         <FAQ />
         <Testimonials />
+        <div className="h-screen mt-24">
+          <ServiceFilters />
+        </div>
         <Footer />
       </main>
     </>
