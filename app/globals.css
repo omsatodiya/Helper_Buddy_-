@@ -25,6 +25,26 @@
   src: url('/fonts/NewYork.otf');
 }
 
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat.ttf');
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter.otf');
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora.ttf');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins.ttf');
+}
+
 @layer base {
   :root {
     --background: 0 0% 96%;
