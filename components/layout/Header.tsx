@@ -280,7 +280,7 @@ const Header = () => {
                   hover:before:scale-x-100 before:transition-transform before:duration-500 
                   before:origin-left before:transform-gpu`}
                 >
-                  Login
+                  LOGIN
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -494,12 +494,12 @@ const Header = () => {
                     <div className="relative py-4">
                       <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300" />
                       <div className="relative flex items-center justify-between px-4">
-                        <span className={`${montserrat.className} text-2xl font-medium text-white/90 group-hover:text-white transition-all duration-300 tracking-wide`}>
+                        <span className={`${montserrat.className} text-xl font-medium text-white/90 group-hover:text-white transition-all duration-300 tracking-wide`}>
                           LOGIN
                         </span>
                         <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                           <svg
-                            className="w-5 h-5 text-white/70"
+                            className="w-4 h-4 text-white/70"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
