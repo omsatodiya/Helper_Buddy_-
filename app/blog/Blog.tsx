@@ -34,7 +34,6 @@ const Blog: React.FC = () => {
   const [dialogType, setDialogType] = useState<'edit' | 'delete'>('edit');
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const blogCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,25 +104,6 @@ const Blog: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedTag]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      // Reset opacity of all cards
-      const cardsToAnimate = [...blogCardsRef.current].slice(0, paginatedPosts.length + (isAdmin && currentPage === 1 ? 1 : 0));
-      
-      // Reset all cards to initial state
-      gsap.set(cardsToAnimate, { opacity: 0, y: 20 });
-      
-      // Animate cards
-      gsap.to(cardsToAnimate, {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        stagger: 0.1,
-        ease: "power2.out"
-      });
-    }
-  }, [isLoading, paginatedPosts, isAdmin, currentPage]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -227,18 +207,16 @@ const Blog: React.FC = () => {
           {paginatedPosts.map((post, index) => (
             <div
               key={post.id}
-              ref={(el: HTMLDivElement | null) => {
-                if (el) blogCardsRef.current[index] = el;
-              }}
-              className="opacity-0 group relative bg-white dark:bg-black rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white"
+              onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
+              className="group relative bg-white dark:bg-black rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 cursor-pointer"
             >
-              <div className="relative w-full pt-[56.25%]">
+              <div className="relative w-full pt-[56.25%] overflow-hidden">
                 <img
                   src={post.imageUrl}
                   alt={post.title}
-                  className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                  className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-all duration-700 ease-in-out"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60 opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-2 transition-all duration-500 ease-in-out" />
               </div>
 
               <div className="p-6">
@@ -255,7 +233,6 @@ const Blog: React.FC = () => {
 
                 <h3 
                   className="text-xl font-semibold mb-2 text-black dark:text-white hover:opacity-75 transition-opacity cursor-pointer line-clamp-2"
-                  onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
                 >
                   {post.title}
                 </h3>
