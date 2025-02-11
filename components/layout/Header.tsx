@@ -12,6 +12,7 @@ import {
   Linkedin,
   User,
   Coins,
+  Briefcase,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -195,60 +196,6 @@ const Header = () => {
     }
   };
 
-  const ServiceProviderButton = () => {
-    const buttonRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-      if (buttonRef.current) {
-        buttonRef.current.addEventListener('mouseenter', () => {
-          gsap.to(buttonRef.current, {
-            scale: 1.02,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        });
-
-        buttonRef.current.addEventListener('mouseleave', () => {
-          gsap.to(buttonRef.current, {
-            scale: 1,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        });
-
-        buttonRef.current.addEventListener('mousedown', () => {
-          gsap.to(buttonRef.current, {
-            scale: 0.98,
-            duration: 0.1,
-            ease: 'power2.out'
-          });
-        });
-
-        buttonRef.current.addEventListener('mouseup', () => {
-          gsap.to(buttonRef.current, {
-            scale: 1.02,
-            duration: 0.1,
-            ease: 'power2.out'
-          });
-        });
-      }
-    }, []);
-
-    if (!user || userData.role !== 'user') {
-      return null;
-    }
-
-    return (
-      <Button
-        ref={buttonRef}
-        onClick={() => router.push('/become-provider')}
-        className={`${montserrat.className} bg-white hover:bg-white/90 text-black font-semibold tracking-wide shadow-lg hover:shadow-xl transition-all duration-300`}
-      >
-        Become a Service Provider!
-      </Button>
-    );
-  };
-
   const DesktopProfile = () => (
     <div className="flex items-center space-x-8">
       <NavigationMenu>
@@ -293,7 +240,21 @@ const Header = () => {
             <Coins className="h-4 w-4" />
             <span className="text-sm font-medium tracking-wide">{coins}</span>
           </div>
-          <ServiceProviderButton />
+          {userData.role === 'user' && (
+            <div
+              onClick={() => router.push('/become-provider')}
+              className="cursor-pointer"
+              onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
+              onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
+              onMouseDown={(e) => handleTapScale(e.currentTarget)}
+            >
+              <Briefcase
+                className="text-white hover:opacity-80 transition-opacity"
+                size={24}
+                strokeWidth={2}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
@@ -522,20 +483,25 @@ const Header = () => {
               {user && userData.role === 'user' && (
                 <div
                   ref={(el) => addToMenuItemsRef(el, navItems.length + 1)}
-                  className="opacity-0 px-4 pt-4"
+                  className="opacity-0"
                 >
-                  <div className="button-wrapper">
-                    <Button
-                      ref={mobileProviderButtonRef}
-                      onClick={() => {
-                        router.push('/become-provider');
-                        setIsMenuOpen(false);
-                      }}
-                      className={`${montserrat.className} w-full bg-white hover:bg-white/90 text-black font-semibold tracking-wide py-4 text-base shadow-lg hover:shadow-xl transition-all duration-300`}
-                    >
-                      Become a Service Provider!
-                    </Button>
-                  </div>
+                  <Link
+                    href="/become-provider"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="group block"
+                  >
+                    <div className="relative py-4">
+                      <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                      <div className="relative flex items-center justify-between px-4">
+                        <span className={`${montserrat.className} text-xl font-medium text-white/90 group-hover:text-white transition-all duration-300 tracking-wide`}>
+                          BECOME PROVIDER
+                        </span>
+                        <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                          <Briefcase className="w-4 h-4 text-white/70" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
                 </div>
               )}
             </div>

@@ -8,9 +8,7 @@ export default function ContactLayout({
 }) {
   return (
     <>
-      <Header />
       {children}
-      <Footer />
     </>
   );
 } 
