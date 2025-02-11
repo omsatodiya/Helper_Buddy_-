@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft, Coins, Copy, Check } from "lucide-react";
+import { AlertCircle, ArrowLeft, Coins, Copy, Check, LayoutDashboard } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -40,6 +40,7 @@ interface UserData {
   gender: string;
   coins: number;
   referralCode: string;
+  role: string;
 }
 
 // Memoize the InputField component
@@ -88,6 +89,7 @@ export default function ProfileForm() {
     gender: "",
     coins: 0,
     referralCode: "",
+    role: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -95,6 +97,7 @@ export default function ProfileForm() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -109,6 +112,7 @@ export default function ProfileForm() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setUserData(userDoc.data() as UserData);
+          setIsAdmin(userDoc.data().role === 'admin');
         }
       } catch (err) {
         setError("Failed to fetch user data");
@@ -415,6 +419,16 @@ export default function ProfileForm() {
               </>
             ) : (
               <>
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    className="flex-1 h-11 bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+                    onClick={() => router.push('/admin')}
+                  >
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </Button>
+                )}
                 <Button
                   type="button"
                   className="flex-1 h-11"

@@ -33,20 +33,22 @@ export async function processReferral(referralCode: string, newUserId: string, n
   if (referredEmails.includes(newUserEmail)) {
     return false;
   }
+
+  const BONUS_AMOUNT = 100;
   
   // Update referrer's coins and add to their referral list
   await updateDoc(doc(db, 'users', referrerId), {
-    coins: increment(100),
+    coins: increment(BONUS_AMOUNT),
     referredEmails: [...referredEmails, newUserEmail],
     referralHistory: arrayUnion({
       referredEmail: newUserEmail,
       referralDate: new Date().toISOString()
-    } as ReferralRecord)
+    })
   });
   
   // Update new user's coins
   await updateDoc(doc(db, 'users', newUserId), {
-    coins: increment(100)
+    coins: increment(BONUS_AMOUNT)
   });
   
   return true;

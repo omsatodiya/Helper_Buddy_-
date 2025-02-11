@@ -1,44 +1,37 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { Users, ShoppingCart, DollarSign, TrendingUp, Menu } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, TrendingUp, ArrowLeft } from 'lucide-react';
 import { DashboardCard } from '@/components/admin/DashboardCard';
-import { RecentActivityCard } from '@/components/admin/RecentActivityCard';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Settings } from 'lucide-react';
+import { ReferralsCard } from '@/components/admin/ReferralsCard';
+import { UsersCard } from '@/components/admin/UsersCard';
+import { PaymentsCard } from '@/components/admin/PaymentsCard';
+import { cn } from '@/lib/utils';
+import { getFirestore, getDocs, collection } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
-const mockActivities = [
-  {
-    id: '1',
-    user: 'John Doe',
-    action: 'Created a new order #1234',
-    timestamp: '2 minutes ago',
-  },
-  {
-    id: '2',
-    user: 'Jane Smith',
-    action: 'Updated their profile',
-    timestamp: '5 minutes ago',
-  },
-  {
-    id: '3',
-    user: 'Mike Johnson',
-    action: 'Completed payment for order #1232',
-    timestamp: '10 minutes ago',
-  },
-  {
-    id: '4',
-    user: 'Sarah Wilson',
-    action: 'Added new items to cart',
-    timestamp: '15 minutes ago',
-  },
-];
+interface UserStats {
+  totalUsers: number;
+  totalServiceProviders: number;
+  totalRevenue: number;
+  growthRate: number;
+}
 
 export default function AdminDashboard() {
   const headerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals
+  const [stats, setStats] = useState<UserStats>({
+    totalUsers: 0,
+    totalServiceProviders: 0,
+    totalRevenue: 0,
+    growthRate: 0
+  });
 
   useEffect(() => {
     const header = headerRef.current;
@@ -55,100 +48,133 @@ export default function AdminDashboard() {
     );
   }, []);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const db = getFirestore();
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const paymentsSnapshot = await getDocs(collection(db, 'payments'));
+        
+        const users = usersSnapshot.docs.map(doc => doc.data());
+        const payments = paymentsSnapshot.docs.map(doc => doc.data());
+        
+        const totalUsers = users.length;
+        const serviceProviders = users.filter(user => user.role === 'service_provider').length;
+        
+        // Calculate total revenue from completed payments
+        const totalRevenue = payments
+          .filter(payment => payment.status === 'completed')
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        // Calculate growth rate (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentUsers = users.filter(user => 
+          new Date(user.createdAt) > thirtyDaysAgo
+        );
+        const growthRate = (recentUsers.length / totalUsers) * 100;
+
+        setStats({
+          totalUsers,
+          totalServiceProviders: serviceProviders,
+          totalRevenue,
+          growthRate: Math.round(growthRate * 10) / 10
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const renderTable = () => {
+    switch (activeTable) {
+      case "payments":
+        return <PaymentsCard />;
+      case "referrals":
+        return <ReferralsCard />;
+      default:
+        return <UsersCard />;
+    }
+  };
+
   return (
-    <ScrollArea className="h-screen">
-      <div className="flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="container flex h-16 items-center px-4">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-              <h2 className="text-lg font-semibold">Admin Dashboard</h2>
-            </div>
-          </div>
-        </header>
+    <div className="min-h-screen bg-white dark:bg-black">
+      {/* Update Header */}
+      <header className="sticky top-0 z-30 w-full border-b border-black/10 dark:border-white/10 bg-white dark:bg-black">
+        <div className="flex h-14 items-center px-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+            onClick={() => router.push('/')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="ml-4 text-lg font-semibold text-black dark:text-white">Admin Dashboard</h2>
+        </div>
+      </header>
 
+      <div className="flex-1">
         {/* Main Content */}
-        <main className="flex-1 container px-4 py-6 space-y-8">
-          {/* Welcome Section */}
-          <div ref={headerRef} className="opacity-0 space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Welcome back, Admin!</h1>
-            <p className="text-muted-foreground">
-              Here's what's happening with your application today.
-            </p>
-          </div>
-
+        <main className="p-4 space-y-4">
           {/* Stats Grid */}
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <DashboardCard
               title="Total Users"
-              value="1,234"
+              value={stats.totalUsers}
               icon={Users}
-              trend={{ value: 12, isPositive: true }}
-              index={0}
-              className="sm:col-span-1"
+              trend={{ value: stats.growthRate, isPositive: stats.growthRate > 0 }}
+              className="bg-white dark:bg-black"
             />
             <DashboardCard
-              title="Total Orders"
-              value="856"
-              icon={ShoppingCart}
-              trend={{ value: 8, isPositive: true }}
-              index={1}
-              className="sm:col-span-1"
+              title="Service Providers"
+              value={stats.totalServiceProviders}
+              icon={Users}
+              className="bg-white dark:bg-black"
             />
             <DashboardCard
               title="Revenue"
-              value="$45,231"
+              value={`₹${stats.totalRevenue.toLocaleString()}`}
               icon={DollarSign}
-              trend={{ value: 15, isPositive: true }}
-              index={2}
-              className="sm:col-span-1"
+              className="bg-white dark:bg-black"
             />
             <DashboardCard
               title="Growth"
-              value="24.5%"
+              value={`${stats.growthRate}%`}
               icon={TrendingUp}
-              trend={{ value: 5, isPositive: true }}
-              index={3}
-              className="sm:col-span-1"
+              className="bg-white dark:bg-black"
             />
           </div>
 
-          {/* Dashboard Content */}
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-6">
-            {/* Recent Activity */}
-            <RecentActivityCard 
-              activities={mockActivities} 
-              className="lg:col-span-4"
-            />
-            
-            {/* Additional Cards */}
-            <Card className="lg:col-span-2 h-[400px]">
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button className="w-full justify-start" variant="outline">
-                    <Users className="mr-2 h-4 w-4" />
-                    Manage Users
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    View Orders
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Table Selection */}
+          <div className="flex items-center space-x-6">
+            <RadioGroup
+              defaultValue="users"
+              value={activeTable}
+              onValueChange={setActiveTable}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="users" id="users" />
+                <Label htmlFor="users">All Users</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="payments" id="payments" />
+                <Label htmlFor="payments">Recent Payments</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="referrals" id="referrals" />
+                <Label htmlFor="referrals">Referral History</Label>
+              </div>
+            </RadioGroup>
           </div>
+
+          {/* Dynamic Table */}
+          {renderTable()}
         </main>
       </div>
-    </ScrollArea>
+    </div>
   );
 } 
