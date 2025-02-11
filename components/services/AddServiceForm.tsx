@@ -9,8 +9,6 @@ import { toast } from "react-hot-toast";
 import { ServiceImage } from "@/types/service";
 import { ImagePlus, X, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 
 interface AddServiceFormProps {
   isOpen: boolean;
@@ -126,35 +124,19 @@ const AddServiceForm = ({
         throw new Error("Please enter a valid price");
       }
 
-      // Handle file uploads first
-      const uploadedImages = await Promise.all(
-        Object.entries(selectedFiles).map(async ([index, file]) => {
-          const storageRef = ref(
-            storage,
-            `services/${Date.now()}-${file.name}`
-          );
-          await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(storageRef);
-          return {
-            url,
-            alt: images[Number(index)].alt || file.name,
-            isPrimary: images[Number(index)].isPrimary,
-          };
-        })
-      );
-
-      // Merge uploaded images with URL-based images
+      // Instead of uploading to Firebase storage, we'll just use the image URLs directly
       const finalImages = images
-        .map((img, index) => {
-          if (selectedFiles[index]) {
-            return uploadedImages.find((_, i) => i === Number(index)) || img;
-          }
-          return img.url ? img : null;
+        .map((img) => {
+          return img.url ? {
+            url: img.url,
+            alt: img.alt || 'Service image',
+            isPrimary: img.isPrimary
+          } : null;
         })
-        .filter(Boolean); // Remove null entries
+        .filter(Boolean);
 
       if (finalImages.length === 0) {
-        throw new Error("At least one image is required");
+        throw new Error("At least one image URL is required");
       }
 
       const serviceData = {
@@ -173,13 +155,7 @@ const AddServiceForm = ({
         updatedAt: new Date().toISOString(),
       };
 
-      // Log for debugging
-      console.log("Saving price:", priceValue, typeof priceValue);
-
-      const docRef = await addDoc(collection(db, "services"), {
-        ...serviceData,
-        price: priceValue, // Explicitly set price as number
-      });
+      const docRef = await addDoc(collection(db, "services"), serviceData);
 
       toast({
         title: "Service added successfully",

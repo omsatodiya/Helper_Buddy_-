@@ -19,8 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 import EditServiceForm from "./EditServiceForm";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -89,12 +87,6 @@ const ServiceModal = ({
   const { toast } = useToast();
   const [localService, setLocalService] = useState(service);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<{ [key: number]: File }>(
-    {}
-  );
-  const [filePreviews, setFilePreviews] = useState<{ [key: number]: string }>(
-    {}
-  );
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -185,40 +177,13 @@ const ServiceModal = ({
     }
   };
 
-  const handleFileSelect = (
-    index: number,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFiles((prev) => ({ ...prev, [index]: file }));
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setFilePreviews((prev) => ({ ...prev, [index]: previewUrl }));
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Handle file uploads first
-    const uploadedImages = await Promise.all(
-      (service.images || []).map(async (image, index) => {
-        if (selectedFiles[index]) {
-          // Upload to storage and get URL
-          const storageRef = ref(
-            storage,
-            `services/${Date.now()}-${selectedFiles[index].name}`
-          );
-          await uploadBytes(storageRef, selectedFiles[index]);
-          const url = await getDownloadURL(storageRef);
-          return { ...image, url };
-        }
-        return image;
-      })
-    );
+    // Instead of handling file uploads, we'll just use the existing image URLs
+    const updatedImages = service.images || [];
 
-    // Continue with your existing submit logic using uploadedImages
+    // Continue with your existing submit logic using updatedImages
     // ...
   };
 
