@@ -8,6 +8,8 @@ import {
   DollarSign,
   TrendingUp,
   ArrowLeft,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { DashboardCard } from "@/components/admin/DashboardCard";
 import { Button } from "@/components/ui/button";
@@ -16,13 +18,16 @@ import { ReferralsCard } from "@/components/admin/ReferralsCard";
 import { UsersCard } from "@/components/admin/UsersCard";
 import { PaymentsCard } from "@/components/admin/PaymentsCard";
 import { cn } from "@/lib/utils";
-import { getFirestore, getDocs, collection } from "firebase/firestore";
+import { getFirestore, getDocs, collection, query, where, updateDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import { Service } from "@/types/service";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { auth } from "@/lib/firebase";
 
 interface UserStats {
   totalUsers: number;
@@ -31,10 +36,21 @@ interface UserStats {
   growthRate: number;
 }
 
+interface ProviderApplication {
+  userId: string;
+  userName: string;
+  email: string;
+  photo: string;
+  services: string[];
+  servicePincodes: { pincode: string }[];
+  applicationDate: string;
+  status: string;
+}
+
 export default function AdminDashboard() {
   const headerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals, services
+  const [activeTable, setActiveTable] = useState("users"); // users, payments, referrals, services, provider-applications
   const [stats, setStats] = useState<UserStats>({
     totalUsers: 0,
     totalServiceProviders: 0,
@@ -44,6 +60,7 @@ export default function AdminDashboard() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [applications, setApplications] = useState<ProviderApplication[]>([]);
 
   useEffect(() => {
     const header = headerRef.current;
@@ -73,7 +90,7 @@ export default function AdminDashboard() {
 
         const totalUsers = users.length;
         const serviceProviders = users.filter(
-          (user) => user.role === "service_provider"
+          (user) => user.role === "provider"
         ).length;
 
         // Calculate total revenue from completed payments
@@ -121,6 +138,87 @@ export default function AdminDashboard() {
     fetchServices();
   }, []);
 
+  useEffect(() => {
+    if (activeTable === 'provider-applications') {
+      fetchApplications();
+    }
+  }, [activeTable]);
+
+  const fetchApplications = async () => {
+    try {
+      const db = getFirestore();
+      const applicationsRef = collection(db, 'provider-applications');
+      const q = query(applicationsRef, where('status', '==', 'pending'));
+      const querySnapshot = await getDocs(q);
+      
+      const apps: ProviderApplication[] = [];
+      querySnapshot.forEach((doc) => {
+        apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
+      });
+      
+      setApplications(apps);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  };
+
+  const handleApplicationReview = async (
+    applicationId: string,
+    status: 'approved' | 'rejected',
+    rejectionReason?: string
+  ) => {
+    try {
+      const db = getFirestore();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        toast({
+          title: "Authentication required",
+          description: "You must be logged in to review applications",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update application status
+      await updateDoc(doc(db, 'provider-applications', applicationId), {
+        status,
+        reviewDate: new Date(),
+        reviewedBy: currentUser.uid,
+        ...(rejectionReason && { rejectionReason })
+      });
+
+      // Update user role if approved
+      if (status === 'approved') {
+        await updateDoc(doc(db, 'users', applicationId), {
+          role: 'provider',
+          providerSince: new Date(),
+          applicationStatus: 'approved'
+        });
+      } else {
+        await updateDoc(doc(db, 'users', applicationId), {
+          applicationStatus: 'rejected',
+          rejectionReason
+        });
+      }
+
+      toast({
+        title: `Application ${status}`,
+        description: `Successfully ${status} the provider application.`,
+      });
+
+      // Refresh applications list
+      fetchApplications();
+    } catch (error) {
+      console.error('Error reviewing application:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${status} the application`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderTable = () => {
     switch (activeTable) {
       case "payments":
@@ -136,7 +234,7 @@ export default function AdminDashboard() {
               </h2>
               <Button
                 onClick={() => router.push("/services/add")}
-                className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+                className="w-full sm:w-auto bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
               >
                 Add New Service
               </Button>
@@ -186,6 +284,75 @@ export default function AdminDashboard() {
             )}
           </div>
         );
+      case "provider-applications":
+        return (
+          <div className="p-6">
+            <div className="grid gap-6">
+              {applications.map((application) => (
+                <div key={application.userId} className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold">{application.userName}</h3>
+                      <p className="text-sm text-gray-500">{application.email}</p>
+                    </div>
+                    <Badge variant={
+                      application.status === 'pending' ? 'default' :
+                      application.status === 'approved' ? 'secondary' : 'destructive'
+                    }>
+                      {application.status.toUpperCase()}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                      <img 
+                        src={application.photo} 
+                        alt={application.userName}
+                        className="w-32 h-32 object-cover rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p><strong>Services:</strong> {application.services.join(', ')}</p>
+                      <p><strong>Service Areas:</strong> {application.servicePincodes.map(p => p.pincode).join(', ')}</p>
+                      <p><strong>Applied:</strong> {new Date(application.applicationDate).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  
+                  {application.status === 'pending' && (
+                    <div className="flex gap-4 mt-6">
+                      <Button
+                        onClick={() => handleApplicationReview(application.userId, 'approved')}
+                        className="flex-1 bg-black hover:bg-black/90 text-white"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            handleApplicationReview(application.userId, 'rejected', reason);
+                          }
+                        }}
+                        className="flex-1 border-black hover:bg-black hover:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {applications.length === 0 && (
+                <div className="text-center py-8 text-black/60 dark:text-white/60">
+                  No pending applications
+                </div>
+              )}
+            </div>
+          </div>
+        );
       default:
         return <UsersCard />;
     }
@@ -221,30 +388,30 @@ export default function AdminDashboard() {
               value: stats.growthRate,
               isPositive: stats.growthRate > 0,
             }}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow"
           />
           <DashboardCard
             title="Service Providers"
             value={stats.totalServiceProviders}
             icon={Users}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow"
           />
           <DashboardCard
             title="Revenue"
             value={`₹${stats.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow"
           />
           <DashboardCard
             title="Growth"
             value={`${stats.growthRate}%`}
             icon={TrendingUp}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow"
           />
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mt-8 bg-white dark:bg-gray-900 rounded-lg p-4 shadow-sm dark:border dark:border-gray-800">
+        <div className="mt-8 bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-4 shadow-sm">
           <RadioGroup
             defaultValue="users"
             value={activeTable}
@@ -303,20 +470,33 @@ export default function AdminDashboard() {
                 Services
               </Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem
+                value="provider-applications"
+                id="provider-applications"
+                className="dark:border-gray-700"
+              />
+              <Label
+                htmlFor="provider-applications"
+                className="cursor-pointer dark:text-gray-200"
+              >
+                Provider Applications
+              </Label>
+            </div>
           </RadioGroup>
         </div>
 
         {/* Content Area */}
         <div className="mt-6">
           {activeTable === "services" ? (
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 dark:border dark:border-gray-800">
+            <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow-sm p-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                   Services Management
                 </h2>
                 <Button
                   onClick={() => router.push("/services/add")}
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white"
+                  className="w-full sm:w-auto bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
                 >
                   Add New Service
                 </Button>
@@ -346,7 +526,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm dark:border dark:border-gray-800">
+            <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow-sm p-6">
               {renderTable()}
             </div>
           )}

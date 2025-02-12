@@ -149,7 +149,7 @@ export function UsersCard() {
                           ? "bg-black text-white dark:bg-white dark:text-black" 
                           : "bg-black/10 dark:bg-white/10"
                       )}>
-                        {user.role === 'service_provider' ? 'service provider' : user.role}
+                        {user.role === 'provider' ? 'provider' : user.role}
                       </span>
                     </div>
                   </td>
@@ -227,7 +227,7 @@ export function UsersCard() {
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="service_provider">Service Provider</SelectItem>
+                    <SelectItem value="provider">Provider</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
