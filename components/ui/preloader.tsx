@@ -82,7 +82,7 @@ const Preloader: React.FC<PreloaderProps> = ({ onLoadingComplete }) => {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white opacity-0">
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white dark:from-black dark:via-gray-900 dark:to-black opacity-0">
       <div ref={logoContainerRef} className="relative mb-12 opacity-0">
         <div
           ref={logoGlowRef}
@@ -102,12 +102,12 @@ const Preloader: React.FC<PreloaderProps> = ({ onLoadingComplete }) => {
 
       <div className="relative w-48 sm:w-64">
         {/* Background line */}
-        <div className="h-0.5 bg-black/5 rounded-full overflow-hidden" />
+        <div className="h-0.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden" />
         
         {/* Main progress bar */}
         <div
           ref={progressBarRef}
-          className="absolute top-0 left-0 h-0.5 w-full bg-black origin-left scale-x-0"
+          className="absolute top-0 left-0 h-0.5 w-full bg-black dark:bg-white origin-left scale-x-0"
           style={{
             boxShadow: "0 0 20px rgba(0,0,0,0.2)",
           }}
@@ -117,7 +117,7 @@ const Preloader: React.FC<PreloaderProps> = ({ onLoadingComplete }) => {
       {/* Loading text */}
       <p
         ref={loadingTextRef}
-        className="mt-8 text-black/50 text-sm tracking-wider font-light opacity-0">
+        className="mt-8 text-black/50 dark:text-white/50 text-sm tracking-wider font-light opacity-0">
         Loading...
       </p>
     </div>
