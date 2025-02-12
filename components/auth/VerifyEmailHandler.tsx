@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import AnimatedBackground from "@/components/AnimatedBackground";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 export default function VerifyEmailHandler() {
   const router = useRouter();
@@ -28,8 +28,28 @@ export default function VerifyEmailHandler() {
 
       try {
         await applyActionCode(auth, oobCode);
+        
+        // Get stored signup data
+        const storedData = localStorage.getItem('signupFormData');
+        if (storedData && auth.currentUser) {
+          const formData = JSON.parse(storedData);
+          const db = getFirestore();
+          
+          // Save user data to Firestore
+          await setDoc(doc(db, "users", auth.currentUser.uid), {
+            ...formData,
+            emailVerified: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+
+          // Clear stored data
+          localStorage.removeItem('signupFormData');
+        }
+
         setSuccess(true);
       } catch (err) {
+        console.error('Verification error:', err);
         setError("This verification link is invalid or has expired");
       } finally {
         setVerifying(false);
@@ -37,7 +57,7 @@ export default function VerifyEmailHandler() {
     };
 
     verifyEmail();
-  }, [oobCode]);
+  }, [oobCode, router]);
 
   if (verifying) {
     return (
