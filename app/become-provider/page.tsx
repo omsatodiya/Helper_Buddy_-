@@ -388,7 +388,6 @@ export default function BecomeProviderPage() {
         description: "Your application is under review. We'll notify you once it's approved.",
       });
       
-      router.push('/dashboard');
     } catch (error) {
       console.error('Error submitting provider application:', error);
       toast({
