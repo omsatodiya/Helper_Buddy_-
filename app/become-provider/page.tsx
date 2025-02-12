@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { auth } from '@/lib/firebase';
-import { getFirestore, doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, setDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from 'next/navigation';
 import {
@@ -558,44 +558,6 @@ export default function BecomeProviderPage() {
     }));
   };
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    try {
-      // Create form data
-      const formData = new FormData();
-      
-      // Add upload parameters for 1:1 crop
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'service_providers');
-      formData.append('folder', 'service_providers');
-      formData.append('public_id', `provider_${user.uid}`); // Use user ID in filename
-      formData.append('crop', 'fill');
-      formData.append('aspect_ratio', '1.0');
-      formData.append('width', '800'); // Set desired width
-      formData.append('height', '800'); // Set desired height
-      formData.append('file', file);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const data = await response.json();
-      return data.secure_url;
-    } catch (error) {
-      console.error('Error uploading to Cloudinary:', error);
-      throw new Error('Failed to upload image');
-    }
-  };
-
   const handleBecomeProvider = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -608,9 +570,40 @@ export default function BecomeProviderPage() {
       return;
     }
 
+    // Validate form data
+    if (!formData.photo) {
+      toast({
+        title: "Photo required",
+        description: "Please upload your photo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.pincodes.length === 0) {
+      toast({
+        title: "Service area required",
+        description: "Please add at least one pincode where you can provide services",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.services.length === 0) {
+      toast({
+        title: "Services required",
+        description: "Please select at least one service you can provide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      // Check application status first
       const db = getFirestore();
+
+      // Check for existing application first
       const [applicationDoc, userDoc] = await Promise.all([
         getDoc(doc(db, 'provider-applications', user.uid)),
         getDoc(doc(db, 'users', user.uid))
@@ -627,96 +620,78 @@ export default function BecomeProviderPage() {
         return;
       }
 
-      if (hasSubmitted) {
-        toast({
-          title: "Application Already Submitted",
-          description: "Your application is currently under review. We'll notify you once it's processed.",
-          variant: "default",
-        });
-        return;
+      // Upload photo to Cloudinary
+      const formDataForUpload = new FormData();
+      formDataForUpload.append('file', formData.photo);
+      formDataForUpload.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '');
+      formDataForUpload.append('folder', 'provider-photos');
+
+      // Sanitize email for use as filename (replace @ and . with underscores)
+      const sanitizedEmail = user.email?.replace(/[@.]/g, '_') || user.uid;
+      formDataForUpload.append('public_id', sanitizedEmail);
+
+      const uploadResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formDataForUpload
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
       }
 
-      if (!formData.photo) {
-        toast({
-          title: "Photo required",
-          description: "Please upload your photo",
-          variant: "destructive",
-        });
-        return;
-      }
+      const uploadData = await uploadResponse.json();
+      const photoURL = uploadData.secure_url;
 
-      if (formData.pincodes.length === 0) {
-        toast({
-          title: "Service area required",
-          description: "Please add at least one pincode where you can provide services",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Create application document
+      const applicationData = {
+        userId: user.uid,
+        userName: user.displayName || '',
+        email: user.email || '',
+        photo: `provider-photos/${sanitizedEmail}`,
+        servicePincodes: formData.pincodes,
+        services: formData.services,
+        status: 'pending',
+        applicationDate: new Date(),
+        lastUpdated: new Date()
+      };
 
-      if (formData.services.length === 0) {
-        toast({
-          title: "Services required",
-          description: "Please select at least one service you can provide",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Batch write to both collections
+      const batch = writeBatch(db);
+      
+      // Add application to provider-applications collection
+      batch.set(doc(db, 'provider-applications', user.uid), applicationData);
+      
+      // Update user document
+      batch.update(doc(db, 'users', user.uid), {
+        hasProviderApplication: true,
+        applicationStatus: 'pending',
+        applicationDate: new Date(),
+        lastUpdated: new Date()
+      });
 
-      setIsSubmitting(true);
-      try {
-        // Upload photo to Cloudinary
-        const photoURL = await uploadToCloudinary(formData.photo);
+      // Commit the batch
+      await batch.commit();
 
-        // Create a new provider application document
-        const applicationData: ProviderApplication = {
-          userId: user.uid,
-          userName: user.displayName || '',
-          email: user.email || '',
-          photo: photoURL,
-          servicePincodes: formData.pincodes,
-          services: formData.services,
-          status: 'pending',
-          applicationDate: new Date(),
-        };
-
-        // Add the application to a separate collection for admin review
-        await setDoc(doc(db, 'provider-applications', user.uid), applicationData);
-
-        // Update user document to show they have a pending application
-        await updateDoc(doc(db, 'users', user.uid), {
-          hasProviderApplication: true,
-          applicationStatus: 'pending',
-          applicationDate: new Date()
-        });
-
-        // After successful submission
-        setHasSubmitted(true);
-        toast({
-          title: "Application submitted!",
-          description: "Your application is under review. We'll notify you once it's approved.",
-        });
-        
-        // Optional: Close the form after successful submission
-        setShowForm(false);
-        
-      } catch (error) {
-        console.error('Error submitting provider application:', error);
-        toast({
-          title: "Error",
-          description: "Failed to submit application. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    } catch (error) {
-      console.error('Error:', error);
+      // Success handling
+      setHasSubmitted(true);
       toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
+        title: "Application submitted successfully!",
+        description: "We'll review your application and get back to you soon.",
+      });
+      setShowForm(false);
+
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Submission failed",
+        description: "There was an error submitting your application. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

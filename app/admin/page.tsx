@@ -164,8 +164,7 @@ export default function AdminDashboard() {
 
   const handleApplicationReview = async (
     applicationId: string,
-    status: 'approved' | 'rejected',
-    rejectionReason?: string
+    status: 'approved' | 'rejected'
   ) => {
     try {
       const db = getFirestore();
@@ -184,8 +183,7 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, 'provider-applications', applicationId), {
         status,
         reviewDate: new Date(),
-        reviewedBy: currentUser.uid,
-        ...(rejectionReason && { rejectionReason })
+        reviewedBy: currentUser.uid
       });
 
       // Update user role if approved
@@ -197,8 +195,7 @@ export default function AdminDashboard() {
         });
       } else {
         await updateDoc(doc(db, 'users', applicationId), {
-          applicationStatus: 'rejected',
-          rejectionReason
+          applicationStatus: 'rejected'
         });
       }
 
@@ -286,68 +283,93 @@ export default function AdminDashboard() {
         );
       case "provider-applications":
         return (
-          <div className="p-6">
-            <div className="grid gap-6">
-              {applications.map((application) => (
-                <div key={application.userId} className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold">{application.userName}</h3>
-                      <p className="text-sm text-gray-500">{application.email}</p>
-                    </div>
-                    <Badge variant={
-                      application.status === 'pending' ? 'default' :
-                      application.status === 'approved' ? 'secondary' : 'destructive'
-                    }>
-                      {application.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div>
-                      <img 
-                        src={application.photo} 
-                        alt={application.userName}
-                        className="w-32 h-32 object-cover rounded-lg"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p><strong>Services:</strong> {application.services.join(', ')}</p>
-                      <p><strong>Service Areas:</strong> {application.servicePincodes.map(p => p.pincode).join(', ')}</p>
-                      <p><strong>Applied:</strong> {new Date(application.applicationDate).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  
-                  {application.status === 'pending' && (
-                    <div className="flex gap-4 mt-6">
-                      <Button
-                        onClick={() => handleApplicationReview(application.userId, 'approved')}
-                        className="flex-1 bg-black hover:bg-black/90 text-white"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const reason = prompt('Enter rejection reason:');
-                          if (reason) {
-                            handleApplicationReview(application.userId, 'rejected', reason);
-                          }
-                        }}
-                        className="flex-1 border-black hover:bg-black hover:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-black dark:text-white">
+                Provider Applications
+              </h2>
+              <Badge variant="outline" className="px-3 py-1">
+                {applications.length} Pending
+              </Badge>
+            </div>
 
-              {applications.length === 0 && (
-                <div className="text-center py-8 text-black/60 dark:text-white/60">
-                  No pending applications
+            <div className="rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
+              {applications.length > 0 ? (
+                <div className="divide-y divide-black/10 dark:divide-white/10">
+                  {applications.map((application) => (
+                    <div key={application.userId} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
+                      <div className="flex items-start gap-4">
+                        {/* Provider Image */}
+                        <img 
+                          src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${application.photo}`}
+                          alt={application.userName}
+                          className="w-16 h-16 rounded-full object-cover border border-black/10 dark:border-white/10"
+                        />
+                        
+                        {/* Provider Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <h3 className="font-medium text-black dark:text-white truncate">
+                                {application.userName}
+                              </h3>
+                              <p className="text-sm text-black/60 dark:text-white/60">
+                                {application.email}
+                              </p>
+                            </div>
+                            <Badge>
+                              {application.status.toUpperCase()}
+                            </Badge>
+                          </div>
+                          
+                          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-black/40 dark:text-white/40">Services:</span>{' '}
+                              <span className="text-black/80 dark:text-white/80">{application.services.join(', ')}</span>
+                            </div>
+                            <div>
+                              <span className="text-black/40 dark:text-white/40">Areas:</span>{' '}
+                              <span className="text-black/80 dark:text-white/80">{application.servicePincodes.map(p => p.pincode).join(', ')}</span>
+                            </div>
+                          </div>
+
+                          {application.status === 'pending' && (
+                            <div className="mt-4 flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleApplicationReview(application.userId, 'approved')}
+                                className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1.5" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleApplicationReview(application.userId, 'rejected')}
+                                className="border-black/20 hover:border-black hover:bg-black hover:text-white dark:border-white/20 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
+                              >
+                                <XCircle className="w-4 h-4 mr-1.5" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="h-12 w-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-4">
+                    <Users className="h-6 w-6 text-black/40 dark:text-white/40" />
+                  </div>
+                  <h3 className="text-lg font-medium text-black dark:text-white mb-1">
+                    No Pending Applications
+                  </h3>
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    There are currently no provider applications to review
+                  </p>
                 </div>
               )}
             </div>
