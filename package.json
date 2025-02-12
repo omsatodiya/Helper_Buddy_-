@@ -25,6 +25,7 @@
     "bcryptjs": "^2.4.3",
     "button": "^1.1.1",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.5.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^11.3.0",

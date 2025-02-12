@@ -1,5 +1,6 @@
 import { db } from '@/lib/config';
 import { collection, addDoc, getDocs, query, where, DocumentData, getDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // Define the allowed tags (for type safety and validation)
 export type BlogTag = 'beauty' | 'lifestyle' | 'homepage' | 'fashion' | 'health' | 'food';
@@ -17,6 +18,7 @@ export interface Blog {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
+  imageFile?: File | null;
 }
 
 // Collection reference
@@ -26,15 +28,28 @@ const blogsCollection = collection(db, COLLECTION_NAME);
 // Helper functions for CRUD operations
 export const BlogModel = {
   // Create a new blog
-  async create(blogData: Blog): Promise<string> {
-    const timestamp = new Date().toISOString();
-    const doc = await addDoc(blogsCollection, {
-      ...blogData,
-      publishedDate: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    });
-    return doc.id;
+  async create(blogData: Blog, imageFile: File | null): Promise<string> {
+    try {
+      let imageUrl = '';
+
+      // Upload image if provided
+      if (imageFile) {
+        imageUrl = await uploadToCloudinary(imageFile);
+      }
+
+      // Create blog with image URL
+      const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+        ...blogData,
+        imageUrl,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      return docRef.id;
+    } catch (error) {
+      console.error("Error creating blog:", error);
+      throw error;
+    }
   },
 
   // Get all blogs

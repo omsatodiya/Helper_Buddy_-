@@ -7,6 +7,8 @@ import gsap from 'gsap';
 import { ArrowLeft, Image as ImageIcon, Clock, User, FileText, Tags } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import AdminProtected from '@/components/auth/AdminProtected';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+import { validateImage } from '@/lib/imageUtils';
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
@@ -22,10 +24,10 @@ function NewBlog() {
     author: '',
     readTime: '',
     description: '',
-    imageUrl: '',
     tags: [] as string[],
     fullDescription: '',
     publishedDate: new Date().toISOString(),
+    imageFile: null as File | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -96,12 +98,30 @@ function NewBlog() {
     }
   }, [isSubmitting]);
 
+  useEffect(() => {
+    // Verify Cloudinary configuration
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    
+    if (!cloudName || !uploadPreset) {
+      console.error('Missing Cloudinary configuration:', {
+        cloudName: !!cloudName,
+        uploadPreset: !!uploadPreset
+      });
+    } else {
+      console.log('Cloudinary configuration loaded:', {
+        cloudName,
+        uploadPreset
+      });
+    }
+  }, []);
+
   const getCurrentStepFields = () => {
     switch (currentStep) {
       case 1:
         return ['title', 'author', 'readTime'];
       case 2:
-        return ['imageUrl', 'tags'];
+        return ['imageFile', 'tags'];
       case 3:
         return ['description', 'fullDescription'];
       default:
@@ -120,6 +140,8 @@ function NewBlog() {
         if (formData.tags.length === 0) {
           newErrors.tags = 'Please select at least one tag';
         }
+      } else if (field === 'imageFile' && !formData.imageFile) {
+        newErrors.imageFile = 'Please select an image';
       } else if (typeof value === 'string' && !value.trim()) {
         newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
       }
@@ -133,15 +155,23 @@ function NewBlog() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (isSubmitting) {
+      return;
+    }
+
     const currentFields = getCurrentStepFields();
     const newErrors: {[key: string]: string} = {};
 
+    // Validate fields
     currentFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
       if (field === 'tags') {
         if (formData.tags.length === 0) {
           newErrors.tags = 'Please select at least one tag';
         }
+      } else if (field === 'imageFile' && !formData.imageFile) {
+        newErrors.imageFile = 'Please select an image';
       } else if (typeof value === 'string' && !value.trim()) {
         newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
       }
@@ -156,20 +186,30 @@ function NewBlog() {
 
     try {
       const blogData = {
-        ...formData,
-        readTime: `${formData.readTime} min read`,
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        description: formData.description.trim(),
+        fullDescription: formData.fullDescription.trim(),
+        readTime: `${formData.readTime.trim()} min read`,
+        tags: formData.tags,
         publishedDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
       };
 
-      await BlogModel.create(blogData);
-      router.push('/blog');
-      router.refresh();
+      // Create blog post with image file
+      const blogId = await BlogModel.create(blogData, formData.imageFile);
+      console.log('Blog created successfully with ID:', blogId);
+
+      // Show success message
+      alert('Blog post created successfully!');
+
+      // Redirect to blog page
+      window.location.href = '/blog';
     } catch (error) {
-      console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create blog post');
-    } finally {
+      console.error('Error creating blog:', error);
+      setErrors(prev => ({
+        ...prev,
+        submit: error instanceof Error ? error.message : 'Failed to create blog post. Please try again.'
+      }));
       setIsSubmitting(false);
     }
   };
@@ -253,6 +293,38 @@ function NewBlog() {
       : "bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
   );
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({
+          ...prev,
+          imageFile: 'Please upload an image file'
+        }));
+        return;
+      }
+
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({
+          ...prev,
+          imageFile: 'Image must be less than 5MB'
+        }));
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        imageFile: file
+      }));
+      setErrors(prev => ({
+        ...prev,
+        imageFile: undefined
+      }));
+    }
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -326,19 +398,34 @@ function NewBlog() {
             <div className="space-y-2">
               <label className={labelStyles}>
                 <ImageIcon className="w-4 h-4" />
-                Cover Image URL *
+                Cover Image *
               </label>
-              <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                className={inputStyles(errors.imageUrl)}
-                placeholder="Enter image URL"
-              />
-              {errors.imageUrl && (
-                <p className="text-sm text-red-500 mt-1">{errors.imageUrl}</p>
-              )}
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className={cn(
+                    "w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0",
+                    "file:text-sm file:font-semibold file:bg-black file:text-white",
+                    "hover:file:bg-black/80 cursor-pointer",
+                    "dark:file:bg-white dark:file:text-black",
+                    "dark:hover:file:bg-white/80"
+                  )}
+                />
+                {formData.imageFile && (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                    <img
+                      src={URL.createObjectURL(formData.imageFile)}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                {errors.imageFile && (
+                  <p className="text-sm text-red-500 mt-1">{errors.imageFile}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -453,22 +540,21 @@ function NewBlog() {
             </p>
           </div>
 
-          <form onSubmit={(e) => {
-            // Only handle submit if we're on the last step
-            if (currentStep !== totalSteps) {
-              e.preventDefault();
-              return;
-            }
-            handleSubmit(e);
-          }}>
+          <form onSubmit={handleSubmit}>
             {renderStepContent()}
+
+            {errors.submit && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-lg">
+                {errors.submit}
+              </div>
+            )}
 
             <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => currentStep > 1 && setCurrentStep(step => step - 1)}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || isSubmitting}
                 className="px-6 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-black dark:hover:text-white disabled:opacity-50"
               >
                 Previous
@@ -477,11 +563,9 @@ function NewBlog() {
               {currentStep < totalSteps ? (
                 <Button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNextStep();
-                  }}
-                  className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                  onClick={handleNextStep}
+                  disabled={isSubmitting}
+                  className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                 >
                   Next
                 </Button>
@@ -492,10 +576,13 @@ function NewBlog() {
                   className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    <div
-                      ref={spinnerRef}
-                      className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full"
-                    />
+                    <div className="flex items-center gap-2">
+                      <div
+                        ref={spinnerRef}
+                        className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"
+                      />
+                      <span>Publishing...</span>
+                    </div>
                   ) : (
                     'Publish Post'
                   )}
