@@ -9,6 +9,15 @@ import { cn } from "@/lib/utils";
 import AdminProtected from '@/components/auth/AdminProtected';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { validateImage } from '@/lib/imageUtils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CheckCircle2 } from 'lucide-react';
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
@@ -35,6 +44,7 @@ function NewBlog() {
 
   // Add error state
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     // Initial page load animation
@@ -199,11 +209,7 @@ function NewBlog() {
       const blogId = await BlogModel.create(blogData, formData.imageFile);
       console.log('Blog created successfully with ID:', blogId);
 
-      // Show success message
-      alert('Blog post created successfully!');
-
-      // Redirect to blog page
-      window.location.href = '/blog';
+      setDialogOpen(true);
     } catch (error) {
       console.error('Error creating blog:', error);
       setErrors(prev => ({
@@ -318,11 +324,15 @@ function NewBlog() {
         ...prev,
         imageFile: file
       }));
-      setErrors(prev => ({
-        ...prev,
-        imageFile: undefined
-      }));
+      setErrors(prev => {
+        const { imageFile, ...rest } = prev;
+        return rest;
+      });
     }
+  };
+
+  const handleConfirmRedirect = () => {
+    window.location.href = '/blog';
   };
 
   const renderStepContent = () => {
@@ -497,102 +507,128 @@ function NewBlog() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-white dark:bg-black py-12">
-      <div className="max-w-3xl mx-auto px-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-8 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+    <>
+      <div ref={containerRef} className="min-h-screen bg-white dark:bg-black py-12">
+        <div className="max-w-3xl mx-auto px-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="mb-8 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
 
-        <div className="header-content text-center mb-12">
-          <h1 className="text-4xl font-bold text-black dark:text-white mb-4">
-            Create New Blog Post
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Share your thoughts and ideas with the world
-          </p>
-        </div>
-
-        <div ref={formRef} className="bg-white dark:bg-black rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4 gap-2">
-              {Array.from({ length: totalSteps }).map((_, index) => (
-                <div
-                  key={index}
-                  ref={(el: HTMLDivElement | null) => {
-                    progressRef.current[index] = el;
-                  }}
-                  className={cn(
-                    "w-full h-1 rounded-full",
-                    index < currentStep 
-                      ? "bg-black dark:bg-white" 
-                      : "bg-gray-100 dark:bg-gray-800"
-                  )}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Step {currentStep} of {totalSteps}
+          <div className="header-content text-center mb-12">
+            <h1 className="text-4xl font-bold text-black dark:text-white mb-4">
+              Create New Blog Post
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
+              Share your thoughts and ideas with the world
             </p>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {renderStepContent()}
-
-            {errors.submit && (
-              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-lg">
-                {errors.submit}
+          <div ref={formRef} className="bg-white dark:bg-black rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4 gap-2">
+                {Array.from({ length: totalSteps }).map((_, index) => (
+                  <div
+                    key={index}
+                    ref={(el: HTMLDivElement | null) => {
+                      progressRef.current[index] = el;
+                    }}
+                    className={cn(
+                      "w-full h-1 rounded-full",
+                      index < currentStep 
+                        ? "bg-black dark:bg-white" 
+                        : "bg-gray-100 dark:bg-gray-800"
+                    )}
+                  />
+                ))}
               </div>
-            )}
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Step {currentStep} of {totalSteps}
+              </p>
+            </div>
 
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => currentStep > 1 && setCurrentStep(step => step - 1)}
-                disabled={currentStep === 1 || isSubmitting}
-                className="px-6 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-black dark:hover:text-white disabled:opacity-50"
-              >
-                Previous
-              </Button>
-              
-              {currentStep < totalSteps ? (
+            <form onSubmit={handleSubmit}>
+              {renderStepContent()}
+
+              {errors.submit && (
+                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-lg">
+                  {errors.submit}
+                </div>
+              )}
+
+              <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   type="button"
-                  onClick={handleNextStep}
-                  disabled={isSubmitting}
-                  className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
+                  variant="outline"
+                  onClick={() => currentStep > 1 && setCurrentStep(step => step - 1)}
+                  disabled={currentStep === 1 || isSubmitting}
+                  className="px-6 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-black dark:hover:text-white disabled:opacity-50"
                 >
-                  Next
+                  Previous
                 </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div
-                        ref={spinnerRef}
-                        className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"
-                      />
-                      <span>Publishing...</span>
-                    </div>
-                  ) : (
-                    'Publish Post'
-                  )}
-                </Button>
-              )}
-            </div>
-          </form>
+                
+                {currentStep < totalSteps ? (
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    disabled={isSubmitting}
+                    className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          ref={spinnerRef}
+                          className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"
+                        />
+                        <span>Publishing...</span>
+                      </div>
+                    ) : (
+                      'Publish Post'
+                    )}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-black rounded-2xl p-6 border border-black dark:border-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-black dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+              Success!
+            </DialogTitle>
+            <DialogDescription className="text-black dark:text-white opacity-75 mt-2 text-base">
+              Your blog post has been created successfully and will be published shortly. Click below to view all blogs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              onClick={handleConfirmRedirect}
+              className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+            >
+              View All Blogs
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

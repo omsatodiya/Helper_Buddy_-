@@ -238,12 +238,17 @@ const EditBlog = () => {
       return;
     }
 
+    // Show dialog instead of submitting directly
+    setDialogOpen(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    if (!blogId || isSubmitting) return;
     setIsSubmitting(true);
 
     try {
       let imageUrl = formData.currentImageUrl;
       
-      // Only upload new image if one was selected
       if (formData.imageFile) {
         imageUrl = await uploadToCloudinary(formData.imageFile);
       }
@@ -266,31 +271,32 @@ const EditBlog = () => {
       console.error('Error:', error);
       setErrors(prev => ({
         ...prev,
-        imageFile: error instanceof Error ? error.message : 'Failed to update blog'
+        submit: error instanceof Error ? error.message : 'Failed to update blog'
       }));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleConfirmUpdate = async () => {
-    if (!blogId) return;
-    setIsSubmitting(true);
-
-    try {
-      const updatedData = {
-        ...formData,
-        readTime: `${formData.readTime} min read`
-      };
-      await BlogModel.update(blogId, updatedData);
-      router.push('/blog');
-      router.refresh();
-    } catch (error) {
-      console.error('Update error:', error);
-    } finally {
       setIsSubmitting(false);
       setDialogOpen(false);
     }
+  };
+
+  const getChangedFields = () => {
+    if (!originalData) return [];
+    
+    return Object.entries(formData).reduce((changes: string[], [key, value]) => {
+      // Skip imageFile as it's a special case
+      if (key === 'imageFile') return changes;
+      
+      // Handle arrays (like tags)
+      if (Array.isArray(value)) {
+        if (JSON.stringify(value) !== JSON.stringify(originalData[key])) {
+          changes.push(key);
+        }
+      }
+      // Handle strings and other values
+      else if (value !== originalData[key]) {
+        changes.push(key);
+      }
+      return changes;
+    }, []);
   };
 
   if (isLoading) {
@@ -526,31 +532,31 @@ const EditBlog = () => {
               Update Blog Post
             </DialogTitle>
             <DialogDescription className="text-black dark:text-white opacity-75 mt-2 text-base">
-              {Object.keys(formData).some(key => 
-                JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-              )
-                ? 'Are you sure you want to update this blog post with your changes?'
+              {getChangedFields().length > 0
+                ? 'The following fields will be updated:'
                 : 'No changes have been made to the blog post.'}
             </DialogDescription>
           </DialogHeader>
 
-          {Object.keys(formData).some(key => 
-            JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-          ) && (
+          {getChangedFields().length > 0 && (
             <div className="py-4 border-t border-b border-black dark:border-white">
-              <h4 className="font-medium text-black dark:text-white mb-2">Changes made to:</h4>
-              <ul className="mt-2 text-sm text-black dark:text-white opacity-75 space-y-1">
-                {Object.keys(formData).map(key => {
-                  if (JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])) {
-                    return (
-                      <li key={key} className="flex items-center">
-                        <span className="w-2 h-2 bg-black dark:bg-white rounded-full mr-2"></span>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </li>
-                    );
-                  }
-                  return null;
-                })}
+              <h4 className="font-medium text-black dark:text-white mb-2">Changed fields:</h4>
+              <ul className="mt-2 text-sm text-black dark:text-white opacity-75 space-y-2">
+                {getChangedFields().map(field => (
+                  <li key={field} className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-black dark:bg-white rounded-full"></span>
+                    <span className="capitalize">
+                      {field === 'readTime' ? 'Read Time' : 
+                       field === 'imageUrl' ? 'Image' : 
+                       field === 'fullDescription' ? 'Full Content' : field}
+                    </span>
+                    {field !== 'tags' && field !== 'imageUrl' && (
+                      <span className="text-xs opacity-50">
+                        {originalData?.[field] ? `(${String(originalData[field]).substring(0, 20)}... → ${String(formData[field]).substring(0, 20)}...)` : ''}
+                      </span>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -564,9 +570,7 @@ const EditBlog = () => {
             >
               Cancel
             </Button>
-            {Object.keys(formData).some(key => 
-              JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-            ) && (
+            {getChangedFields().length > 0 && (
               <Button
                 type="button"
                 onClick={handleConfirmUpdate}
