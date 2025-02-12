@@ -31,7 +31,7 @@ export default function Home() {
         <Header />
         {/* <div className="h-screen"></div> */}
         <Background />
-        {/* <Footer /> */}
+        <Footer />
       </main>
     </>
   );
