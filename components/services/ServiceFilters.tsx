@@ -109,9 +109,9 @@ const ServiceFilters = () => {
   };
 
   return (
-    <div className="p-4">
-      <div className="border rounded-md shadow-sm  md:w-[500px]">
-        <h2 className="text-xl font-semibold hidden md:block p-4 ml-2 text-gray-600 ">
+    <div className="p-4 bg-white dark:bg-gray-950 transition-colors duration-200">
+      <div className="border rounded-md shadow-sm md:w-[500px] dark:border-gray-800">
+        <h2 className="text-xl font-semibold hidden md:block p-4 ml-2 text-gray-600 dark:text-gray-300">
           What are you looking for?
         </h2>
 
@@ -122,16 +122,20 @@ const ServiceFilters = () => {
               <button
                 key={index}
                 onClick={() => setActiveModal(filter.modal)}
-                className="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+                className="flex flex-col items-center justify-center p-3 
+                           bg-gray-50 dark:bg-gray-800 
+                           hover:bg-gray-100 dark:hover:bg-gray-700
+                           rounded-lg transition-colors group"
               >
                 <div className="relative w-16 h-16 mb-2">
                   <img
                     src={filter.icon}
                     alt={filter.title}
-                    className="object-contain group-hover:scale-110 transition-transform"
+                    className="object-contain group-hover:scale-110 transition-transform
+                             dark:filter dark:brightness-90"
                   />
                 </div>
-                <span className="text-xs font-medium text-gray-700 text-center">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">
                   {filter.title}
                 </span>
               </button>
@@ -146,7 +150,7 @@ const ServiceFilters = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ y: "100%", opacity: 0 }}
@@ -157,16 +161,17 @@ const ServiceFilters = () => {
                 damping: 25,
                 stiffness: 300,
               }}
-              className="bg-white rounded-lg w-full max-w-md p-6 relative"
+              className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 relative"
             >
               <button
                 onClick={() => setActiveModal(null)}
-                className="absolute right-4 top-4"
+                className="absolute right-4 top-4 text-gray-500 dark:text-gray-400
+                         hover:text-gray-700 dark:hover:text-gray-200"
               >
                 <X className="h-6 w-6" />
               </button>
 
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                 {typeof activeModal === "string"
                   ? activeModal.charAt(0).toUpperCase() + activeModal.slice(1)
                   : activeModal}
@@ -177,10 +182,15 @@ const ServiceFilters = () => {
                   <button
                     key={index}
                     onClick={() => handleCategorySelect(option.link)}
-                    className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex flex-col items-center p-4 
+                             bg-gray-50 dark:bg-gray-900
+                             hover:bg-gray-100 dark:hover:bg-gray-900 
+                             rounded-lg transition-colors"
                   >
                     <span className="text-2xl mb-2">{option.icon}</span>
-                    <span className="text-center text-sm">{option.title}</span>
+                    <span className="text-center text-sm text-gray-900 dark:text-gray-200">
+                      {option.title}
+                    </span>
                   </button>
                 ))}
               </div>

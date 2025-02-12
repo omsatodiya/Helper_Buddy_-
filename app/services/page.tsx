@@ -432,19 +432,12 @@ function ServicesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Add the AddServiceForm component */}
-      <AddServiceForm
-        isOpen={isAddServiceOpen}
-        onClose={() => setIsAddServiceOpen(false)}
-        onServiceAdded={handleServiceAdded}
-      />
-
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200">
       {/* Mobile Filter Button */}
       <div className="md:hidden fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsFilterOpen(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg"
+          className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-full shadow-lg"
         >
           <Filter className="w-6 h-6" />
         </button>
@@ -452,8 +445,8 @@ function ServicesContent() {
 
       {/* Mobile Filter Overlay */}
       {isFilterOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="absolute right-0 top-0 h-full w-[80%] bg-white overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 dark:bg-white/50 z-50 md:hidden">
+          <div className="absolute right-0 top-0 h-full w-[80%] bg-white dark:bg-black overflow-y-auto">
             <div className="p-4">
               <button
                 onClick={() => setIsFilterOpen(false)}
@@ -518,14 +511,12 @@ function ServicesContent() {
 
       <Header />
       <div className="max-w-7xl mx-auto mt-24 p-4">
-        {/* Add the Add Service button in the header section */}
-        <div className="flex justify-between items-center ">
-          <h1 className="text-2xl md:text-3xl font-bold">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">
             {category
               ? category.charAt(0).toUpperCase() + category.slice(1)
               : "All Services"}
           </h1>
-          <Button onClick={() => setIsAddServiceOpen(true)}>Add Service</Button>
         </div>
 
         <div className="flex flex-col md:flex-row md:gap-14">
@@ -571,20 +562,22 @@ function ServicesContent() {
           </div>
 
           {/* Services Grid */}
-          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border w-full">
+          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border border-gray-200 dark:border-gray-800 w-full">
             {/* Active Filters Summary - Mobile Only */}
             <div className="md:hidden mb-4">
               {(selectedService ||
                 selectedPriceRanges.length > 0 ||
                 minReviewRating) && (
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-sm text-gray-500">Active filters:</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Active filters:
+                  </span>
                 </div>
               )}
             </div>
 
             {filteredServices.length === 0 ? (
-              <div className="text-gray-600 text-center py-8">
+              <div className="text-gray-600 dark:text-gray-400 text-center py-8">
                 No services match the selected filters.
               </div>
             ) : (

@@ -20,6 +20,8 @@ interface AddReviewModalProps {
   onClose: () => void;
   serviceId: string;
   onReviewAdded: (review: ServiceReview) => void;
+  userName?: string;
+  userEmail?: string;
 }
 
 const AddReviewModal = ({
@@ -27,6 +29,8 @@ const AddReviewModal = ({
   onClose,
   serviceId,
   onReviewAdded,
+  userName,
+  userEmail,
 }: AddReviewModalProps) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -49,8 +53,8 @@ const AddReviewModal = ({
         id: Date.now().toString(),
         rating: rating as 1 | 2 | 3 | 4 | 5,
         comment,
-        userName: "Anonymous", // Replace with actual user name
-        userEmail: "anonymous@example.com", // Replace with actual user email
+        userName: userName || "Anonymous",
+        userEmail: userEmail || "anonymous@example.com",
         date: new Date().toISOString(),
         helpful: 0,
       };
