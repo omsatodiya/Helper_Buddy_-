@@ -63,7 +63,7 @@ const EditBlog = () => {
       case 1:
         return ['title', 'author', 'readTime'];
       case 2:
-        return ['tags'];
+        return ['imageFile', 'tags'];
       case 3:
         return ['description', 'fullDescription'];
       default:
@@ -198,7 +198,8 @@ const EditBlog = () => {
       validateImage(file);
       setFormData(prev => ({
         ...prev,
-        imageFile: file
+        imageFile: file,
+        currentImageUrl: URL.createObjectURL(file)
       }));
       
       // Clear any existing errors
@@ -215,14 +216,49 @@ const EditBlog = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNext = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    if (!blogId) return;
-
     const currentFields = getCurrentStepFields();
     const newErrors: {[key: string]: string} = {};
 
     currentFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      if (field === 'tags') {
+        if (formData.tags.length === 0) {
+          newErrors.tags = 'Please select at least one tag';
+        }
+      } else if (typeof value === 'string' && !value.trim()) {
+        newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+      }
+    });
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+  };
+
+  const handlePrevious = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!blogId || isSubmitting) return;
+
+    const currentFields = getCurrentStepFields();
+    const newErrors: {[key: string]: string} = {};
+
+    // Validate all fields from all steps before submission
+    const allFields = [
+      'title', 'author', 'readTime',
+      'tags', 'description', 'fullDescription'
+    ];
+
+    allFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
       if (field === 'tags') {
         if (formData.tags.length === 0) {
@@ -254,11 +290,11 @@ const EditBlog = () => {
       }
 
       const blogData = {
-        title: formData.title,
-        author: formData.author,
-        description: formData.description,
-        fullDescription: formData.fullDescription,
-        readTime: `${formData.readTime} min read`,
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        description: formData.description.trim(),
+        fullDescription: formData.fullDescription.trim(),
+        readTime: `${formData.readTime.trim()} min read`,
         tags: formData.tags,
         imageUrl,
         updatedAt: new Date().toISOString()
@@ -282,8 +318,11 @@ const EditBlog = () => {
     if (!originalData) return [];
     
     return Object.entries(formData).reduce((changes: string[], [key, value]) => {
-      // Skip imageFile as it's a special case
-      if (key === 'imageFile') return changes;
+      // Special handling for image changes
+      if (key === 'imageFile' && value) {
+        changes.push('image');
+        return changes;
+      }
       
       // Handle arrays (like tags)
       if (Array.isArray(value)) {
@@ -292,7 +331,7 @@ const EditBlog = () => {
         }
       }
       // Handle strings and other values
-      else if (value !== originalData[key]) {
+      else if (value !== originalData[key] && key !== 'imageFile' && key !== 'currentImageUrl') {
         changes.push(key);
       }
       return changes;
@@ -385,9 +424,19 @@ const EditBlog = () => {
                 Cover Image
               </label>
               <div className="space-y-4">
+                {formData.currentImageUrl && (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
+                    <img
+                      src={formData.currentImageUrl}
+                      alt="Current cover"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/jpg"
+                  accept="image/*"
                   onChange={handleImageChange}
                   className={cn(
                     "w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0",
@@ -397,15 +446,6 @@ const EditBlog = () => {
                     "dark:hover:file:bg-white/80"
                   )}
                 />
-                {(formData.imageFile || formData.currentImageUrl) && (
-                  <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                    <img
-                      src={formData.imageFile ? URL.createObjectURL(formData.imageFile) : formData.currentImageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
                 {errors.imageFile && (
                   <p className="text-sm text-red-500 mt-1">{errors.imageFile}</p>
                 )}
@@ -503,23 +543,51 @@ const EditBlog = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             {renderStepContent()}
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-black dark:border-white">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                className="px-6 py-2.5 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
-              >
-                {isSubmitting ? 'Updating...' : 'Update Blog Post'}
-              </Button>
+            {/* Step Navigation and Action Buttons */}
+            <div className="flex justify-between items-center pt-6 border-t border-black dark:border-white">
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalSteps }, (_, i) => (
+                  <div
+                    key={i + 1}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i + 1 === currentStep
+                        ? 'bg-black dark:bg-white'
+                        : 'bg-gray-300 dark:bg-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              <div className="flex gap-4">
+                {currentStep > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    className="px-6 py-2.5 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  >
+                    Previous
+                  </Button>
+                )}
+                
+                {currentStep < totalSteps ? (
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black"
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Updating...' : 'Update Blog Post'}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </div>
