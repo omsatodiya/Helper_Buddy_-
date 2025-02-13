@@ -12,7 +12,7 @@ import { Service } from "@/types/service";
 import ServiceCard from "@/components/services/ServiceCard";
 import {
   getFirestore,
-  collection,
+  collection, 
   getDocs,
   query,
   where,
