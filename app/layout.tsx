@@ -1,5 +1,6 @@
-import AuthProvider from '@/components/providers/SessionProvider';
 import './globals.css';
+import { ThemeProvider } from "@/providers/theme-provider";
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata = {
   title: 'Helper Buddy',
@@ -12,10 +13,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <AuthProvider>
-          {children}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

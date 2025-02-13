@@ -1,15 +1,29 @@
-import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
-import AnimatedBackground from "@/components/AnimatedBackground";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
+const ResetPasswordForm = dynamic(
+  () => import("@/components/auth/ResetPasswordForm"),
+  { ssr: false }
+);
+
+const AnimatedBackground = dynamic(
+  () => import("@/components/AnimatedBackground"),
+  { ssr: false }
+);
+
+export default function ResetPasswordPage() {
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-4">
-      <AnimatedBackground />
-      <ResetPasswordForm className="relative z-10" token={searchParams.token || ""} />
+    <main className="min-h-screen relative">
+      <div className="absolute inset-0">
+        <Suspense>
+          <AnimatedBackground />
+        </Suspense>
+      </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <Suspense>
+          <ResetPasswordForm />
+        </Suspense>
+      </div>
     </main>
   );
 }
