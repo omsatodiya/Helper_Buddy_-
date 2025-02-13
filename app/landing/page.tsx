@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
 import SplitType from 'split-type';
@@ -29,7 +29,7 @@ export default function LandingPage() {
   const containerRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchRef = useRef(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
 
   // Handle search focus and scroll
   const handleSearchFocus = () => {
@@ -49,14 +49,16 @@ export default function LandingPage() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent): void {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchFocused(false);
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   return (

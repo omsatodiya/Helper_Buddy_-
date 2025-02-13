@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
