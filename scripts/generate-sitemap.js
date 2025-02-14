@@ -42,7 +42,6 @@ const pages = [
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(page => `  <url>
     <loc>${domain}${page.url}</loc>
@@ -53,28 +52,29 @@ ${pages.map(page => `  <url>
 </urlset>`;
 
 try {
-  // Ensure the static directory exists
-  const staticDir = path.join(process.cwd(), '.next', 'static');
-  if (!fs.existsSync(staticDir)) {
-    fs.mkdirSync(staticDir, { recursive: true });
+  // Ensure the public directory exists
+  const publicDir = path.join(process.cwd(), 'public');
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  // Write sitemap to static directory
-  const sitemapPath = path.join(staticDir, 'sitemap.xml');
+  // Write sitemap to public directory
+  const sitemapPath = path.join(publicDir, 'sitemap.xml');
   fs.writeFileSync(sitemapPath, sitemap);
 
-  // Also write robots.txt to static directory
+  // Generate robots.txt
   const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_next/static/
 
+# Sitemap
 Sitemap: ${domain}/sitemap.xml`;
-  
-  const robotsPath = path.join(staticDir, 'robots.txt');
+
+  const robotsPath = path.join(publicDir, 'robots.txt');
   fs.writeFileSync(robotsPath, robotsTxt);
 
-  console.log('Sitemap and robots.txt generated successfully');
+  console.log(`Sitemap and robots.txt generated successfully in ${publicDir}`);
 } catch (error) {
   console.error('Error generating files:', error);
   process.exit(1);
