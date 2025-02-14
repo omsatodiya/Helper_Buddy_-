@@ -1,7 +1,9 @@
 [[headers]]
   for = "/sitemap.xml"
   [headers.values]
-    Content-Type = "application/xml"
+    Content-Type = "application/xml; charset=UTF-8"
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=3600"
     X-Robots-Tag = "all"
 
 [[headers]]
@@ -19,6 +21,6 @@
 
 [[redirects]]
   from = "/sitemap.xml"
-  to = "/sitemap.xml"
+  to = "/.next/sitemap.xml"
   status = 200
   force = true 
