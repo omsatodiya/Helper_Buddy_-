@@ -41,7 +41,12 @@ interface UserData {
   createdAt: string;
 }
 
-export function UsersCard() {
+interface UsersCardProps {
+  currentPage: number;
+  itemsPerPage: number;
+}
+
+export function UsersCard({ currentPage, itemsPerPage }: UsersCardProps) {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -61,7 +66,12 @@ export function UsersCard() {
         ...doc.data() 
       } as UserData));
       
-      setUsers(usersData);
+      // Sort users by creation date
+      const sortedUsers = usersData.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setUsers(sortedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -100,6 +110,11 @@ export function UsersCard() {
     }
   };
 
+  // Get paginated data
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
   if (loading) {
     return (
       <Card className="col-span-full">
@@ -128,7 +143,7 @@ export function UsersCard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="p-4">
                     <div className="flex flex-col">

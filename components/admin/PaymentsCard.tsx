@@ -16,42 +16,17 @@ interface Payment {
   createdAt: string;
 }
 
-export function PaymentsCard() {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
+interface PaymentsCardProps {
+  currentPage: number;
+  itemsPerPage: number;
+  payments: Payment[];
+}
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const db = getFirestore();
-        const paymentsSnapshot = await getDocs(collection(db, 'payments'));
-        const paymentsData = paymentsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Payment));
-
-        setPayments(paymentsData.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ));
-      } catch (error) {
-        console.error('Error fetching payments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPayments();
-  }, []);
-
-  if (loading) {
-    return (
-      <Card className="col-span-full">
-        <CardContent className="flex items-center justify-center h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </CardContent>
-      </Card>
-    );
-  }
+export function PaymentsCard({ currentPage, itemsPerPage, payments }: PaymentsCardProps) {
+  // Get paginated data
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPayments = payments.slice(startIndex, endIndex);
 
   return (
     <Card className="col-span-full border border-black/10 dark:border-white/10">
@@ -71,7 +46,7 @@ export function PaymentsCard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
-              {payments.map((payment) => (
+              {paginatedPayments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="p-4">
                     <div className="flex flex-col">
