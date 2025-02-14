@@ -15,6 +15,8 @@ import {
 import { ArrowLeft, Image as ImageIcon, Clock, User, FileText, Tags, Save, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import AdminProtected from '@/components/auth/AdminProtected';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+import { validateImage } from '@/lib/imageUtils';
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
@@ -26,13 +28,16 @@ interface FormData {
   imageUrl: string;
   tags: string[];
   fullDescription: string;
-  [key: string]: string | string[];
+  publishedDate: string;
+  imageFile: File | null;
+  currentImageUrl: string;
+  [key: string]: string | string[] | File | null;
 }
 
 const EditBlog = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get('id');
+  const blogId = searchParams.get('id');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -45,10 +50,30 @@ const EditBlog = () => {
     imageUrl: '',
     tags: [],
     fullDescription: '',
+    publishedDate: new Date().toISOString(),
+    imageFile: null,
+    currentImageUrl: '',
   });
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  const getCurrentStepFields = () => {
+    switch (currentStep) {
+      case 1:
+        return ['title', 'author', 'readTime'];
+      case 2:
+        return ['imageFile', 'tags'];
+      case 3:
+        return ['description', 'fullDescription'];
+      default:
+        return [];
+    }
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<(HTMLDivElement | null)[]>([]);
   const spinnerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,13 +109,13 @@ const EditBlog = () => {
 
   useEffect(() => {
     const fetchBlog = async () => {
-      if (!id) {
+      if (!blogId) {
         router.push('/blog');
         return;
       }
 
       try {
-        const blogData = await BlogModel.getById(id);
+        const blogData = await BlogModel.getById(blogId);
         if (!blogData) {
           throw new Error('Blog not found');
         }
@@ -103,6 +128,9 @@ const EditBlog = () => {
           imageUrl: blogData.imageUrl || '',
           tags: Array.isArray(blogData.tags) ? blogData.tags : [],
           fullDescription: blogData.fullDescription || '',
+          publishedDate: blogData.publishedDate || new Date().toISOString(),
+          imageFile: null,
+          currentImageUrl: blogData.imageUrl || '',
         };
         setOriginalData(initialData);
         setFormData(initialData);
@@ -115,7 +143,7 @@ const EditBlog = () => {
     };
 
     fetchBlog();
-  }, [id, router]);
+  }, [blogId, router]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -162,39 +190,152 @@ const EditBlog = () => {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    const hasChanges = Object.keys(formData).some(key => 
-      JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-    );
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!hasChanges) {
-      setDialogOpen(true);
+    try {
+      validateImage(file);
+      setFormData(prev => ({
+        ...prev,
+        imageFile: file,
+        currentImageUrl: URL.createObjectURL(file)
+      }));
+      
+      // Clear any existing errors
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.imageFile;
+        return newErrors;
+      });
+    } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        imageFile: error instanceof Error ? error.message : 'Invalid file'
+      }));
+    }
+  };
+
+  const handleNext = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    const currentFields = getCurrentStepFields();
+    const newErrors: {[key: string]: string} = {};
+
+    currentFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      if (field === 'tags') {
+        if (formData.tags.length === 0) {
+          newErrors.tags = 'Please select at least one tag';
+        }
+      } else if (typeof value === 'string' && !value.trim()) {
+        newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+      }
+    });
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
       return;
     }
 
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+  };
+
+  const handlePrevious = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!blogId || isSubmitting) return;
+
+    const currentFields = getCurrentStepFields();
+    const newErrors: {[key: string]: string} = {};
+
+    // Validate all fields from all steps before submission
+    const allFields = [
+      'title', 'author', 'readTime',
+      'tags', 'description', 'fullDescription'
+    ];
+
+    allFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      if (field === 'tags') {
+        if (formData.tags.length === 0) {
+          newErrors.tags = 'Please select at least one tag';
+        }
+      } else if (typeof value === 'string' && !value.trim()) {
+        newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+      }
+    });
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    // Show dialog instead of submitting directly
     setDialogOpen(true);
   };
 
   const handleConfirmUpdate = async () => {
-    if (!id) return;
+    if (!blogId || isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      const updatedData = {
-        ...formData,
-        readTime: `${formData.readTime} min read`
+      let imageUrl = formData.currentImageUrl;
+      
+      if (formData.imageFile) {
+        imageUrl = await uploadToCloudinary(formData.imageFile);
+      }
+
+      const blogData = {
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        description: formData.description.trim(),
+        fullDescription: formData.fullDescription.trim(),
+        readTime: `${formData.readTime.trim()} min read`,
+        tags: formData.tags,
+        imageUrl,
+        updatedAt: new Date().toISOString()
       };
-      await BlogModel.update(id, updatedData);
+
+      await BlogModel.update(blogId, blogData);
       router.push('/blog');
       router.refresh();
     } catch (error) {
-      console.error('Update error:', error);
-    } finally {
+      console.error('Error:', error);
+      setErrors(prev => ({
+        ...prev,
+        submit: error instanceof Error ? error.message : 'Failed to update blog'
+      }));
       setIsSubmitting(false);
       setDialogOpen(false);
     }
+  };
+
+  const getChangedFields = () => {
+    if (!originalData) return [];
+    
+    return Object.entries(formData).reduce((changes: string[], [key, value]) => {
+      // Special handling for image changes
+      if (key === 'imageFile' && value) {
+        changes.push('image');
+        return changes;
+      }
+      
+      // Handle arrays (like tags)
+      if (Array.isArray(value)) {
+        if (JSON.stringify(value) !== JSON.stringify(originalData[key])) {
+          changes.push(key);
+        }
+      }
+      // Handle strings and other values
+      else if (value !== originalData[key] && key !== 'imageFile' && key !== 'currentImageUrl') {
+        changes.push(key);
+      }
+      return changes;
+    }, []);
   };
 
   if (isLoading) {
@@ -213,6 +354,169 @@ const EditBlog = () => {
       ? "bg-black dark:bg-white text-white dark:text-black"
       : "border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
   );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="step-content space-y-6">
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                <FileText className="w-4 h-4" />
+                Title *
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className={inputStyles}
+                placeholder="Enter an engaging title"
+              />
+              {errors.title && (
+                <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                <User className="w-4 h-4" />
+                Author *
+              </label>
+              <input
+                type="text"
+                name="author"
+                value={formData.author}
+                onChange={handleInputChange}
+                className={inputStyles}
+                placeholder="Your name"
+              />
+              {errors.author && (
+                <p className="text-sm text-red-500 mt-1">{errors.author}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                <Clock className="w-4 h-4" />
+                Read Time (in minutes) *
+              </label>
+              <input
+                type="text"
+                name="readTime"
+                value={formData.readTime}
+                onChange={handleInputChange}
+                className={inputStyles}
+                placeholder="5"
+              />
+              {errors.readTime && (
+                <p className="text-sm text-red-500 mt-1">{errors.readTime}</p>
+              )}
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="step-content space-y-6">
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                <ImageIcon className="w-4 h-4" />
+                Cover Image
+              </label>
+              <div className="space-y-4">
+                {formData.currentImageUrl && (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
+                    <img
+                      src={formData.currentImageUrl}
+                      alt="Current cover"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className={cn(
+                    "w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0",
+                    "file:text-sm file:font-semibold file:bg-black file:text-white",
+                    "hover:file:bg-black/80 cursor-pointer",
+                    "dark:file:bg-white dark:file:text-black",
+                    "dark:hover:file:bg-white/80"
+                  )}
+                />
+                {errors.imageFile && (
+                  <p className="text-sm text-red-500 mt-1">{errors.imageFile}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                <Tags className="w-4 h-4" />
+                Tags *
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleTagToggle(tag)}
+                    className={tagStyles(formData.tags.includes(tag))}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+              {errors.tags && (
+                <p className="text-sm text-red-500 mt-1">{errors.tags}</p>
+              )}
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="step-content space-y-6">
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                Short Description *
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+                className={inputStyles}
+                placeholder="Write a brief description"
+              />
+              {errors.description && (
+                <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelStyles}>
+                Full Content *
+              </label>
+              <textarea
+                name="fullDescription"
+                value={formData.fullDescription}
+                onChange={handleInputChange}
+                rows={8}
+                className={inputStyles}
+                placeholder="Write your blog post content"
+              />
+              {errors.fullDescription && (
+                <p className="text-sm text-red-500 mt-1">{errors.fullDescription}</p>
+              )}
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div ref={containerRef} className="min-h-screen bg-white dark:bg-black py-12">
@@ -237,143 +541,53 @@ const EditBlog = () => {
 
         <div ref={formRef} className="bg-white dark:bg-black rounded-2xl shadow-xl border border-black dark:border-white p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Title Input */}
-            <div className="space-y-2">
-              <label htmlFor="title" className={labelStyles}>
-                Title
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                required
-                value={formData.title}
-                onChange={handleInputChange}
-                className={inputStyles}
-                placeholder="Enter blog title"
-              />
-            </div>
+            {renderStepContent()}
 
-            {/* Author Input */}
-            <div className="space-y-2">
-              <label htmlFor="author" className={labelStyles}>
-                Author
-              </label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                required
-                value={formData.author}
-                onChange={handleInputChange}
-                className={inputStyles}
-                placeholder="Enter author name"
-              />
-            </div>
-
-            {/* Read Time Input */}
-            <div className="space-y-2">
-              <label htmlFor="readTime" className={labelStyles}>
-                Read Time
-              </label>
-              <input
-                type="text"
-                id="readTime"
-                name="readTime"
-                value={formData.readTime}
-                onChange={handleInputChange}
-                className={inputStyles}
-                placeholder="e.g., 5 min read"
-              />
-            </div>
-
-            {/* Description Input */}
-            <div className="space-y-2">
-              <label htmlFor="description" className={labelStyles}>
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                required
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className={inputStyles}
-                placeholder="Enter blog description"
-              />
-            </div>
-
-            {/* Image URL Input */}
-            <div className="space-y-2">
-              <label htmlFor="imageUrl" className={labelStyles}>
-                Image URL
-              </label>
-              <input
-                type="url"
-                id="imageUrl"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                className={inputStyles}
-                placeholder="Enter image URL"
-              />
-            </div>
-
-            {/* Tags Selection */}
-            <div className="space-y-3">
-              <label className={labelStyles}>
-                Tags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {tags.map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => handleTagToggle(tag)}
-                    onMouseEnter={() => handleTagHover}
-                    onMouseLeave={() => handleTagLeave}
-                    className={tagStyles(formData.tags.includes(tag))}
-                  >
-                    {tag}
-                  </button>
+            {/* Step Navigation and Action Buttons */}
+            <div className="flex justify-between items-center pt-6 border-t border-black dark:border-white">
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalSteps }, (_, i) => (
+                  <div
+                    key={i + 1}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i + 1 === currentStep
+                        ? 'bg-black dark:bg-white'
+                        : 'bg-gray-300 dark:bg-gray-700'
+                    }`}
+                  />
                 ))}
               </div>
-            </div>
-
-            {/* Full Description Input */}
-            <div className="space-y-2">
-              <label htmlFor="fullDescription" className={labelStyles}>
-                Full Description
-              </label>
-              <textarea
-                id="fullDescription"
-                name="fullDescription"
-                value={formData.fullDescription}
-                onChange={handleInputChange}
-                rows={6}
-                className={inputStyles}
-                placeholder="Enter full blog content"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-black dark:border-white">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                className="px-6 py-2.5 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
-              >
-                {isSubmitting ? 'Updating...' : 'Update Blog Post'}
-              </Button>
+              
+              <div className="flex gap-4">
+                {currentStep > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    className="px-6 py-2.5 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  >
+                    Previous
+                  </Button>
+                )}
+                
+                {currentStep < totalSteps ? (
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black"
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Updating...' : 'Update Blog Post'}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </div>
@@ -386,31 +600,31 @@ const EditBlog = () => {
               Update Blog Post
             </DialogTitle>
             <DialogDescription className="text-black dark:text-white opacity-75 mt-2 text-base">
-              {Object.keys(formData).some(key => 
-                JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-              )
-                ? 'Are you sure you want to update this blog post with your changes?'
+              {getChangedFields().length > 0
+                ? 'The following fields will be updated:'
                 : 'No changes have been made to the blog post.'}
             </DialogDescription>
           </DialogHeader>
 
-          {Object.keys(formData).some(key => 
-            JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-          ) && (
+          {getChangedFields().length > 0 && (
             <div className="py-4 border-t border-b border-black dark:border-white">
-              <h4 className="font-medium text-black dark:text-white mb-2">Changes made to:</h4>
-              <ul className="mt-2 text-sm text-black dark:text-white opacity-75 space-y-1">
-                {Object.keys(formData).map(key => {
-                  if (JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])) {
-                    return (
-                      <li key={key} className="flex items-center">
-                        <span className="w-2 h-2 bg-black dark:bg-white rounded-full mr-2"></span>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </li>
-                    );
-                  }
-                  return null;
-                })}
+              <h4 className="font-medium text-black dark:text-white mb-2">Changed fields:</h4>
+              <ul className="mt-2 text-sm text-black dark:text-white opacity-75 space-y-2">
+                {getChangedFields().map(field => (
+                  <li key={field} className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-black dark:bg-white rounded-full"></span>
+                    <span className="capitalize">
+                      {field === 'readTime' ? 'Read Time' : 
+                       field === 'imageUrl' ? 'Image' : 
+                       field === 'fullDescription' ? 'Full Content' : field}
+                    </span>
+                    {field !== 'tags' && field !== 'imageUrl' && (
+                      <span className="text-xs opacity-50">
+                        {originalData?.[field] ? `(${String(originalData[field]).substring(0, 20)}... → ${String(formData[field]).substring(0, 20)}...)` : ''}
+                      </span>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -424,9 +638,7 @@ const EditBlog = () => {
             >
               Cancel
             </Button>
-            {Object.keys(formData).some(key => 
-              JSON.stringify(formData[key]) !== JSON.stringify(originalData?.[key])
-            ) && (
+            {getChangedFields().length > 0 && (
               <Button
                 type="button"
                 onClick={handleConfirmUpdate}
