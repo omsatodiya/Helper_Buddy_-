@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: "standalone",
   images: {
     unoptimized: true,
-    domains: ['localhost'],
+    domains: ["localhost", "res.cloudinary.com"],
   },
 };
 

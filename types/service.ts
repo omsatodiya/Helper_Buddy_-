@@ -8,6 +8,8 @@ export interface ServiceProvider {
 }
 
 export interface ServiceReview {
+  serviceDetails: string;
+  isEdited: any;
   id: string;
   rating: 1 | 2 | 3 | 4 | 5;
   comment: string;
@@ -92,6 +94,7 @@ export interface Service {
 }
 
 export interface SimpleService {
+  [x: string]: any;
   id: string;
   name: string;
   description: string;

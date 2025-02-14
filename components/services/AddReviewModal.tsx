@@ -57,6 +57,8 @@ const AddReviewModal = ({
         userEmail: userEmail || "anonymous@example.com",
         date: new Date().toISOString(),
         helpful: 0,
+        serviceDetails: "",
+        isEdited: false,
       };
 
       // Update Firestore
