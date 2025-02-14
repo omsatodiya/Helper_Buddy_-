@@ -17,7 +17,7 @@ const VerifyEmailForm = dynamic(
   }
 );
 
-export default function VerifyEmailPage() {
+const EmailVerificationContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
@@ -29,18 +29,26 @@ export default function VerifyEmailPage() {
   }, [email, router]);
 
   if (!email) {
-    return null; // Return null to prevent flash of content before redirect
+    return null;
   }
 
+  return (
+    <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <VerifyEmailForm />
+    </div>
+  );
+};
+
+export default function VerifyEmailPage() {
   return (
     <main className="min-h-screen relative">
       <Suspense fallback={<LoadingSpinner />}>
         <div className="absolute inset-0">
           <AnimatedBackground />
         </div>
-        <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-          <VerifyEmailForm />
-        </div>
+        <Suspense fallback={<LoadingSpinner />}>
+          <EmailVerificationContent />
+        </Suspense>
       </Suspense>
     </main>
   );
