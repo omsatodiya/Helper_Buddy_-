@@ -14,13 +14,10 @@
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "public"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[[redirects]]
-  from = "/sitemap.xml"
-  to = "/.next/sitemap.xml"
-  status = 200
-  force = true 
+# Remove the redirect since we're serving directly from public
+# The sitemap.xml will be served directly from the public directory 

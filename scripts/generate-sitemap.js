@@ -42,6 +42,7 @@ const pages = [
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(page => `  <url>
     <loc>${domain}${page.url}</loc>
@@ -51,15 +52,14 @@ ${pages.map(page => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-// Ensure directories exist and write sitemap to both locations
+// Ensure public directory exists
 const publicDir = path.join(process.cwd(), 'public');
-const nextDir = path.join(process.cwd(), '.next');
 
-[publicDir, nextDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(path.join(dir, 'sitemap.xml'), sitemap);
-});
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
 
-console.log('Sitemap generated successfully in both public and .next directories!'); 
+// Write sitemap to public directory
+fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemap);
+
+console.log('Sitemap generated successfully in public directory!'); 
