@@ -22,6 +22,8 @@ import {
 } from "firebase/firestore";
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
+import ScrollVelocity from "@/components/ui/scroll-velocity";
+
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,9 @@ export default function Home() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
+
+
+  
   const fetchServices = async () => {
     try {
       const db = getFirestore();
@@ -200,7 +205,7 @@ export default function Home() {
             )}
           </div> */}
         {/* </div> */}
-        <LandingPage />
+        {/* <LandingPage /> */}
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
           <div className="mb-12">

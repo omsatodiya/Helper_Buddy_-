@@ -70,7 +70,7 @@ export default function LandingPage() {
 
     // Animate features with stagger
     if (featuresRef.current) {
-      const features = Array.from(featuresRef.current.children);
+      const features = featuresRef.current.querySelectorAll('.feature-card');
       tl.fromTo(features,
         { opacity: 0, y: 30 },
         { opacity: 1, y: 0, duration: 0.8, stagger: 0.2 },
@@ -149,7 +149,7 @@ export default function LandingPage() {
           </div>
           
           {/* Search Bar */}
-          <div ref={searchBarRef} className="flex justify-center mt-8 relative opacity-0">
+          <div ref={searchBarRef} className="flex justify-center mt-8 relative opacity-0 z-50">
             <div ref={searchRef} className="relative w-full max-w-2xl">
               <input
                 type="text"
@@ -252,7 +252,7 @@ export default function LandingPage() {
         </div>
 
         {/* Features Section */}
-        <div ref={featuresRef} className="w-full mt-10">
+        <div ref={featuresRef} className="w-full mt-10 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
@@ -273,7 +273,7 @@ export default function LandingPage() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="p-6 rounded-lg border border-[#2C786C]/20 backdrop-blur-sm bg-black/30 opacity-0"
+                className="feature-card p-6 rounded-lg border border-[#2C786C]/20 backdrop-blur-sm bg-black/30 opacity-0"
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-[#EAEAEA] mb-2">{feature.title}</h3>
