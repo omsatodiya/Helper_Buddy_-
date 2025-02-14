@@ -11,8 +11,7 @@
 [[headers]]
   for = "/sitemap.xml"
   [headers.values]
-    Content-Type = "application/xml; charset=UTF-8"
-    Access-Control-Allow-Origin = "*"
+    Content-Type = "application/xml"
     X-Robots-Tag = "all"
     Cache-Control = "public, max-age=3600"
 
@@ -41,3 +40,9 @@
   skip_processing = false
 
 # Remove redirects as we're serving directly from public directory 
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/next_api_sitemap_xml"
+  status = 200
+  force = true 

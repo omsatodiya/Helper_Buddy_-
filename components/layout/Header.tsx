@@ -14,6 +14,8 @@ import {
   Briefcase,
   LogOut,
   ShieldCheck,
+  Moon,
+  Sun,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -32,7 +34,6 @@ import { Button } from "@/components/ui/button";
 import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useLoadingStore } from "@/store/loading-store";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import gsap from "gsap";
@@ -62,6 +63,7 @@ const Header = () => {
   const [userData, setUserData] = useState<UserData>({ role: '', coins: 0 });
   const [coins, setCoins] = useState<number>(0);
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   // GSAP refs
   const headerRef = useRef<HTMLDivElement>(null);
@@ -132,6 +134,17 @@ const Header = () => {
 
     return () => unsubscribe();
   }, [user]);
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    setTheme(isDark ? 'dark' : 'light');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    document.documentElement.classList.toggle('dark');
+  };
 
   const handleHoverScale = (target: HTMLElement) => {
     gsap.to(target, {
@@ -336,8 +349,6 @@ const Header = () => {
 
   const AuthSection = () => (
     <div className="flex items-center gap-6">
-      <ThemeToggle />
-
       {/* Cart Icon with Counter */}
       <div className="relative">
         <Link href="/cart">
@@ -370,6 +381,13 @@ const Header = () => {
               <User className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Profile
             </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-default">
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                <text x="12" y="16" fontSize="12" fill="currentColor" textAnchor="middle">₹</text>
+              </svg>
+              {coins.toLocaleString()} coins
+            </DropdownMenuItem>
             {userData.role === 'admin' && (
               <DropdownMenuItem onClick={() => router.push('/admin')}>
                 <ShieldCheck className="mr-2 h-4 w-4" strokeWidth={1.5} />
@@ -382,6 +400,14 @@ const Header = () => {
                 Provider Dashboard
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={toggleTheme}>
+              {theme === 'light' ? (
+                <Moon className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              ) : (
+                <Sun className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              )}
+              Theme
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Sign out
