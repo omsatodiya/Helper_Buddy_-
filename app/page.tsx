@@ -189,42 +189,7 @@ export default function Home() {
       >
         <Header />
 
-        {/* Hero Section with Search */}
-        {/* <div className="relative h-[500px] bg-gradient-to-r from-primary to-primary/80">
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="relative container mx-auto px-4 h-full flex flex-col items-center justify-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold text-center mb-6">
-              Your One-Stop Solution for Home Services
-            </h1>
-            <p className="text-xl md:text-2xl text-center mb-8">
-              Professional, Reliable, and Affordable Services at Your Doorstep
-            </p>
-            <div className="w-full max-w-2xl relative">
-              <Input
-                type="text"
-                placeholder="Search for services..."
-                className="w-full h-12 pl-12 pr-4 rounded-full text-gray-800 dark:text-white"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  handleSearch(e.target.value);
-                }}
-              />
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-            {filteredServices.length > 0 && (
-              <div className="absolute top-full mt-2 w-full max-w-2xl bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-                {filteredServices.map((service) => (
-                  <div
-                    key={service.id}
-                    className="p-4 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-                  >
-                    {service.name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div> */}
+
         {/* </div> */}
         <LandingPage />
         <div className="container mx-auto px-4 py-12">
