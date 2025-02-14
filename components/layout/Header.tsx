@@ -29,13 +29,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import gsap from "gsap";
 import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useLoadingStore } from "@/store/loading-store";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { Montserrat } from "next/font/google";
 import { signOut } from "firebase/auth";
 
 interface NavItem {
@@ -47,12 +45,6 @@ interface UserData {
   role: string;
   coins: number;
 }
-
-// Initialize the font
-const montserrat = Montserrat({ 
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700']
-});
 
 const navItems: NavItem[] = [
   { label: "HOME", href: "/" },
@@ -69,34 +61,8 @@ const Header = () => {
   const [userData, setUserData] = useState<UserData>({ role: '', coins: 0 });
   const [coins, setCoins] = useState<number>(0);
 
-  // Refs for GSAP animations
+  // Remove all GSAP-related refs and effects
   const headerRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const menuItemsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const socialLinksRef = useRef<HTMLDivElement>(null);
-  const mobileProviderButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (headerRef.current) {
-      gsap.set(headerRef.current, { 
-        y: 0,
-        opacity: 1,
-        display: "block"
-      });
-
-      if (!isLoading) {
-        gsap.fromTo(headerRef.current,
-          { y: -100, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1,
-            ease: "expo.out"
-          }
-        );
-      }
-    }
-  }, [isLoading]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -135,75 +101,6 @@ const Header = () => {
     fetchUserData();
   }, [user]);
 
-  useEffect(() => {
-    if (mobileMenuRef.current) {
-      if (isMenuOpen) {
-        gsap.set(mobileMenuRef.current, { display: "block" });
-        
-        gsap.fromTo(menuItemsRef.current,
-          { 
-            opacity: 0,
-            y: 30,
-            rotateX: 40
-          },
-          {
-            opacity: 1,
-            y: 0,
-            rotateX: 0,
-            duration: 0.5,
-            stagger: 0.1,
-            ease: "power3.out",
-            transformOrigin: "top"
-          }
-        );
-      } else {
-        gsap.to(menuItemsRef.current, {
-          opacity: 0,
-          y: 20,
-          rotateX: 40,
-          duration: 0.4,
-          stagger: 0.05,
-          ease: "power3.in",
-          onComplete: () => {
-            gsap.set(mobileMenuRef.current, { display: "none" });
-          }
-        });
-      }
-    }
-  }, [isMenuOpen]);
-
-  const handleHoverScale = (target: HTMLElement) => {
-    gsap.to(target, {
-      scale: 1.1,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  };
-
-  const handleHoverScaleExit = (target: HTMLElement) => {
-    gsap.to(target, {
-      scale: 1,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  };
-
-  const handleTapScale = (target: HTMLElement) => {
-    gsap.to(target, {
-      scale: 0.95,
-      duration: 0.1,
-      ease: "power2.out",
-      yoyo: true,
-      repeat: 1,
-    });
-  };
-
-  const addToMenuItemsRef = (el: HTMLDivElement | null, index: number) => {
-    if (el && !menuItemsRef.current.includes(el)) {
-      menuItemsRef.current[index] = el;
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -221,7 +118,7 @@ const Header = () => {
             <NavigationMenuItem key={item.label}>
               <Link href={item.href} legacyBehavior passHref>
                 <NavigationMenuLink 
-                  className={`${montserrat.className} text-base tracking-[0.2em] font-medium transition-all duration-300 hover:no-underline relative 
+                  className={`font-montserrat text-base tracking-[0.2em] font-medium transition-all duration-300 hover:no-underline relative 
                   text-white dark:text-white
                   before:content-[''] before:absolute before:block before:w-full before:h-[1px] 
                   before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
@@ -237,7 +134,7 @@ const Header = () => {
             <NavigationMenuItem>
               <Link href="/auth/login" legacyBehavior passHref>
                 <NavigationMenuLink 
-                  className={`${montserrat.className} text-base tracking-[0.2em] font-medium transition-all duration-300 hover:no-underline relative 
+                  className={`font-montserrat text-base tracking-[0.2em] font-medium transition-all duration-300 hover:no-underline relative 
                   text-white dark:text-white
                   before:content-[''] before:absolute before:block before:w-full before:h-[1px] 
                   before:bottom-0 before:left-0 before:bg-white dark:before:bg-white before:scale-x-0 
@@ -254,10 +151,7 @@ const Header = () => {
       {user && (
         <div
           onClick={() => router.push(userData.role === 'provider' ? '/provider' : '/become-provider')}
-          className="cursor-pointer group relative"
-          onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-          onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
-          onMouseDown={(e) => handleTapScale(e.currentTarget)}
+          className="cursor-pointer group relative transition-transform duration-300 hover:scale-110"
         >
           <Briefcase
             className="text-white hover:opacity-80 transition-opacity"
@@ -319,7 +213,7 @@ const Header = () => {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full z-50 bg-black/95 backdrop-blur-sm">
+      className="fixed top-0 w-full z-50 bg-black">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-24">
           {/* Mobile Layout */}
@@ -354,9 +248,7 @@ const Header = () => {
             <Link
               href="/"
               className="absolute left-1/2 transform -translate-x-1/2">
-              <div
-                onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}>
+              <div className="transition-transform duration-300 hover:scale-110">
                 <Image
                   src="/images/logo2.png"
                   alt="HB Logo"
@@ -375,9 +267,7 @@ const Header = () => {
           {/* Desktop Layout */}
           <div className="hidden md:flex items-center justify-between w-full">
             <Link href="/" className="relative">
-              <div
-                onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}>
+              <div className="transition-transform duration-300 hover:scale-110">
                 <Image
                   src="/images/logo2.png"
                   alt="HB Logo"
@@ -397,10 +287,7 @@ const Header = () => {
 
                 {user && (
                   <div
-                    className="cursor-pointer"
-                    onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                    onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
-                    onMouseDown={(e) => handleTapScale(e.currentTarget)}
+                    className="cursor-pointer transition-transform duration-300 hover:scale-110"
                   >
                     <ShoppingCart
                       className="text-white dark:text-white hover:opacity-80 transition-opacity"
@@ -416,14 +303,68 @@ const Header = () => {
       </div>
 
       {/* Mobile Menu */}
-      <div
-        ref={mobileMenuRef}
-        className={`fixed left-0 right-0 top-24 h-[calc(100vh-6rem)] bg-black border-t border-white/10 shadow-2xl md:hidden overflow-y-auto ${
-          isMenuOpen ? 'block' : 'hidden'
-        }`}
-      >
-        {/* ... rest of the mobile menu code ... */}
-      </div>
+      {isMenuOpen && (
+        <div className="fixed inset-0 top-24 md:hidden z-40">
+          <div className="absolute inset-0 bg-black border-t border-white/10">
+            <div className="container h-[calc(100vh-6rem)] mx-auto px-4 py-8 overflow-y-auto">
+              {/* Navigation Links */}
+              <nav className="flex flex-col space-y-6">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                {!user && (
+                  <Link
+                    href="/auth/login"
+                    className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    LOGIN
+                  </Link>
+                )}
+              </nav>
+
+              {/* Provider Button */}
+              {user && (
+                <div className="mt-8">
+                  <Button
+                    onClick={() => {
+                      router.push(userData.role === 'provider' ? '/provider' : '/become-provider');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-white text-black hover:bg-white/90 font-montserrat text-lg py-6"
+                  >
+                    <Briefcase className="w-5 h-5 mr-2" />
+                    {userData.role === 'provider' ? 'Provider Dashboard' : 'Become a Provider'}
+                  </Button>
+                </div>
+              )}
+
+              {/* Social Links */}
+              <div className="mt-12 flex items-center justify-center space-x-8">
+                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
+                  <Facebook size={28} strokeWidth={1.5} />
+                </Link>
+                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
+                  <Instagram size={28} strokeWidth={1.5} />
+                </Link>
+                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
+                  <Twitter size={28} strokeWidth={1.5} />
+                </Link>
+                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
+                  <Linkedin size={28} strokeWidth={1.5} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
