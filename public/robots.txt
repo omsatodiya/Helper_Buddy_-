@@ -1,9 +1,8 @@
-# Global rules
+# Allow crawling of all content
 User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_next/static/
-Disallow: /*.json$
 
 # Googlebot specific rules
 User-agent: Googlebot
@@ -17,7 +16,6 @@ Allow: /*.svg
 Allow: /*.ico
 Disallow: /api/
 Disallow: /_next/static/
-Crawl-delay: 1
 
 # Sitemap
 Sitemap: https://dudhkela.netlify.app/sitemap.xml 
