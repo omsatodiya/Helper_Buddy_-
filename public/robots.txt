@@ -2,5 +2,16 @@
 User-agent: *
 Allow: /
 
+# Specific rules for Googlebot
+User-agent: Googlebot
+Allow: /
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+
 # Sitemap location
 Sitemap: https://dudhkela.netlify.app/sitemap.xml 
