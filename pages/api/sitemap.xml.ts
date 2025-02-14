@@ -1,4 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import path from 'path';
+import fs from 'fs/promises';
 
 const domain = 'https://dudhkela.netlify.app';
 
@@ -53,24 +55,37 @@ ${pages.map(page => `  <url>
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Remove any incoming cache-related headers
-  delete req.headers['if-none-match'];
-  delete req.headers['if-modified-since'];
-  
-  // Set response headers to prevent caching
-  res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-  res.setHeader('X-Robots-Tag', 'all');
-  
-  // Remove ETag and Last-Modified headers to prevent 304
-  res.removeHeader('ETag');
-  res.removeHeader('Last-Modified');
-  
-  const sitemap = generateSiteMap();
-  
-  // Always send fresh response with 200
-  res.status(200).send(sitemap);
+  try {
+    // Generate sitemap content
+    const sitemap = generateSiteMap();
+
+    // In development, serve directly
+    if (process.env.NODE_ENV === 'development') {
+      res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      res.setHeader('X-Robots-Tag', 'all');
+      return res.status(200).send(sitemap);
+    }
+
+    // In production, write to .next/static
+    const staticDir = path.join(process.cwd(), '.next', 'static');
+    await fs.mkdir(staticDir, { recursive: true });
+    await fs.writeFile(path.join(staticDir, 'sitemap.xml'), sitemap);
+
+    // Serve the file
+    res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    res.setHeader('X-Robots-Tag', 'all');
+    
+    return res.status(200).send(sitemap);
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    return res.status(500).json({ error: 'Error generating sitemap' });
+  }
 } 
