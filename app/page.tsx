@@ -21,7 +21,7 @@ import {
   query as firestoreQuery,
 } from "firebase/firestore";
 import ServiceModal from "@/components/services/serviceModal";
-import LandingPage from "./landing/page";
+import LandingPage from "@/components/landing/hero";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
