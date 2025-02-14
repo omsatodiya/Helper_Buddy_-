@@ -23,7 +23,8 @@ import {
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
 import ScrollVelocity from "@/components/ui/scroll-velocity";
-
+import { ServiceCarousel } from '@/components/landing/ServiceCarousel';
+import { mockAcServices, mockCleaningServices } from '@/components/landing/data/mockServices';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -34,58 +35,8 @@ export default function Home() {
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-
-
-
-  
-  const fetchServices = async () => {
-    try {
-      const db = getFirestore();
-
-      // Updated trending query to use bookings field
-      const trendingQuery = query(
-        collection(db, "services"),
-        orderBy("bookings", "desc"),
-        limit(4)
-      );
-
-      // Fetch new services
-      const newServicesQuery = query(
-        collection(db, "services"),
-        orderBy("createdAt", "desc"),
-        limit(4)
-      );
-
-      // Fetch top rated services
-      const topRatedQuery = query(
-        collection(db, "services"),
-        orderBy("rating", "desc"),
-        limit(4)
-      );
-
-      const [trendingSnap, newSnap, topRatedSnap] = await Promise.all([
-        getDocs(trendingQuery),
-        getDocs(newServicesQuery),
-        getDocs(topRatedQuery),
-      ]);
-
-      setTrendingServices(
-        trendingSnap.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Service)
-        )
-      );
-      setNewServices(
-        newSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Service))
-      );
-      setTopRatedServices(
-        topRatedSnap.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Service)
-        )
-      );
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    }
-  };
+  const [acServices, setAcServices] = useState(mockAcServices);
+  const [cleaningServices, setCleaningServices] = useState(mockCleaningServices);
 
   useEffect(() => {
     const handleStart = () => {
@@ -185,14 +136,8 @@ export default function Home() {
   return (
     <>
       {loading && <Preloader onLoadingComplete={() => setLoading(false)} />}
-      <main
-        className={`transition-opacity duration-300 ${
-          loading ? "opacity-0" : "opacity-100"
-        }`}
-      >
+      <main className={`transition-opacity duration-300 ${loading ? "opacity-0" : "opacity-100"}`}>
         <Header />
-
-
         <LandingPage />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
@@ -203,19 +148,16 @@ export default function Home() {
             <ServiceFilters />
           </div>
 
-          {/* Trending Services */}
-          <ServiceSection
-            title="Trending Services"
-            services={trendingServices}
+          {/* AC & Appliances Services */}
+          <ServiceCarousel
+            title="AC & Appliances"
+            services={mockAcServices}
           />
 
-          {/* New Arrivals */}
-          <ServiceSection title="New Services" services={newServices} />
-
-          {/* Top Rated Services */}
-          <ServiceSection
-            title="Top Rated Services"
-            services={topRatedServices}
+          {/* Cleaning Services */}
+          <ServiceCarousel
+            title="Cleaning Services"
+            services={mockCleaningServices}
           />
 
           {/* Testimonials */}
@@ -224,7 +166,6 @@ export default function Home() {
           {/* FAQ Section */}
           <FAQ />
         </div>
-
         <Footer />
 
         {/* Add Service Modal */}
@@ -237,11 +178,9 @@ export default function Home() {
             }}
             service={selectedService}
             onServiceUpdated={(updatedService) => {
-              fetchServices(); // Refresh services after update
               setSelectedService(updatedService);
             }}
             onServiceDeleted={() => {
-              fetchServices(); // Refresh services after deletion
               setIsServiceModalOpen(false);
               setSelectedService(null);
             }}
