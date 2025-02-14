@@ -35,6 +35,7 @@ import { useLoadingStore } from "@/store/loading-store";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import gsap from "gsap";
 
 interface NavItem {
   label: string;
@@ -63,6 +64,10 @@ const Header = () => {
 
   // Remove all GSAP-related refs and effects
   const headerRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const menuItemsRef = useRef<HTMLDivElement>(null);
+  const providerButtonRef = useRef<HTMLDivElement>(null);
+  const socialLinksRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -100,6 +105,113 @@ const Header = () => {
 
     fetchUserData();
   }, [user]);
+
+  useEffect(() => {
+    if (!mobileMenuRef.current) return;
+
+    const menuItems = menuItemsRef.current ? Array.from(menuItemsRef.current.children) : [];
+    const providerButton = providerButtonRef.current;
+    const socialLinks = socialLinksRef.current;
+
+    // Set initial states
+    gsap.set(mobileMenuRef.current, {
+      display: isMenuOpen ? 'block' : 'none',
+      opacity: 0,
+      clipPath: 'circle(0% at 100% 0)'
+    });
+
+    if (menuItems.length > 0) {
+      gsap.set(menuItems, { 
+        opacity: 0,
+        x: 50,
+        filter: 'blur(10px)'
+      });
+    }
+
+    if (providerButton) {
+      gsap.set(providerButton, {
+        opacity: 0,
+        y: 30,
+        scale: 0.9
+      });
+    }
+
+    if (socialLinks) {
+      gsap.set(socialLinks, {
+        opacity: 0,
+        y: 30
+      });
+    }
+
+    // Animation timeline
+    if (isMenuOpen) {
+      const tl = gsap.timeline({
+        defaults: { ease: 'power3.inOut' }
+      });
+
+      tl.to(mobileMenuRef.current, {
+        display: 'block',
+        opacity: 1,
+        clipPath: 'circle(150% at 100% 0)',
+        duration: 0.6
+      })
+      .to(menuItems, {
+        opacity: 1,
+        x: 0,
+        filter: 'blur(0px)',
+        duration: 0.4,
+        stagger: 0.05,
+        ease: 'power2.out'
+      }, '-=0.3')
+      .to(providerButton, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.4,
+        ease: 'back.out(1.7)'
+      }, '-=0.2')
+      .to(socialLinks, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        ease: 'power2.out'
+      }, '-=0.2');
+    } else {
+      const tl = gsap.timeline({
+        defaults: { ease: 'power3.inOut' }
+      });
+
+      tl.to(socialLinks, {
+        opacity: 0,
+        y: 20,
+        duration: 0.3,
+        ease: 'power2.in'
+      })
+      .to(providerButton, {
+        opacity: 0,
+        y: 20,
+        scale: 0.9,
+        duration: 0.3,
+        ease: 'power2.in'
+      }, '-=0.2')
+      .to(menuItems, {
+        opacity: 0,
+        x: -30,
+        filter: 'blur(5px)',
+        duration: 0.3,
+        stagger: 0.03,
+        ease: 'power2.in'
+      }, '-=0.2')
+      .to(mobileMenuRef.current, {
+        clipPath: 'circle(0% at 100% 0)',
+        opacity: 0,
+        duration: 0.5,
+        onComplete: () => {
+          gsap.set(mobileMenuRef.current, { display: 'none' });
+        }
+      }, '-=0.3');
+    }
+  }, [isMenuOpen]);
 
   const handleSignOut = async () => {
     try {
@@ -213,7 +325,7 @@ const Header = () => {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full z-50 bg-black">
+      className="fixed top-0 w-full z-50 bg-black dark:bg-black">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-24">
           {/* Mobile Layout */}
@@ -303,68 +415,69 @@ const Header = () => {
       </div>
 
       {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 top-24 md:hidden z-40">
-          <div className="absolute inset-0 bg-black border-t border-white/10">
-            <div className="container h-[calc(100vh-6rem)] mx-auto px-4 py-8 overflow-y-auto">
-              {/* Navigation Links */}
-              <nav className="flex flex-col space-y-6">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                {!user && (
-                  <Link
-                    href="/auth/login"
-                    className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    LOGIN
-                  </Link>
-                )}
-              </nav>
-
-              {/* Provider Button */}
-              {user && (
-                <div className="mt-8">
-                  <Button
-                    onClick={() => {
-                      router.push(userData.role === 'provider' ? '/provider' : '/become-provider');
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full bg-white text-black hover:bg-white/90 font-montserrat text-lg py-6"
-                  >
-                    <Briefcase className="w-5 h-5 mr-2" />
-                    {userData.role === 'provider' ? 'Provider Dashboard' : 'Become a Provider'}
-                  </Button>
-                </div>
+      <div 
+        ref={mobileMenuRef}
+        className="fixed inset-0 top-24 md:hidden z-40 bg-black"
+      >
+        <div className="absolute inset-0 bg-black border-t border-white/10">
+          <div className="container h-[calc(100vh-6rem)] mx-auto px-4 py-8 overflow-y-auto">
+            {/* Navigation Links */}
+            <nav ref={menuItemsRef} className="flex flex-col space-y-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {!user && (
+                <Link
+                  href="/auth/login"
+                  className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  LOGIN
+                </Link>
               )}
+            </nav>
 
-              {/* Social Links */}
-              <div className="mt-12 flex items-center justify-center space-x-8">
-                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
-                  <Facebook size={28} strokeWidth={1.5} />
-                </Link>
-                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
-                  <Instagram size={28} strokeWidth={1.5} />
-                </Link>
-                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
-                  <Twitter size={28} strokeWidth={1.5} />
-                </Link>
-                <Link href="#" className="text-white hover:text-white/80 transition-colors p-2">
-                  <Linkedin size={28} strokeWidth={1.5} />
-                </Link>
+            {/* Provider Button */}
+            {user && (
+              <div ref={providerButtonRef} className="mt-8">
+                <Button
+                  onClick={() => {
+                    router.push(userData.role === 'provider' ? '/provider' : '/become-provider');
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full bg-white text-black hover:bg-white/90 font-montserrat text-lg py-6 flex items-center justify-center gap-2"
+                >
+                  <Briefcase className="w-5 h-5" />
+                  {userData.role === 'provider' ? 'Provider Dashboard' : 'Become a Provider'}
+                </Button>
               </div>
+            )}
+
+            {/* Social Links */}
+            <div ref={socialLinksRef} className="mt-12 flex items-center justify-center gap-12">
+              <Link href="#" className="text-black dark:text-white hover:text-black/80 dark:hover:text-white/80 transition-colors p-2">
+                <Facebook className="w-6 h-6" strokeWidth={1.25} />
+              </Link>
+              <Link href="#" className="text-black dark:text-white hover:text-black/80 dark:hover:text-white/80 transition-colors p-2">
+                <Instagram className="w-6 h-6" strokeWidth={1.25} />
+              </Link>
+              <Link href="#" className="text-black dark:text-white hover:text-black/80 dark:hover:text-white/80 transition-colors p-2">
+                <Twitter className="w-6 h-6" strokeWidth={1.25} />
+              </Link>
+              <Link href="#" className="text-black dark:text-white hover:text-black/80 dark:hover:text-white/80 transition-colors p-2">
+                <Linkedin className="w-6 h-6" strokeWidth={1.25} />
+              </Link>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 };
