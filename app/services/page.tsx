@@ -7,6 +7,7 @@ import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import { Filter, X } from "lucide-react";
 import Header from "@/components/layout/Header";
+import Preloader from "@/components/ui/preloader";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -82,14 +83,15 @@ const priceRanges = [
   { id: "above-5000", label: "Above ₹5000", min: 5000, max: null },
 ];
 
+
+
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
-
+  const [isLoading, setIsLoading] = useState(true);
   const [services, setServices] = useState<SimpleService[]>([]);
   const [filteredServices, setFilteredServices] = useState<SimpleService[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -104,55 +106,58 @@ function ServicesContent() {
   const [sortOption, setSortOption] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Extract fetchServices function outside useEffect
-  async function fetchServices() {
-    try {
-      setLoading(true);
-      let servicesQuery;
-
-      if (category) {
-        servicesQuery = query(
-          collection(db, "services"),
-          where("category", "==", category)
-        );
-      } else {
-        servicesQuery = collection(db, "services");
-      }
-
-      const querySnapshot = await getDocs(servicesQuery);
-      const servicesData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Service[];
-
-      const transformedServices: SimpleService[] = servicesData.map(
-        (service) => ({
-          id: service.id,
-          name: service.name,
-          description: service.description,
-          price: service.price,
-          details: service.details ?? "",
-          rating: service.rating ?? 0,
-          totalReviews: service.reviews?.length ?? 0,
-          category: service.category ?? "",
-          imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
-          createdAt: service.createdAt || new Date().toISOString(),
-          updatedAt: service.updatedAt || new Date().toISOString(),
-        })
-      );
-
-      setServices(transformedServices);
-      setFilteredServices(transformedServices);
-    } catch (err: any) {
-      console.error("Error fetching services:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Use fetchServices in useEffect
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500); // Ensure loader shows for at least 2.5 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        setIsLoading(true);
+        let servicesQuery;
+
+        if (category) {
+          servicesQuery = query(
+            collection(db, "services"),
+            where("category", "==", category)
+          );
+        } else {
+          servicesQuery = collection(db, "services");
+        }
+
+        const querySnapshot = await getDocs(servicesQuery);
+        const servicesData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
+
+        const transformedServices: SimpleService[] = servicesData.map(
+          (service) => ({
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            price: service.price,
+            details: service.details ?? "",
+            rating: service.rating ?? 0,
+            totalReviews: service.reviews?.length ?? 0,
+            category: service.category ?? "",
+            imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
+            createdAt: service.createdAt || new Date().toISOString(),
+            updatedAt: service.updatedAt || new Date().toISOString(),
+          })
+        );
+
+        setServices(transformedServices);
+        setFilteredServices(transformedServices);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    }
+
     fetchServices();
   }, [category]);
 
@@ -415,12 +420,12 @@ function ServicesContent() {
     setSortOption(option);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-4 flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading services...</div>
-      </div>
-    );
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <Preloader onLoadingComplete={handleLoadingComplete} />;
   }
 
   if (error) {
@@ -605,14 +610,18 @@ function ServicesContent() {
 
 // Main page component
 export default function ServicesPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <Preloader onLoadingComplete={() => setMounted(true)} />;
+  }
+
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen p-4 flex items-center justify-center">
-          <div className="animate-pulse text-lg">Loading services...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<Preloader onLoadingComplete={() => {}} />}>
       <ServicesContent />
     </Suspense>
   );
