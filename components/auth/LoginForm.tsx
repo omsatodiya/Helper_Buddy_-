@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -13,6 +13,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateReferralCode, processReferral } from '@/lib/utils/referral';
+import { checkAccountLockout, recordLoginAttempt, formatLockoutTime } from '@/lib/utils/accountLockout';
 
 import {
   Card,
@@ -249,6 +250,8 @@ export default function LoginForm() {
   const [needsProfile, setNeedsProfile] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState<number | undefined>();
 
   const handleLoginChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,61 +343,71 @@ export default function LoginForm() {
     }
   };
 
+  // Add check for account lockout
+  const checkLockout = useCallback(async (email: string) => {
+    const { isLocked, remainingTime } = await checkAccountLockout(email);
+    setIsLocked(isLocked);
+    setLockoutTime(remainingTime);
+    return isLocked;
+  }, []);
+
+  // Modify handleSubmit to include lockout checks
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      if (!needsProfile) {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          loginData.email,
-          loginData.password
-        );
+      // Check if account is locked
+      const locked = await checkLockout(loginData.email);
+      if (locked) {
+        setError(`Account temporarily locked. Try again in ${formatLockoutTime(lockoutTime!)}`);
+        setLoading(false);
+        return;
+      }
 
-        if (!userCredential.user.emailVerified && !isGoogleUser) {
-          await sendEmailVerification(userCredential.user);
-          router.push(`/auth/verify-email?email=${loginData.email}`);
-          return;
-        }
+      // Attempt login
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        loginData.email,
+        loginData.password
+      );
 
-        const userExists = await checkUserExists(userCredential.user.uid);
-        if (userExists) {
-          router.push("/");
-          return;
-        }
+      // Record successful login attempt
+      await recordLoginAttempt(loginData.email, true);
 
+      if (!userCredential.user.emailVerified) {
+        await sendEmailVerification(userCredential.user);
+        router.push(`/auth/verify-email?email=${loginData.email}`);
+        return;
+      }
+
+      const userExists = await checkUserExists(userCredential.user.uid);
+      if (!userExists) {
         setNeedsProfile(true);
       } else {
-        // Add validation for profile fields
-        const requiredFields = ['firstName', 'lastName', 'mobile', 'address', 'pincode', 'gender'];
-        const emptyFields = requiredFields.filter(field => !userData[field as keyof UserData]);
-        
-        if (emptyFields.length > 0) {
-          setError('Please fill in all required fields');
-          setLoading(false);
-          return;
-        }
-
-        if (!auth.currentUser) throw new Error("No authenticated user found");
-        await saveUserProfile(auth.currentUser.uid);
         router.push("/");
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
-      if (errorMessage.includes("auth/invalid-credential")) {
-        setError("Invalid email or password");
-      } else if (errorMessage.includes("auth/too-many-requests")) {
-        setError("Too many failed attempts. Please try again later");
+    } catch (err: any) {
+      // Record failed login attempt
+      const { isLocked, remainingTime } = await recordLoginAttempt(loginData.email, false);
+      
+      if (isLocked) {
+        setError(`Too many failed attempts. Account locked for ${formatLockoutTime(remainingTime!)}`);
       } else {
-        setError(errorMessage);
+        setError(err.message || "Failed to log in");
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Add effect to check lockout status when email changes
+  useEffect(() => {
+    if (loginData.email) {
+      checkLockout(loginData.email);
+    }
+  }, [loginData.email, checkLockout]);
 
   return (
     <div className="w-full">

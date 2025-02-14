@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useEffect } from "react";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -13,6 +13,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateReferralCode, processReferral } from '@/lib/utils/referral';
+import { checkAccountLockout, recordLoginAttempt, formatLockoutTime } from '@/lib/utils/accountLockout';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,6 +108,8 @@ export default function SignupForm() {
   );
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState<number | undefined>();
 
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
@@ -168,105 +171,45 @@ export default function SignupForm() {
     }
   };
 
+  const checkLockout = useCallback(async (email: string) => {
+    const { isLocked, remainingTime } = await checkAccountLockout(email);
+    setIsLocked(isLocked);
+    setLockoutTime(remainingTime);
+    return isLocked;
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setValidationErrors({});
-
-    // Check for required fields
-    const requiredFields: (keyof FormData)[] = [
-      "firstName",
-      "lastName",
-      "email",
-      "mobile",
-      "address",
-      "pincode",
-      "gender",
-    ];
-
-    if (!isGoogleUser) {
-      requiredFields.push("password", "confirmPassword");
-    }
-
-    const emptyFields = requiredFields.filter(field => !formData[field]);
-    if (emptyFields.length > 0) {
-      setError("Please fill in all required fields");
-      return;
-    }
-
-    // Rest of the validation and submission logic
-    const passwordErrors = validatePassword(formData.password);
-    if (!isGoogleUser && passwordErrors.length > 0) {
-      setValidationErrors((prev) => ({ ...prev, password: passwordErrors }));
-      return;
-    }
-
-    if (!isGoogleUser && formData.password !== formData.confirmPassword) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        confirmPassword: "Passwords do not match",
-      }));
-      return;
-    }
-
     setLoading(true);
 
     try {
-      let userId = auth.currentUser?.uid;
-
-      if (!isGoogleUser) {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
-        userId = userCredential.user.uid;
-
-        await updateProfile(userCredential.user, {
-          displayName: `${formData.firstName} ${formData.lastName}`,
-        });
-
-        // Store complete form data in localStorage
-        const dataToStore = {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          mobile: formData.mobile,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-          gender: formData.gender,
-          displayName: `${formData.firstName} ${formData.lastName}`,
-          role: "user",
-          coins: 0,
-          referralCode: generateReferralCode(),
-        };
-
-        // Make sure to store the data before sending verification email
-        localStorage.setItem('signupFormData', JSON.stringify(dataToStore));
-        console.log('Stored signup data:', dataToStore); // Debug log
-
-        // Send verification email
-        await sendEmailVerification(userCredential.user);
-        router.push(`/auth/verify-email?email=${formData.email}`);
-
-        // Process referral code if provided
-        if (referralCode) {
-          const success = await processReferral(referralCode, userId, formData.email);
-          if (!success) {
-            setError("Invalid or already used referral code");
-            return;
-          }
-        }
-
+      const locked = await checkLockout(formData.email);
+      if (locked) {
+        setError(`Account temporarily locked. Try again in ${formatLockoutTime(lockoutTime!)}`);
+        setLoading(false);
         return;
       }
 
-      if (!userId) throw new Error("No user ID available");
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        setLoading(false);
+        return;
+      }
 
-      const db = getFirestore();
-      const userData = {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      await recordLoginAttempt(formData.email, true);
+
+      await updateProfile(userCredential.user, {
+        displayName: `${formData.firstName} ${formData.lastName}`,
+      });
+
+      const dataToStore = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -276,31 +219,43 @@ export default function SignupForm() {
         state: formData.state,
         pincode: formData.pincode,
         gender: formData.gender,
+        displayName: `${formData.firstName} ${formData.lastName}`,
         role: "user",
         coins: 0,
         referralCode: generateReferralCode(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, "users", userId), userData);
+      localStorage.setItem('signupFormData', JSON.stringify(dataToStore));
+      console.log('Stored signup data:', dataToStore);
 
-      // Process referral code if provided
+      await sendEmailVerification(userCredential.user);
+      router.push(`/auth/verify-email?email=${formData.email}`);
+
       if (referralCode) {
-        const success = await processReferral(referralCode, userId, formData.email);
+        const success = await processReferral(referralCode, userCredential.user.uid, formData.email);
         if (!success) {
           setError("Invalid or already used referral code");
           return;
         }
       }
-
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (err: any) {
+      const { isLocked, remainingTime } = await recordLoginAttempt(formData.email, false);
+      
+      if (isLocked) {
+        setError(`Too many failed attempts. Account locked for ${formatLockoutTime(remainingTime!)}`);
+      } else {
+        setError(err.message || "Failed to create account");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (formData.email) {
+      checkLockout(formData.email);
+    }
+  }, [formData.email, checkLockout]);
 
   return (
     <Card className="max-w-md w-full mx-auto border-0 shadow-xl bg-background/95 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10">
@@ -434,7 +389,7 @@ export default function SignupForm() {
               <Button 
                 type="submit" 
                 className="w-full h-11" 
-                disabled={loading}
+                disabled={loading || isLocked}
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -599,7 +554,7 @@ export default function SignupForm() {
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-semibold" 
-                  disabled={loading}
+                  disabled={loading || isLocked}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -629,6 +584,7 @@ export default function SignupForm() {
                       variant="outline"
                       className="w-full h-11 text-sm sm:text-base bg-background hover:bg-accent text-foreground font-medium border transition-colors"
                       onClick={handleGoogleSignIn}
+                      disabled={loading || isLocked}
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                         <path
