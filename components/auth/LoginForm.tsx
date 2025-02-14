@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateReferralCode, processReferral } from '@/lib/utils/referral';
 import { checkAccountLockout, recordLoginAttempt, formatLockoutTime } from '@/lib/utils/accountLockout';
+import { getCityFromPincode, isValidPincode, getStateFromPincodePrefix } from "@/lib/utils/pincode";
+import { toast } from "@/hooks/use-toast";
 
 import {
   Card,
@@ -34,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { INDIAN_STATES } from "@/lib/constants/states";
-import { getCityFromPincode } from "@/lib/utils/pincode";
 
 interface LoginData {
   email: string;
@@ -123,35 +124,76 @@ const ProfileFields = memo(function ProfileFields({
   userData,
   onChange,
   onGenderChange,
+  setLoading,
 }: {
   userData: UserData;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenderChange: (value: string) => void;
+  setLoading: (loading: boolean) => void;
 }) {
   const handlePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const pincode = e.target.value;
-    // Update pincode first
-    onChange({
-      target: { name: 'pincode', value: pincode }
-    } as React.ChangeEvent<HTMLInputElement>);
+    
+    // Always update the pincode
+    onChange(e);
 
-    if (pincode.length === 6) {
+    if (pincode.length === 6 && isValidPincode(pincode)) {
       try {
+        // Show loading state
+        setLoading(true);
+
         const locationData = await getCityFromPincode(pincode);
         if (locationData) {
-          // Update city
-          onChange({
-            target: { name: 'city', value: locationData.city }
-          } as React.ChangeEvent<HTMLInputElement>);
-          
-          // Update state
-          onChange({
-            target: { name: 'state', value: locationData.state }
-          } as React.ChangeEvent<HTMLInputElement>);
+          // Create synthetic events for city and state updates
+          const cityEvent = {
+            target: {
+              name: 'city',
+              value: locationData.city
+            }
+          } as React.ChangeEvent<HTMLInputElement>;
+
+          const stateEvent = {
+            target: {
+              name: 'state',
+              value: locationData.state
+            }
+          } as React.ChangeEvent<HTMLInputElement>;
+
+          // Update both city and state
+          onChange(cityEvent);
+          onChange(stateEvent);
         }
       } catch (error) {
         console.error('Error fetching location:', error);
+        // Try to at least get the state from pincode prefix
+        const state = getStateFromPincodePrefix(pincode);
+        if (state) {
+          const stateEvent = {
+            target: {
+              name: 'state',
+              value: state
+            }
+          } as React.ChangeEvent<HTMLInputElement>;
+          onChange(stateEvent);
+        }
+        
+        toast({
+          title: "Warning",
+          description: "Could not fetch complete location details. Please fill in manually if needed.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
+    } else {
+      // Clear city and state when pincode is invalid
+      onChange({
+        target: { name: 'city', value: '' }
+      } as React.ChangeEvent<HTMLInputElement>);
+      
+      onChange({
+        target: { name: 'state', value: '' }
+      } as React.ChangeEvent<HTMLInputElement>);
     }
   };
 
@@ -543,6 +585,7 @@ export default function LoginForm() {
                   userData={userData}
                   onChange={handleUserDataChange}
                   onGenderChange={handleGenderChange}
+                  setLoading={setLoading}
                 />
 
                 <div className="space-y-2">
