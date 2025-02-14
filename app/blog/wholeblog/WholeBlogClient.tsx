@@ -173,19 +173,18 @@ export default function WholeBlogClient() {
       <>
         <Header />
         <div ref={containerRef} className="min-h-screen bg-white dark:bg-black transition-colors duration-300">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="fixed top-24 left-8 z-50 text-black dark:text-white opacity-75 hover:opacity-100 group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
-            Back
-          </Button>
-  
           <article className="max-w-4xl mx-auto px-4">
-            <div className="pt-32 pb-16">
-              <div ref={headerRef} className="text-center mb-12">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white mb-8 leading-tight">
+            <div className="pt-24 pb-16">
+              <div ref={headerRef} className="mb-12">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.back()}
+                  className="mb-8 w-10 h-10 rounded-full border border-black/20 dark:border-white/20 bg-white dark:bg-black shadow-lg hover:scale-110 transition-all duration-300 group flex-shrink-0"
+                >
+                  <ArrowLeft className="w-5 h-5 text-black dark:text-white transition-transform duration-300 group-hover:-translate-x-0.5" />
+                </Button>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight text-center mb-8">
                   {blog.title}
                 </h1>
                 

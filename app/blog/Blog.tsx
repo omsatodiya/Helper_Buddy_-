@@ -202,52 +202,58 @@ const Blog: React.FC = () => {
     <section className="py-12 px-4 mb-16" ref={containerRef}>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-black dark:text-white">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 text-black dark:text-white">
             Discover Our Blog
           </h1>
-          <p className="text-black/75 dark:text-white/75 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-black/75 dark:text-white/75 max-w-2xl mx-auto px-4">
             Explore our latest thoughts, ideas, and insights about beauty,
             lifestyle, and wellness.
           </p>
         </div>
 
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <Button
-                onClick={() => setSelectedTag(null)}
-                variant={selectedTag === null ? "default" : "outline"}
-                className={cn(
-                  "rounded-full",
-                  selectedTag === null
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                )}
-              >
-                All Posts
-              </Button>
-              {getAllTags().map((tag) => (
-                <Button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  variant={selectedTag === tag ? "default" : "outline"}
-                  className={cn(
-                    "rounded-full whitespace-nowrap",
-                    selectedTag === tag
-                      ? "bg-black text-white dark:bg-white dark:text-black"
-                      : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                  )}
-                >
-                  {tag}
-                </Button>
-              ))}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 px-4">
+            <div className="relative w-full sm:w-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-[calc(100vw-2rem)] sm:max-w-[600px] relative">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide px-2">
+                  <Button
+                    onClick={() => setSelectedTag(null)}
+                    variant={selectedTag === null ? "default" : "outline"}
+                    className={cn(
+                      "rounded-full text-sm whitespace-nowrap px-4",
+                      selectedTag === null
+                        ? "bg-black text-white dark:bg-white dark:text-black"
+                        : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                    )}
+                  >
+                    All Posts
+                  </Button>
+                  {getAllTags().map((tag) => (
+                    <Button
+                      key={tag}
+                      onClick={() => setSelectedTag(tag)}
+                      variant={selectedTag === tag ? "default" : "outline"}
+                      className={cn(
+                        "rounded-full whitespace-nowrap text-sm px-4",
+                        selectedTag === tag
+                          ? "bg-black text-white dark:bg-white dark:text-black"
+                          : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                      )}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white dark:from-black to-transparent pointer-events-none sm:hidden" />
+              <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white dark:from-black to-transparent pointer-events-none sm:hidden" />
             </div>
 
             {isAdmin && (
-              <div className="mb-6">
+              <div className="w-full sm:w-auto">
                 <Button
                   onClick={() => router.push("/blog/newblog")}
-                  className="flex items-center gap-2 w-full rounded-lg bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+                  className="flex items-center gap-2 w-full sm:w-auto rounded-lg bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 px-6"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Create Post</span>
@@ -257,7 +263,7 @@ const Blog: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ref={blogCardsRef}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-4" ref={blogCardsRef}>
           {paginatedPosts.map((post, index) => (
             <div
               key={post.id}
@@ -273,27 +279,27 @@ const Blog: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60 opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-2 transition-all duration-500 ease-in-out" />
               </div>
 
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="flex flex-wrap gap-2 mb-3">
                   {post.tags.map((tag, i) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 text-xs font-medium text-black dark:text-white border border-black dark:border-white rounded-full"
+                      className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium text-black dark:text-white border border-black dark:border-white rounded-full"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
 
-                <h3 className="text-xl font-semibold mb-2 text-black dark:text-white hover:opacity-75 transition-opacity cursor-pointer line-clamp-2">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black dark:text-white hover:opacity-75 transition-opacity cursor-pointer line-clamp-2">
                   {post.title}
                 </h3>
 
-                <p className="text-black/75 dark:text-white/75 line-clamp-2 mb-4 text-sm">
+                <p className="text-black/75 dark:text-white/75 line-clamp-2 mb-4 text-xs sm:text-sm">
                   {post.description}
                 </p>
 
-                <div className="flex items-center justify-between text-sm text-black/60 dark:text-white/60">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-black/60 dark:text-white/60">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     <span>{post.author}</span>
@@ -306,7 +312,7 @@ const Blog: React.FC = () => {
               </div>
 
               {isAdmin && (
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <div className="flex gap-2">
                     <Button
                       onClick={(e) => {
@@ -340,13 +346,13 @@ const Blog: React.FC = () => {
         </div>
 
         {totalPages > 1 && (
-          <div className="mt-12 flex justify-center items-center gap-4">
+          <div className="mt-8 sm:mt-12 flex justify-center items-center gap-2 sm:gap-4 px-4">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="w-10 h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -359,7 +365,7 @@ const Blog: React.FC = () => {
                     variant={currentPage === page ? "default" : "outline"}
                     onClick={() => setCurrentPage(page)}
                     className={cn(
-                      "w-10 h-10 rounded-full",
+                      "w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm",
                       currentPage === page
                         ? "bg-black text-white dark:bg-white dark:text-black"
                         : "border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
@@ -378,7 +384,7 @@ const Blog: React.FC = () => {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="w-10 h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
