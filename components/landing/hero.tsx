@@ -12,7 +12,7 @@ const TRENDING_SEARCHES = [
   { id: 1, label: "Electrician", count: "750 searches" },
   { id: 2, label: "Home Cleaning", count: "980 searches" },
   { id: 3, label: "Plumbing", count: "850 searches" },
-  // { id: 4, label: "AC Service", count: "1.2k searches" },
+  { id: 4, label: "AC Service", count: "1.2k searches" },
 ];
 
 // Update the ALL_SERVICES array with image URLs
