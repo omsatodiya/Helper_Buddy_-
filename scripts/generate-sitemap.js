@@ -42,6 +42,7 @@ const pages = [
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(page => `  <url>
     <loc>${domain}${page.url}</loc>
@@ -59,10 +60,17 @@ try {
   }
 
   // Write sitemap to public directory
-  const sitemapPath = path.join(publicDir, 'sitemap.xml');
-  fs.writeFileSync(sitemapPath, sitemap);
+  const publicSitemapPath = path.join(publicDir, 'sitemap.xml');
+  fs.writeFileSync(publicSitemapPath, sitemap);
 
-  console.log(`Sitemap generated successfully at ${sitemapPath}`);
+  // Also write to .next/static if it exists (for production build)
+  const nextStaticDir = path.join(process.cwd(), '.next', 'static');
+  if (fs.existsSync(nextStaticDir)) {
+    const nextSitemapPath = path.join(nextStaticDir, 'sitemap.xml');
+    fs.writeFileSync(nextSitemapPath, sitemap);
+  }
+
+  console.log('Sitemap generated successfully in multiple locations');
 } catch (error) {
   console.error('Error generating sitemap:', error);
   process.exit(1);

@@ -1,7 +1,8 @@
 [[headers]]
   for = "/sitemap.xml"
   [headers.values]
-    Content-Type = "application/xml"
+    Content-Type = "application/xml; charset=UTF-8"
+    Access-Control-Allow-Origin = "*"
     X-Robots-Tag = "all"
 
 [[headers]]
@@ -13,6 +14,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ./public/"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
@@ -22,19 +24,14 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Ensure static files from public directory are copied to the publish directory
-[build.processing]
-  skip_processing = false
-[build.processing.html]
-  pretty_urls = true
-[build.processing.css]
-  bundle = true
-  minify = true
-[build.processing.js]
-  bundle = true
-  minify = true
-[build.processing.images]
-  compress = true
+[[plugins]]
+  package = "netlify-plugin-cache-nextjs"
+
+[[plugins]]
+  package = "netlify-plugin-copy-files"
+  [plugins.inputs]
+    source = "public"
+    destination = ".next"
 
 [[edge_functions]]
   function = "next-server"
