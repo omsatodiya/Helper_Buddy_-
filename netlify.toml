@@ -13,7 +13,7 @@
 
 [build]
   command = "npm run build"
-  publish = "public"
+  publish = ".next"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
