@@ -1,10 +1,9 @@
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { NextApiRequest, NextApiResponse } from 'next';
-import path from 'path';
-import fs from 'fs/promises';
 
 const domain = 'https://dudhkela.netlify.app';
 
-const pages = [
+const staticPages = [
   {
     url: '/',
     changefreq: 'daily',
@@ -31,58 +30,61 @@ const pages = [
     priority: 0.7
   },
   {
-    url: '/auth/login',
-    changefreq: 'monthly',
-    priority: 0.6
-  },
-  {
-    url: '/auth/signup',
-    changefreq: 'monthly',
-    priority: 0.6
+    url: '/become-provider',
+    changefreq: 'weekly',
+    priority: 0.8
   }
 ];
 
-function generateSiteMap() {
+async function generateDynamicUrls() {
+  const db = getFirestore();
+  const urls = [];
+
+  // Get services
+  const servicesSnapshot = await getDocs(collection(db, 'services'));
+  servicesSnapshot.forEach(doc => {
+    urls.push({
+      url: `/services/${doc.id}`,
+      changefreq: 'weekly',
+      priority: 0.8
+    });
+  });
+
+  // Get blog posts
+  const blogSnapshot = await getDocs(collection(db, 'blogs'));
+  blogSnapshot.forEach(doc => {
+    urls.push({
+      url: `/blog/${doc.id}`,
+      changefreq: 'monthly',
+      priority: 0.7
+    });
+  });
+
+  return urls;
+}
+
+function generateSiteMap(urls: any[]) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pages.map(page => `  <url>
-    <loc>${domain}${page.url}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${page.changefreq}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>`).join('\n')}
+  ${[...staticPages, ...urls]
+    .map(page => `
+    <url>
+      <loc>${domain}${page.url}</loc>
+      <lastmod>${new Date().toISOString()}</lastmod>
+      <changefreq>${page.changefreq}</changefreq>
+      <priority>${page.priority}</priority>
+    </url>
+  `).join('')}
 </urlset>`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // Generate sitemap content
-    const sitemap = generateSiteMap();
+    const dynamicUrls = await generateDynamicUrls();
+    const sitemap = generateSiteMap(dynamicUrls);
 
-    // In development, serve directly
-    if (process.env.NODE_ENV === 'development') {
-      res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-      res.setHeader('X-Robots-Tag', 'all');
-      return res.status(200).send(sitemap);
-    }
-
-    // In production, write to .next/static
-    const staticDir = path.join(process.cwd(), '.next', 'static');
-    await fs.mkdir(staticDir, { recursive: true });
-    await fs.writeFile(path.join(staticDir, 'sitemap.xml'), sitemap);
-
-    // Serve the file
-    res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Surrogate-Control', 'no-store');
-    res.setHeader('X-Robots-Tag', 'all');
-    
+    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate');
     return res.status(200).send(sitemap);
   } catch (error) {
     console.error('Error generating sitemap:', error);

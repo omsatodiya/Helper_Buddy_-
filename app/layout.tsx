@@ -7,30 +7,61 @@ import { AuthProvider } from '@/context/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Helper Buddy - Your Trusted Partner for Household Services',
-  description: 'Find reliable household services including cleaning, appliance repair, plumbing, electrical work and more. Book trusted professionals for your home service needs.',
   metadataBase: new URL('https://dudhkela.netlify.app'),
+  title: {
+    default: 'Helper Buddy - Professional Home Services & Maintenance',
+    template: '%s | Helper Buddy'
+  },
+  description: 'Book trusted home service professionals for cleaning, repairs, maintenance and more. Get verified experts for all your household needs with guaranteed satisfaction.',
+  keywords: [
+    'home services',
+    'house cleaning',
+    'appliance repair',
+    'plumbing services',
+    'electrical work',
+    'handyman services',
+    'AC repair',
+    'home maintenance',
+    'professional cleaners',
+    'local service providers'
+  ],
+  authors: [{ name: 'Helper Buddy' }],
+  creator: 'Helper Buddy',
+  publisher: 'Helper Buddy',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   alternates: {
     canonical: '/',
-  },
-  verification: {
-    google: 'plElx_sKYUqrw8K3SbepJDyBvbV1GwVYTavL7rMeo3E',
+    languages: {
+      'en-US': '/en-us',
+    },
   },
   openGraph: {
-    title: 'Helper Buddy - Professional Home Services',
-    description: 'Your trusted partner for finding reliable household services and professionals. Book verified service providers for cleaning, repairs, and maintenance.',
-    url: 'https://dudhkela.netlify.app',
-    siteName: 'Helper Buddy',
-    locale: 'en_IN',
     type: 'website',
+    siteName: 'Helper Buddy',
+    title: 'Helper Buddy - Your Trusted Partner for Professional Home Services',
+    description: 'Find and book verified service professionals for all your home maintenance needs. Quality service guaranteed with real-time booking and support.',
+    url: 'https://dudhkela.netlify.app',
+    locale: 'en_US',
     images: [
       {
-        url: 'images/logo.jpg', // Add your OG image path
+        url: '/images/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Helper Buddy Services',
+        alt: 'Helper Buddy - Professional Home Services',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Helper Buddy - Professional Home Services',
+    description: 'Book trusted home service professionals for all your household needs',
+    site: '@helperbuddy',
+    creator: '@helperbuddy',
+    images: ['/images/twitter-image.jpg'],
   },
   robots: {
     index: true,
@@ -43,7 +74,12 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  keywords: ['home services', 'cleaning services', 'appliance repair', 'plumbing', 'electrical work', 'handyman', 'house cleaning', 'AC service', 'carpenter'],
+  verification: {
+    google: 'plElx_sKYUqrw8K3SbepJDyBvbV1GwVYTavL7rMeo3E',
+    other: {
+      'facebook-domain-verification': '[your-facebook-verification-code]',
+    },
+  },
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { Button } from "../ui/button";
 import { SimpleService } from "../../types/service";
 import { cn } from "../../lib/utils";
+import Script from "next/script";
 
 interface ServiceCardProps {
   className?: string;
@@ -15,6 +16,7 @@ interface ServiceCardProps {
   onAddToCart: () => void;
   onBuyNow: () => void;
   onClick?: () => void;
+  service: SimpleService;
 }
 
 const ServiceCard = ({
@@ -28,9 +30,30 @@ const ServiceCard = ({
   onBuyNow,
   onClick,
   className,
+  service,
 }: ServiceCardProps) => {
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString("en-IN")}`;
+  };
+
+  const generateStructuredData = (service: SimpleService) => {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: service.name,
+      description: service.description,
+      provider: {
+        '@type': 'Organization',
+        name: 'Helper Buddy',
+        url: 'https://helperbuddy.com'
+      },
+      areaServed: service.servicePincodes?.map(p => p.pincode).join(', '),
+      offers: {
+        '@type': 'Offer',
+        price: service.price,
+        priceCurrency: 'INR'
+      }
+    };
   };
 
   return (
@@ -120,6 +143,14 @@ const ServiceCard = ({
           </div>
         </div>
       </div>
+
+      <Script
+        id={`service-schema-${service.id}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateStructuredData(service))
+        }}
+      />
     </div>
   );
 };

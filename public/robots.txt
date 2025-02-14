@@ -2,6 +2,20 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_next/static/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*?*
 
-# Sitemap
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+
+# Sitemaps
 Sitemap: https://dudhkela.netlify.app/sitemap.xml
