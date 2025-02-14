@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from "@/providers/theme-provider";
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://dudhkela.netlify.app'),
@@ -82,7 +83,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -100,7 +101,8 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
-  )
+  );
 }

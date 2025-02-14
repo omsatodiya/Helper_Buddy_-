@@ -63,6 +63,7 @@ const InputField = memo(function InputField({
   onChange,
   readOnly,
   disabled,
+  placeholder,
 }: {
   name: string;
   label: string;
@@ -71,6 +72,7 @@ const InputField = memo(function InputField({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
   disabled?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -85,6 +87,7 @@ const InputField = memo(function InputField({
         onChange={onChange}
         readOnly={readOnly}
         disabled={disabled}
+        placeholder={placeholder}
         className="h-11"
         required
       />
@@ -163,29 +166,15 @@ const ProfileFields = memo(function ProfileFields({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <InputField
-          name="city"
-          label="City"
-          value={userData.city}
-          onChange={onChange}
-        />
-        <InputField
-          name="state"
-          label="State"
-          value={userData.state}
-          onChange={onChange}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <InputField
           name="pincode"
           label="Pincode"
           value={userData.pincode}
           onChange={(e) => {
-            if (e.target.value.length <= 6) {
+            if (e.target.value.length <= 6 && /^\d*$/.test(e.target.value)) {
               onChange(e);
             }
           }}
+          placeholder="Enter 6-digit pincode"
         />
         <div className="space-y-2">
           <Label htmlFor="gender" className="text-sm font-medium">
@@ -204,6 +193,17 @@ const ProfileFields = memo(function ProfileFields({
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs sm:text-sm text-muted-foreground">City (Auto-filled)</Label>
+          <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{userData.city}</p>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs sm:text-sm text-muted-foreground">State (Auto-filled)</Label>
+          <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{userData.state}</p>
         </div>
       </div>
     </div>
@@ -244,9 +244,27 @@ export default function LoginForm() {
   );
 
   const handleUserDataChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
-      setUserData((prev) => ({ ...prev, [name]: value }));
+      
+      if (name === 'pincode' && value.length === 6) {
+        try {
+          const data = await getCityFromPincode(value);
+          if (data) {
+            setUserData(prev => ({
+              ...prev,
+              [name]: value,
+              city: data.city,
+              state: data.state
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching city data:', error);
+          setError('Invalid pincode');
+        }
+      } else {
+        setUserData(prev => ({ ...prev, [name]: value }));
+      }
       setError("");
     },
     []
@@ -269,7 +287,7 @@ export default function LoginForm() {
       ...userData,
       email: loginData.email,
       role: "user",
-      coins: 0,
+      coins: 1000,
       referralCode: generateReferralCode(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

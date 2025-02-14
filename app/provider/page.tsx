@@ -22,6 +22,16 @@ import {
 import { signOut } from 'firebase/auth';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AVAILABLE_SERVICES = [
   "Hair Cutting",
@@ -58,6 +68,7 @@ export default function ProviderDashboard() {
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   useEffect(() => {
     const fetchProviderData = async () => {
@@ -159,7 +170,7 @@ export default function ProviderDashboard() {
     }));
   };
 
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = () => {
     const user = auth.currentUser;
     if (!user) {
       toast({
@@ -189,12 +200,16 @@ export default function ProviderDashboard() {
       return;
     }
 
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmedSave = async () => {
+    setShowSaveDialog(false);
     setIsSaving(true);
     try {
       const db = getFirestore();
       
-      // Update the provider application document
-      await updateDoc(doc(db, 'provider-applications', user.uid), {
+      await updateDoc(doc(db, 'provider-applications', auth.currentUser!.uid), {
         servicePincodes: providerData.servicePincodes,
         services: providerData.services,
         updatedAt: new Date()
@@ -204,6 +219,8 @@ export default function ProviderDashboard() {
         title: "Changes saved",
         description: "Your provider profile has been updated successfully.",
       });
+
+      router.push('/');
     } catch (error) {
       console.error('Error saving changes:', error);
       toast({
@@ -365,6 +382,23 @@ export default function ProviderDashboard() {
       </main>
 
       <Footer />
+
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedSave}>
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

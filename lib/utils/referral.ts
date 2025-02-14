@@ -5,6 +5,12 @@ interface ReferralRecord {
   referralDate: string;
 }
 
+interface UserData {
+  referralHistory?: ReferralRecord[];
+  referredEmails?: string[];
+  timesBeenReferred?: number;
+}
+
 export function generateReferralCode(length: number = 8): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -26,7 +32,7 @@ export async function processReferral(referralCode: string, newUserId: string, n
   if (referrerSnapshot.empty) return false;
   
   const referrerId = referrerSnapshot.docs[0].id;
-  const referrerData = referrerSnapshot.docs[0].data();
+  const referrerData = referrerSnapshot.docs[0].data() as UserData;
   
   // Check if this email has been used before for referrals
   const referredEmails = referrerData.referredEmails || [];
@@ -34,11 +40,25 @@ export async function processReferral(referralCode: string, newUserId: string, n
     return false;
   }
 
-  const BONUS_AMOUNT = 100;
+  // Get the new user's data
+  const newUserDoc = await getDoc(doc(db, 'users', newUserId));
+  if (!newUserDoc.exists()) return false;
+
+  const newUserData = newUserDoc.data() as UserData;
+  const timesBeenReferred = newUserData.timesBeenReferred || 0;
+
+  // Check if user has been referred less than 10 times
+  if (timesBeenReferred >= 10) {
+    return false;
+  }
+
+  // Get referral bonus amount from admin settings
+  const settingsDoc = await getDoc(doc(db, 'admin_settings', 'referral'));
+  const bonusAmount = settingsDoc.exists() ? settingsDoc.data().bonusAmount : 100;
   
-  // Update referrer's coins and add to their referral list
+  // Update referrer's tracking and add bonus coins
   await updateDoc(doc(db, 'users', referrerId), {
-    coins: increment(BONUS_AMOUNT),
+    coins: increment(bonusAmount),
     referredEmails: [...referredEmails, newUserEmail],
     referralHistory: arrayUnion({
       referredEmail: newUserEmail,
@@ -46,9 +66,9 @@ export async function processReferral(referralCode: string, newUserId: string, n
     })
   });
   
-  // Update new user's coins
+  // Update new user's referral count only
   await updateDoc(doc(db, 'users', newUserId), {
-    coins: increment(BONUS_AMOUNT)
+    timesBeenReferred: increment(1)
   });
   
   return true;
