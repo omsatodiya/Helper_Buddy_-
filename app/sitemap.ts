@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Get your base URL from environment variable
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dudhkela.netlify.app'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dudhkela.com'
   
   // Add all your static routes
   return [
@@ -20,6 +20,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/payment`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://dudhkela.com/blog',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,

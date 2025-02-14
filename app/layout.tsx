@@ -1,31 +1,20 @@
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dudhkela.netlify.app'),
+  metadataBase: new URL('https://dudhkela.com'),
   title: {
-    default: 'Helper Buddy - Professional Home Services & Maintenance',
-    template: '%s | Helper Buddy'
+    default: 'Dudh-Kela | Online Milk Delivery & Dairy Services',
+    template: '%s | Dudh-Kela'
   },
-  description: 'Book trusted home service professionals for cleaning, repairs, maintenance and more. Get verified experts for all your household needs with guaranteed satisfaction.',
-  keywords: [
-    'home services',
-    'house cleaning',
-    'appliance repair',
-    'plumbing services',
-    'electrical work',
-    'handyman services',
-    'AC repair',
-    'home maintenance',
-    'professional cleaners',
-    'local service providers'
-  ],
-  authors: [{ name: 'Helper Buddy' }],
-  creator: 'Helper Buddy',
-  publisher: 'Helper Buddy',
+  description: 'Get fresh milk and dairy products delivered to your doorstep. Browse our services, find local providers, and enjoy quality dairy products with Dudh-Kela.',
+  keywords: ['milk delivery', 'dairy products', 'online milk', 'dairy services', 'fresh milk delivery', 'Dudh-Kela'],
+  authors: [{ name: 'Dudh-Kela Team' }],
+  creator: 'Dudh-Kela',
+  publisher: 'Dudh-Kela',
   formatDetection: {
     email: false,
     address: false,

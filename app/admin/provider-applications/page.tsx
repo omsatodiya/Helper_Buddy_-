@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import emailjs from '@emailjs/browser';
+import { usePathname } from 'next/navigation';
 
 // Initialize EmailJS with your public key
 emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
@@ -86,6 +87,7 @@ export default function ProviderApplicationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [applications, setApplications] = useState<ProviderApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -136,6 +138,27 @@ export default function ProviderApplicationsPage() {
 
     fetchApplications();
   }, []);
+
+  useEffect(() => {
+    // Add structured data for the page
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Provider Applications Management',
+      description: 'Manage and review service provider applications',
+      url: `https://dudhkela.com${pathname}`,
+    };
+
+    // Add structured data to the page
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [pathname]);
 
   const handleApplicationReview = async (
     applicationId: string,
