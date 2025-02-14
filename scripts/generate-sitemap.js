@@ -51,7 +51,14 @@ ${pages.map(page => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-// Write sitemap to public directory
-fs.writeFileSync(path.join(process.cwd(), 'public', 'sitemap.xml'), sitemap);
+// Ensure the public directory exists
+const publicDir = path.join(process.cwd(), 'public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
 
-console.log('Sitemap generated successfully!'); 
+// Write sitemap to public directory
+const sitemapPath = path.join(publicDir, 'sitemap.xml');
+fs.writeFileSync(sitemapPath, sitemap);
+
+console.log(`Sitemap generated successfully at ${sitemapPath}`); 
