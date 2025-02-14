@@ -1,17 +1,23 @@
-# Allow all crawlers
+# Global rules
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+Disallow: /*.json$
 
-# Specific rules for Googlebot
+# Googlebot specific rules
 User-agent: Googlebot
 Allow: /
-Allow: /*.js$
-Allow: /*.css$
-Allow: /*.png$
-Allow: /*.jpg$
-Allow: /*.gif$
-Allow: /*.svg$
-Allow: /*.ico$
+Allow: /*.js
+Allow: /*.css
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Disallow: /api/
+Disallow: /_next/static/
+Crawl-delay: 1
 
-# Sitemap location
+# Sitemap
 Sitemap: https://dudhkela.netlify.app/sitemap.xml 
