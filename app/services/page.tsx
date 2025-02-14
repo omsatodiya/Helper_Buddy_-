@@ -431,12 +431,12 @@ function ServicesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Mobile Filter Button */}
       <div className="md:hidden fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsFilterOpen(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg"
+          className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-full shadow-lg"
         >
           <Filter className="w-6 h-6" />
         </button>
@@ -511,7 +511,7 @@ function ServicesContent() {
       <Header />
       <div className="max-w-7xl mx-auto mt-24 p-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">
             {category
               ? category.charAt(0).toUpperCase() + category.slice(1)
               : "All Services"}
@@ -522,6 +522,7 @@ function ServicesContent() {
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard
+              className="bg-white dark:bg-black text-black dark:text-white border-black/10 dark:border-white/10"
               selectedService={selectedService ? selectedService.id : null}
               selectedPriceRanges={selectedPriceRanges}
               minReviewRating={minReviewRating}
@@ -561,7 +562,7 @@ function ServicesContent() {
           </div>
 
           {/* Services Grid */}
-          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border w-full">
+          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black w-full">
             {/* Active Filters Summary - Mobile Only */}
             <div className="md:hidden mb-4">
               {(selectedService ||
@@ -582,6 +583,7 @@ function ServicesContent() {
                 {filteredServices.map((service) => (
                   <ServiceCard
                     key={service.id}
+                    className="bg-white dark:bg-black text-black dark:text-white"
                     title={service.name}
                     price={service.price}
                     rating={service.rating}
