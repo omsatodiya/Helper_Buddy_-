@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-sitemap.js && next build",
+    "build": "next build",
+    "postbuild": "node scripts/generate-sitemap.js && node scripts/copy-public.js",
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node scripts/seedData.ts",
@@ -12,7 +13,6 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
-    "@netlify/plugin-nextjs": "^4.41.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.6",
@@ -55,6 +55,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.9.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
