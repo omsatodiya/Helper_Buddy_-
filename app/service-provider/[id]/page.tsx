@@ -108,36 +108,21 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
             Services by {provider.name}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {services.map((service: Service) => {
-              const simpleService: SimpleService = {
-                id: service.id,
-                name: service.name,
-                description: service.description || "",
-                price: service.pricing?.basePrice || 0,
-                details: service.details || "",
-                category: service.category || "uncategorized",
-                rating: service.rating || 0,
-                totalReviews: service.totalReviews || 0,
-                imageUrl: typeof service.images?.[0] === "string" ? service.images[0] : service.images?.[0]?.url || "/placeholder-image.jpg",
-                createdAt: service.createdAt || new Date().toISOString(),
-                updatedAt: service.updatedAt || new Date().toISOString()
-              };
-              return (
-                <ServiceCard
-                  key={service.id}
-                  service={simpleService}
-                  title={service.name}
-                  description={service.description || ""}
-                  price={service.pricing?.basePrice || 0}
-                  imageUrl={simpleService.imageUrl}
-                  rating={service.rating || 0}
-                  totalRatings={service.totalReviews || 0}
-                  onAddToCart={() => {}}
-                  onBuyNow={() => {}}
-                  onClick={() => {}}
-                />
-              );
-            })}
+            {services.map((service) => (
+              <ServiceCard
+                key={service.id}
+                id={service.id}
+                title={service.name}
+                price={service.pricing?.basePrice || 0}
+                rating={service.rating}
+                totalRatings={service.totalReviews}
+                description={service.description}
+                imageUrl={service.images?.[0]?.url}
+                onAddToCart={() => {}}
+                onBuyNow={() => {}}
+                onClick={() => {}}
+              />
+            ))}
           </div>
         </div>
       </div>

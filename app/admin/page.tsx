@@ -9,6 +9,8 @@ import {
   Tag,
   User,
   PenSquare,
+  ArrowLeft,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

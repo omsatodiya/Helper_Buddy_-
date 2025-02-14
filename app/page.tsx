@@ -154,18 +154,21 @@ export default function Home() {
             rating: service.rating || 0,
             totalReviews: service.totalReviews || 0,
             createdAt: service.createdAt || new Date().toISOString(),
-            updatedAt: service.updatedAt || new Date().toISOString()
+            updatedAt: service.updatedAt || new Date().toISOString(),
+            provider: service.provider || null,
+            servicePincodes: service.servicePincodes || []
           };
           return (
             <ServiceCard
               key={service.id}
-              service={simpleService}
+              id={service.id}
               title={service.name}
               description={service.description}
               price={service.price}
               imageUrl={simpleService.imageUrl}
               rating={service.rating || 0}
               totalRatings={service.totalReviews || 0}
+              providerName={service.provider?.name}
               onAddToCart={() => {}}
               onBuyNow={() => {}}
               onClick={() => {

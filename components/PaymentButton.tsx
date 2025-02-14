@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { collection, addDoc } from 'firebase/firestore';
-import { useAuth } from '@/context/AuthContext';
-import { IndianRupee, Loader2 } from 'lucide-react';
-import { db } from '@/lib/firebase';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { IndianRupee, Loader2 } from "lucide-react";
 
 declare global {
   interface Window {
@@ -15,73 +14,100 @@ declare global {
 
 interface PaymentButtonProps {
   amount: number;
+  onSuccess: () => void;
+  disabled?: boolean;
+  className?: string;
 }
 
-export default function PaymentButton({ amount }: PaymentButtonProps) {
-  const [loading, setLoading] = useState(false);
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    document.body.appendChild(script);
+  });
+};
+
+const PaymentButton = ({
+  amount,
+  onSuccess,
+  disabled,
+  className,
+}: PaymentButtonProps) => {
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
+    loadRazorpayScript();
   }, []);
 
   const handlePayment = async () => {
-    if (!user?.email) {
-      alert('Please login to make a payment');
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please sign in to continue",
+        variant: "destructive",
+      });
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
+      // Create order
+      const response = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await response.json();
+
+      if (!data.orderId) {
+        throw new Error("Failed to create order");
+      }
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: amount * 100, // amount in paisa
-        currency: 'INR',
-        name: 'Helper Buddy',
-        description: 'Add Coins',
-        handler: async function (response: any) {
-          const paymentData = {
-            userId: user.uid,
-            userEmail: user.email,
-            amount: amount,
-            status: 'completed',
-            createdAt: new Date().toISOString(),
-            paymentId: response.razorpay_payment_id
-          };
-
-          await addDoc(collection(db, 'payments'), paymentData);
+        amount: amount * 100,
+        currency: "INR",
+        name: "Your Company Name",
+        description: "Service Payment",
+        order_id: data.orderId,
+        handler: function (response: any) {
+          // Payment successful
+          onSuccess();
         },
         prefill: {
-          email: user.email,
+          email: user.email || "",
         },
         theme: {
-          color: '#000000',
+          color: "#000000",
         },
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
     } catch (error) {
-      console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <Button
       onClick={handlePayment}
-      disabled={loading}
-      className="w-full sm:w-auto"
+      disabled={disabled || isLoading}
+      className={`w-full sm:w-auto ${className || ""}`}
     >
-      {loading ? (
+      {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <>
@@ -91,4 +117,6 @@ export default function PaymentButton({ amount }: PaymentButtonProps) {
       )}
     </Button>
   );
-}
+};
+
+export default PaymentButton;

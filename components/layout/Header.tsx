@@ -33,7 +33,7 @@ import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useLoadingStore } from "@/store/loading-store";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import gsap from "gsap";
 
@@ -61,8 +61,9 @@ const Header = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<UserData>({ role: '', coins: 0 });
   const [coins, setCoins] = useState<number>(0);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
 
-  // Remove all GSAP-related refs and effects
+  // GSAP refs
   const headerRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuItemsRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,56 @@ const Header = () => {
 
     fetchUserData();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setCartItemsCount(0);
+      return;
+    }
+
+    const db = getFirestore();
+    const cartRef = doc(db, "carts", user.uid);
+
+    const unsubscribe = onSnapshot(cartRef, (doc) => {
+      if (doc.exists()) {
+        const cartData = doc.data();
+        const items = Array.isArray(cartData.items) ? cartData.items : [];
+        const itemCount = items.reduce(
+          (total: number, item: any) => total + (item.quantity || 0),
+          0
+        );
+        setCartItemsCount(itemCount);
+      } else {
+        setCartItemsCount(0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleHoverScale = (target: HTMLElement) => {
+    gsap.to(target, {
+      scale: 1.1,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+  };
+
+  const handleHoverScaleExit = (target: HTMLElement) => {
+    gsap.to(target, {
+      scale: 1,
+      duration: 0.3,
+      ease: "power2.in",
+    });
+  };
+
+  const handleTapScale = (target: HTMLElement) => {
+    gsap.to(target, {
+      scale: 0.9,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+  };
 
   useEffect(() => {
     if (!mobileMenuRef.current) return;
@@ -286,6 +337,25 @@ const Header = () => {
   const AuthSection = () => (
     <div className="flex items-center gap-6">
       <ThemeToggle />
+
+      {/* Cart Icon with Counter */}
+      <div className="relative">
+        <Link href="/cart">
+          <div className="cursor-pointer">
+            <ShoppingCart
+              className="text-white hover:opacity-80 transition-opacity"
+              size={28}
+              strokeWidth={2}
+            />
+            {cartItemsCount > 0 && (
+              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-in fade-in z-50">
+                {cartItemsCount > 99 ? "99+" : cartItemsCount}
+              </div>
+            )}
+          </div>
+        </Link>
+      </div>
+
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -325,7 +395,8 @@ const Header = () => {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full z-50 bg-black dark:bg-black">
+      className="fixed top-0 w-full z-50 bg-black dark:bg-black"
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-24">
           {/* Mobile Layout */}
@@ -333,7 +404,8 @@ const Header = () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="flex flex-col justify-center items-center w-8 h-8 z-50"
-              aria-label="Toggle menu">
+              aria-label="Toggle menu"
+            >
               <div className="relative w-6 h-6">
                 <span
                   className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
@@ -359,7 +431,8 @@ const Header = () => {
 
             <Link
               href="/"
-              className="absolute left-1/2 transform -translate-x-1/2">
+              className="absolute left-1/2 transform -translate-x-1/2"
+            >
               <div className="transition-transform duration-300 hover:scale-110">
                 <Image
                   src="/images/logo2.png"
@@ -372,7 +445,6 @@ const Header = () => {
               </div>
             </Link>
 
-            {/* Mobile Layout - Profile Icon */}
             <AuthSection />
           </div>
 
@@ -393,21 +465,8 @@ const Header = () => {
 
             <div className="flex items-center space-x-6">
               <DesktopProfile />
-              
               <div className="flex items-center space-x-6">
                 <AuthSection />
-
-                {user && (
-                  <div
-                    className="cursor-pointer transition-transform duration-300 hover:scale-110"
-                  >
-                    <ShoppingCart
-                      className="text-white dark:text-white hover:opacity-80 transition-opacity"
-                      size={24}
-                      strokeWidth={1.5}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -417,32 +476,97 @@ const Header = () => {
       {/* Mobile Menu */}
       <div 
         ref={mobileMenuRef}
-        className="fixed inset-0 top-24 md:hidden z-40 bg-black"
+        className="fixed left-0 right-0 top-24 h-[calc(100vh-6rem)] bg-gradient-to-b from-black via-black/95 to-black/90 backdrop-blur-lg border-t border-white/10 shadow-2xl md:hidden overflow-y-auto"
+        style={{ display: "none" }}
       >
-        <div className="absolute inset-0 bg-black border-t border-white/10">
-          <div className="container h-[calc(100vh-6rem)] mx-auto px-4 py-8 overflow-y-auto">
-            {/* Navigation Links */}
-            <nav ref={menuItemsRef} className="flex flex-col space-y-6">
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="relative">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -z-10" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[100px] -z-10" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] -z-10" />
+
+            {/* Menu items */}
+            <div className="space-y-0" ref={menuItemsRef}>
+              {navItems.map((item, index) => (
+                <div key={item.label} className="opacity-0">
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="group block"
+                  >
+                    <div className="relative py-5 px-8">
+                      {/* Background hover effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-2" />
+
+                      {/* Menu item content */}
+                      <div className="relative flex items-center justify-between">
+                        {/* Text */}
+                        <span className="text-4xl font-montserrat text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
+                          {item.label}
+                        </span>
+
+                        {/* Arrow indicator */}
+                        <div className="opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                          <svg
+                            className="w-6 h-6 text-white/70"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                  {/* Divider - only show between items */}
+                  {index < navItems.length - 1 && (
+                    <div className="mx-8">
+                      <div className="h-px bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
+                    </div>
+                  )}
+                </div>
               ))}
               {!user && (
-                <Link
-                  href="/auth/login"
-                  className="text-2xl text-white font-montserrat tracking-[0.2em] font-medium hover:text-white/80 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  LOGIN
-                </Link>
+                <div className="opacity-0">
+                  <Link
+                    href="/auth/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="group block"
+                  >
+                    <div className="relative py-5 px-8">
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-2" />
+                      <div className="relative flex items-center justify-between">
+                        <span className="text-4xl font-montserrat text-white/80 group-hover:text-white transition-all duration-300 transform group-hover:translate-x-2">
+                          Login
+                        </span>
+                        <div className="opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                          <svg
+                            className="w-6 h-6 text-white/70"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               )}
-            </nav>
+            </div>
 
             {/* Provider Button */}
             {user && (
