@@ -28,6 +28,7 @@
 # Ensure static files from public directory are copied to the publish directory
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
+  NEXT_PRIVATE_TARGET = "server"
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
   NETLIFY_NEXT_PLUGIN_SKIP = "true"
@@ -42,5 +43,5 @@
 
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/next/:splat"
+  to = "/index.html"
   status = 200 
