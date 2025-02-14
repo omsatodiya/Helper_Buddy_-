@@ -4,23 +4,25 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
+  id: string;
+  name: string;
   price: number;
   quantity: number;
+  imageUrl: string;
+  serviceProvider?: string;
 }
 
 interface CartSummaryProps {
-  items: {
-    price: number;
-    quantity: number;
-  }[];
+  items: CartItem[];
   isAddressSelected: boolean;
 }
 
 const CartSummary = ({ items, isAddressSelected }: CartSummaryProps) => {
   const router = useRouter();
   const { toast } = useToast();
+
   const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + Number(item.price) * Number(item.quantity),
     0
   );
   const gst = subtotal * 0.18; // 18% GST
@@ -36,11 +38,7 @@ const CartSummary = ({ items, isAddressSelected }: CartSummaryProps) => {
       return;
     }
 
-    const totalAmount = items.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0
-    );
-    router.push(`/payment?amount=${totalAmount}`);
+    router.push(`/payment?amount=${total}`);
   };
 
   return (
@@ -52,36 +50,44 @@ const CartSummary = ({ items, isAddressSelected }: CartSummaryProps) => {
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-white/70">Subtotal</span>
           <span className="text-black dark:text-white">
-            ₹{subtotal.toLocaleString("en-IN")}
+            ₹
+            {subtotal.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-white/70">GST (18%)</span>
           <span className="text-black dark:text-white">
-            ₹{gst.toLocaleString("en-IN")}
+            ₹
+            {gst.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </div>
         <div className="border-t border-gray-200 dark:border-white/10 pt-3 mt-3">
           <div className="flex justify-between font-semibold">
             <span className="text-black dark:text-white">Total</span>
             <span className="text-black dark:text-white">
-              ₹{total.toLocaleString("en-IN")}
+              ₹
+              {total.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </span>
           </div>
         </div>
       </div>
-      <button
+      <Button
         onClick={handleCheckout}
         disabled={!isAddressSelected}
-        className={`w-full mt-6 py-2 px-4 rounded-lg font-medium transition-colors
-          ${
-            isAddressSelected
-              ? "bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-              : "bg-gray-300 dark:bg-white/20 text-gray-500 dark:text-white/50 cursor-not-allowed"
-          }`}
+        className="w-full mt-6"
+        variant={isAddressSelected ? "default" : "secondary"}
       >
         Proceed to Checkout
-      </button>
+      </Button>
       <p className="text-xs text-center text-gray-500 dark:text-white/50 mt-2">
         Taxes and shipping calculated at checkout
       </p>

@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AddressModal } from "@/components/address/AddressModal";
+import Link from "next/link";
 import {
   addToCart,
   getCartItems,
@@ -17,15 +17,7 @@ import {
   removeFromCart,
 } from "@/lib/firebase/cart";
 import { getAddresses } from "@/lib/firebase/address";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl: string;
-  serviceProvider?: string;
-}
+import { CartItem } from "@/types/cart";
 
 interface Address {
   id: string;
@@ -49,6 +41,7 @@ interface LocationDetails {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -69,6 +62,7 @@ export default function CartPage() {
   const fetchCartItems = async () => {
     if (!user) {
       setLoading(false);
+      setInitialized(true);
       return;
     }
 
@@ -84,6 +78,7 @@ export default function CartPage() {
       });
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   };
 
@@ -91,7 +86,7 @@ export default function CartPage() {
     fetchCartItems();
   }, [user]);
 
-  // Add useEffect to fetch addresses
+  // Fetch addresses
   useEffect(() => {
     const fetchAddresses = async () => {
       if (!user) return;
@@ -99,6 +94,9 @@ export default function CartPage() {
       try {
         const userAddresses = await getAddresses(user.uid);
         setAddresses(userAddresses);
+        if (userAddresses.length > 0) {
+          setSelectedAddress(userAddresses[0]);
+        }
       } catch (error) {
         console.error("Error fetching addresses:", error);
         toast({
@@ -167,11 +165,11 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error("Error fetching address details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get address details from your location",
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to get address details from your location",
+      //   variant: "destructive",
+      // });
     } finally {
       setIsLoadingLocation(false);
     }
@@ -188,12 +186,12 @@ export default function CartPage() {
         },
         (error) => {
           console.error("Error getting location:", error);
-          toast({
-            title: "Location Error",
-            description:
-              "Failed to get your location. Please enter address manually.",
-            variant: "destructive",
-          });
+          // toast({
+          //   title: "Location Error",
+          //   description:
+          //     "Failed to get your location. Please enter address manually.",
+          //   variant: "destructive",
+          // });
         }
       );
     }
@@ -201,28 +199,15 @@ export default function CartPage() {
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (!user || isUpdating) return;
-
     setIsUpdating(true);
+
     try {
-      // Optimistically update UI
+      await updateCartItemQuantity(user.uid, itemId, newQuantity);
       setCartItems((prev) =>
         prev.map((item) =>
           item.id === itemId ? { ...item, quantity: newQuantity } : item
         )
       );
-
-      // Update in database
-      const success = await updateCartItemQuantity(
-        user.uid,
-        itemId,
-        newQuantity
-      );
-
-      if (!success) {
-        // Revert on failure
-        await fetchCartItems();
-        throw new Error("Failed to update quantity");
-      }
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast({
@@ -237,21 +222,11 @@ export default function CartPage() {
 
   const removeItem = async (itemId: string) => {
     if (!user || isUpdating) return;
-
     setIsUpdating(true);
+
     try {
-      // Optimistically remove from UI
+      await removeFromCart(user.uid, itemId);
       setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-
-      // Remove from database
-      const success = await removeFromCart(user.uid, itemId);
-
-      if (!success) {
-        // Revert on failure
-        await fetchCartItems();
-        throw new Error("Failed to remove item");
-      }
-
       toast({
         title: "Success",
         description: "Item removed from cart",
@@ -268,58 +243,90 @@ export default function CartPage() {
     }
   };
 
-  if (loading) {
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <>
+      <Header />
+      <div className="min-h-screen bg-white dark:bg-black mt-24">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded mb-8 animate-pulse" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 space-y-6">
+              {/* Address Skeleton */}
+              <div className="bg-white dark:bg-black border rounded-lg p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-6 h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+                  <div className="w-full">
+                    <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-4 animate-pulse" />
+                    <div className="h-10 w-28 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cart Items Skeleton */}
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-black border rounded-lg p-6 animate-pulse"
+                >
+                  <div className="flex gap-4">
+                    <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded" />
+                    <div className="flex-1">
+                      <div className="h-6 w-48 bg-gray-200 dark:bg-gray-800 rounded mb-2" />
+                      <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
+                      <div className="flex justify-between items-center">
+                        <div className="h-8 w-24 bg-gray-200 dark:bg-gray-800 rounded" />
+                        <div className="h-8 w-8 bg-gray-200 dark:bg-gray-800 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cart Summary Skeleton */}
+            <div className="lg:col-span-4">
+              <div className="bg-white dark:bg-black border rounded-lg p-6 animate-pulse">
+                <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded" />
+                      <div className="h-4 w-16 bg-gray-200 dark:bg-gray-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+                <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded mt-6" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
+
+  // Show loading skeleton until initialization
+  if (!initialized || loading) {
+    return <LoadingSkeleton />;
+  }
+
+  // Only show empty cart or login prompt after initialization
+  if (!user) {
     return (
       <>
         <Header />
         <div className="min-h-screen bg-white dark:bg-black mt-24">
-          <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold mb-8 text-black dark:text-white">
-              Shopping Cart
-            </h1>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Cart Items Loading Skeleton */}
-              <div className="lg:col-span-8 space-y-6">
-                <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6 animate-pulse">
-                  <div className="flex items-start gap-4">
-                    <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded" />
-                    <div className="w-full">
-                      <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
-                      <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Multiple Cart Item Skeletons */}
-                {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6 animate-pulse"
-                  >
-                    <div className="flex gap-4">
-                      <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded" />
-                      <div className="flex-1 space-y-4">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Cart Summary Loading Skeleton */}
-              <div className="lg:col-span-4">
-                <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6 animate-pulse">
-                  <div className="space-y-4">
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
-                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full mt-6" />
-                  </div>
-                </div>
-              </div>
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Please Login</h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Login to view your cart and continue shopping
+              </p>
+              <Link href="/login">
+                <Button>Login</Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -332,19 +339,18 @@ export default function CartPage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-          <h1 className="text-2xl font-semibold text-black dark:text-white">
-            Your cart is empty
-          </h1>
-          <p className="text-gray-600 dark:text-white/70">
-            Add some services to get started
-          </p>
-          <Button
-            onClick={() => (window.location.href = "/services")}
-            className="bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-          >
-            Browse Services
-          </Button>
+        <div className="min-h-screen bg-white dark:bg-black mt-24">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Your Cart is Empty</h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Browse our services and add items to your cart
+              </p>
+              <Link href="/services">
+                <Button>Browse Services</Button>
+              </Link>
+            </div>
+          </div>
         </div>
         <Footer />
       </>
@@ -354,32 +360,23 @@ export default function CartPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-white mt-24 dark:bg-black">
-        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold mb-8 text-black dark:text-white">
-            Shopping Cart
-          </h1>
+      <div className="min-h-screen bg-white dark:bg-black mt-24">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Cart Items and Address Selection */}
             <div className="lg:col-span-8 space-y-6">
-              {/* Address Selection - Updated UI */}
-              <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6">
+              {/* Address Selection */}
+              <div className="bg-white dark:bg-black border rounded-lg p-6">
                 <div className="flex items-start gap-4">
                   <MapPin className="w-6 h-6 text-gray-500" />
                   <div className="w-full">
                     <h2 className="text-lg font-semibold mb-4">
                       Delivery Address
                     </h2>
-
-                    {isLoadingLocation ? (
-                      <div className="animate-pulse space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                      </div>
-                    ) : selectedAddress ? (
+                    {selectedAddress ? (
                       <div className="space-y-3">
-                        <div className="text-sm text-gray-600 dark:text-gray-300">
+                        <div className="text-sm">
                           <p className="font-medium">{selectedAddress.label}</p>
                           <p>{selectedAddress.address}</p>
                           <p>
@@ -396,18 +393,12 @@ export default function CartPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        <p className="text-sm text-gray-500">
-                          No address selected
-                        </p>
-                        <Button
-                          variant="secondary"
-                          className="w-full py-6 text-primary"
-                          onClick={() => setShowAddressModal(true)}
-                        >
-                          Select an address
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddressModal(true)}
+                      >
+                        Add Address
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -441,21 +432,14 @@ export default function CartPage() {
       <Footer />
 
       {/* Address Modal */}
-      {showAddressModal && (
-        <AddressModal
-          open={showAddressModal}
-          onClose={() => setShowAddressModal(false)}
-          addresses={addresses}
-          selectedAddress={selectedAddress}
-          onSelectAddress={(address) => {
-            setSelectedAddress(address);
-            setShowAddressModal(false);
-          }}
-          onAddAddress={(updatedAddresses: Address[]) => {
-            setAddresses(updatedAddresses);
-          }}
-        />
-      )}
+      <AddressModal
+        open={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        addresses={addresses}
+        selectedAddress={selectedAddress}
+        onSelectAddress={setSelectedAddress}
+        onAddAddress={setAddresses}
+      />
     </>
   );
 }

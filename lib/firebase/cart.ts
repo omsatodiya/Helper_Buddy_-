@@ -1,14 +1,8 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, deleteField } from "firebase/firestore";
+import { CartItem } from "@/types/cart";
 
-export const addToCart = async (userId: string, item: {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl: string;
-  serviceProvider?: string;
-}) => {
+export const addToCart = async (userId: string, item: CartItem) => {
   try {
     // Create a reference to the user's cart document
     const cartRef = doc(db, "carts", userId);
@@ -49,7 +43,7 @@ export const addToCart = async (userId: string, item: {
   }
 };
 
-export const getCartItems = async (userId: string) => {
+export const getCartItems = async (userId: string): Promise<CartItem[]> => {
   try {
     const cartRef = doc(db, "carts", userId);
     const cartDoc = await getDoc(cartRef);
@@ -81,58 +75,52 @@ export const updateCartItemQuantity = async (
   userId: string,
   itemId: string,
   newQuantity: number
-): Promise<boolean> => {
+): Promise<void> => {
   try {
     const cartRef = doc(db, "carts", userId);
     const cartDoc = await getDoc(cartRef);
 
-    if (!cartDoc.exists()) return false;
+    if (cartDoc.exists()) {
+      const cartData = cartDoc.data();
+      const updatedItems = cartData.items.map((item: any) => {
+        if (item.id === itemId) {
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      });
 
-    const cartData = cartDoc.data();
-    const items = cartData.items || {};
-
-    // Check if item exists
-    if (!items[itemId]) return false;
-
-    // Update the item quantity
-    items[itemId] = {
-      ...items[itemId],
-      quantity: newQuantity
-    };
-
-    // Update the cart document
-    await setDoc(cartRef, {
-      items,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-
-    return true;
+      await setDoc(
+        cartRef,
+        {
+          items: updatedItems,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    }
   } catch (error) {
     console.error("Error updating cart item quantity:", error);
     throw error;
   }
 };
 
-export const removeFromCart = async (userId: string, itemId: string): Promise<boolean> => {
+export const removeFromCart = async (
+  userId: string,
+  itemId: string
+): Promise<void> => {
   try {
     const cartRef = doc(db, "carts", userId);
     const cartDoc = await getDoc(cartRef);
 
-    if (!cartDoc.exists()) return false;
+    if (cartDoc.exists()) {
+      const cartData = cartDoc.data();
+      const { [itemId]: removedItem, ...remainingItems } = cartData.items;
 
-    const cartData = cartDoc.data();
-    const items = { ...cartData.items };
-    
-    // Delete the specific item
-    delete items[itemId];
-
-    // Update the cart document
-    await setDoc(cartRef, {
-      items,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-
-    return true;
+      await updateDoc(cartRef, {
+        items: remainingItems,
+        updatedAt: new Date().toISOString()
+      });
+    }
   } catch (error) {
     console.error("Error removing item from cart:", error);
     throw error;

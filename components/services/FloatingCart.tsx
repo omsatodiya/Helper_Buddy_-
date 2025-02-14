@@ -1,6 +1,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { doc, onSnapshot, getDoc, setDoc } from "firebase/firestore";
@@ -16,6 +16,32 @@ interface CartItem {
   imageUrl: string;
   serviceProvider?: string;
 }
+
+const QuantityButton = ({
+  onClick,
+  children,
+  disabled,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`
+      w-8 h-8 rounded-full flex items-center justify-center
+      transition-all duration-200
+      ${
+        disabled
+          ? "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+          : "hover:bg-primary/10 active:scale-95 dark:hover:bg-white/10"
+      }
+    `}
+  >
+    {children}
+  </button>
+);
 
 export default function FloatingCart() {
   const router = useRouter();
@@ -158,25 +184,25 @@ export default function FloatingCart() {
                   ₹{item.price.toLocaleString("en-IN")}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <button
+                  <QuantityButton
                     onClick={() =>
                       handleUpdateQuantity(item.id, item.quantity - 1)
                     }
-                    className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                    disabled={item.quantity <= 1}
                   >
                     <Minus className="w-3 h-3" />
-                  </button>
+                  </QuantityButton>
                   <span className="text-sm text-black dark:text-white">
                     {item.quantity}
                   </span>
-                  <button
+                  <QuantityButton
                     onClick={() =>
                       handleUpdateQuantity(item.id, item.quantity + 1)
                     }
-                    className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                    disabled={item.quantity >= 99}
                   >
                     <Plus className="w-3 h-3" />
-                  </button>
+                  </QuantityButton>
                 </div>
               </div>
             </div>

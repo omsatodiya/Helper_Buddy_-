@@ -206,41 +206,62 @@ export function AddressModal({
         const result = data.results[0];
         const components = result.components;
 
-        const newAddress: Address = {
-          id: "current-location",
+        // Create a new address from the location data
+        const locationAddress: Address = {
+          id: Date.now().toString(), // Generate unique ID
           label: "Current Location",
-          address: `${components.road || ""}, ${
-            components.suburb || components.neighbourhood || ""
-          }`,
+          address: components.road
+            ? `${components.road}${
+                components.house_number ? `, ${components.house_number}` : ""
+              }`
+            : result.formatted.split(",")[0],
           pincode: components.postcode || "",
-          city: components.city || components.town || "",
+          city:
+            components.city ||
+            components.town ||
+            components.state_district ||
+            "",
           state: components.state || "",
         };
 
-        onSelectAddress(newAddress);
-        onClose();
+        // Save this address to the user's addresses
+        if (user) {
+          await saveAddress(user.uid, locationAddress);
+          onAddAddress([...addresses, locationAddress]);
+          onSelectAddress(locationAddress);
+        }
 
         toast({
           title: "Location Found",
-          description:
-            "Your current location has been set as the delivery address",
+          description: "Your current location has been added to your addresses",
         });
+        onClose();
       }
     } catch (error) {
       console.error("Error fetching address:", error);
       toast({
         title: "Error",
-        description: "Failed to get address from location",
+        description:
+          "Failed to get address from location. Please try adding manually.",
         variant: "destructive",
       });
     }
   };
 
   const getCurrentLocation = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please login to add addresses",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!("geolocation" in navigator)) {
       toast({
         title: "Error",
-        description: "Location services not available",
+        description: "Location services not available in your browser",
         variant: "destructive",
       });
       return;
@@ -250,7 +271,11 @@ export function AddressModal({
     try {
       const position = await new Promise<GeolocationPosition>(
         (resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0,
+          });
         }
       );
 
@@ -258,13 +283,42 @@ export function AddressModal({
         position.coords.latitude,
         position.coords.longitude
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting location:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get your location",
-        variant: "destructive",
-      });
+
+      // Show specific toast message based on the error
+      if (error.code === 1) {
+        // PERMISSION_DENIED
+        toast({
+          title: "Location Access Denied",
+          description:
+            "Please enable location access in your browser settings to use this feature. Click the location icon in your address bar and select 'Allow'.",
+          variant: "destructive",
+        });
+      } else if (error.code === 2) {
+        // POSITION_UNAVAILABLE
+        toast({
+          title: "Location Unavailable",
+          description:
+            "Unable to detect your location. Please check if your device's location service is enabled.",
+          variant: "destructive",
+        });
+      } else if (error.code === 3) {
+        // TIMEOUT
+        toast({
+          title: "Request Timeout",
+          description:
+            "Location request timed out. Please try again or add address manually.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Location Error",
+          description:
+            "Failed to get your location. Please try again or add address manually.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingLocation(false);
     }

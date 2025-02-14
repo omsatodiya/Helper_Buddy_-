@@ -2,20 +2,13 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl: string;
-  serviceProvider?: string;
-}
+import { useToast } from "@/hooks/use-toast";
+import { CartItem } from "@/types/cart";
 
 interface CartItemCardProps {
   item: CartItem;
-  onUpdateQuantity: (itemId: string, newQuantity: number) => void;
-  onRemove: (itemId: string) => void;
+  onUpdateQuantity: (itemId: string, newQuantity: number) => Promise<void>;
+  onRemove: (itemId: string) => Promise<void>;
 }
 
 const CartItemCard = ({
@@ -24,22 +17,20 @@ const CartItemCard = ({
   onRemove,
 }: CartItemCardProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
 
-  const handleIncrement = async () => {
-    if (isUpdating) return;
+  const handleQuantityChange = async (newQuantity: number) => {
+    if (isUpdating || newQuantity < 1 || newQuantity > 99) return;
     setIsUpdating(true);
-    try {
-      await onUpdateQuantity(item.id, item.quantity + 1);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
-  const handleDecrement = async () => {
-    if (isUpdating || item.quantity <= 1) return;
-    setIsUpdating(true);
     try {
-      await onUpdateQuantity(item.id, item.quantity - 1);
+      await onUpdateQuantity(item.id, newQuantity);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -48,8 +39,15 @@ const CartItemCard = ({
   const handleRemove = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
+
     try {
       await onRemove(item.id);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -93,7 +91,7 @@ const CartItemCard = ({
               variant="outline"
               size="icon"
               className="h-8 w-8 dark:border-white/10"
-              onClick={handleDecrement}
+              onClick={() => handleQuantityChange(item.quantity - 1)}
               disabled={isUpdating || item.quantity <= 1}
             >
               <Minus className="h-4 w-4" />
@@ -105,8 +103,8 @@ const CartItemCard = ({
               variant="outline"
               size="icon"
               className="h-8 w-8 dark:border-white/10"
-              onClick={handleIncrement}
-              disabled={isUpdating}
+              onClick={() => handleQuantityChange(item.quantity + 1)}
+              disabled={isUpdating || item.quantity >= 99}
             >
               <Plus className="h-4 w-4" />
             </Button>

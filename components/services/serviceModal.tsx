@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+"use client";
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Star,
@@ -207,7 +208,7 @@ const ServiceModal = ({
     }`;
   };
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     try {
       await deleteDoc(doc(db, "services", service.id));
       toast({
@@ -223,7 +224,7 @@ const ServiceModal = ({
         variant: "destructive",
       });
     }
-  };
+  }, [service.id, onClose, onServiceDeleted]);
 
   const handleReviewClick = () => {
     if (!user) {
@@ -452,7 +453,13 @@ const ServiceModal = ({
   };
 
   // Use it in your component
-  const averageRating = calculateAverageRating(service.reviews);
+  const averageRating = useMemo(() => {
+    if (!service.reviews?.length) return 0;
+    return (
+      service.reviews.reduce((acc, review) => acc + review.rating, 0) /
+      service.reviews.length
+    );
+  }, [service.reviews]);
 
   // Add this function to calculate rating distribution
   const calculateRatingDistribution = (
@@ -471,8 +478,18 @@ const ServiceModal = ({
   };
 
   // In your ServiceModal component, add this JSX after the average rating display
-  const ratingDistribution = calculateRatingDistribution(service.reviews);
-  const totalReviews = service.reviews?.length || 0;
+  const ratingDistribution = useMemo(() => {
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    service.reviews?.forEach((review) => {
+      distribution[review.rating as keyof typeof distribution]++;
+    });
+    return distribution;
+  }, [service.reviews]);
+
+  const totalReviews = useMemo(
+    () => service.reviews?.length || 0,
+    [service.reviews]
+  );
 
   // Add this function to handle the scroll
   const scrollToReviews = () => {
@@ -690,7 +707,7 @@ const ServiceModal = ({
                         onClick={scrollToReviews}
                         className="ml-1 hover:underline cursor-pointer"
                       >
-                        ({service.reviews?.length} reviews)
+                        ({totalReviews} reviews)
                       </button>
                     </>
                   )}
@@ -1044,4 +1061,4 @@ const ServiceModal = ({
   );
 };
 
-export default ServiceModal;
+export default memo(ServiceModal);
