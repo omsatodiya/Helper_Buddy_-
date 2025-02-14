@@ -2,8 +2,10 @@ import React from "react";
 import { Star } from "lucide-react";
 import { Button } from "../ui/button";
 import { SimpleService } from "../../types/service";
+import { cn } from "../../lib/utils";
 
 interface ServiceCardProps {
+  className?: string;
   title: string;
   price: number;
   rating?: number;
@@ -25,6 +27,7 @@ const ServiceCard = ({
   onAddToCart,
   onBuyNow,
   onClick,
+  className,
 }: ServiceCardProps) => {
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString("en-IN")}`;
@@ -32,7 +35,10 @@ const ServiceCard = ({
 
   return (
     <div
-      className="group relative bg-white dark:bg-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col dark:border dark:border-gray-800"
+      className={cn(
+        "group relative bg-white dark:bg-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col dark:border dark:border-gray-800",
+        className
+      )}
       onClick={onClick}
     >
       {/* Image Container */}
@@ -91,10 +97,10 @@ const ServiceCard = ({
           </div>
 
           {/* Buttons */}
-          <div className="flex flex-col gap-2">
+          <div className="mt-4 flex gap-2">
             <Button
               variant="outline"
-              className="w-full border-primary text-primary dark:border-primary/80 dark:text-primary/90 hover:bg-primary/5 dark:hover:bg-primary/10"
+              className="flex-1 text-black dark:text-white border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddToCart();
@@ -103,7 +109,7 @@ const ServiceCard = ({
               Add to Cart
             </Button>
             <Button
-              className="w-full bg-primary hover:bg-primary/90 text-white transition-colors dark:bg-primary/90 dark:hover:bg-primary"
+              className="flex-1 bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
               onClick={(e) => {
                 e.stopPropagation();
                 onBuyNow();
