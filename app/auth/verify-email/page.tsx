@@ -20,7 +20,7 @@ const VerifyEmailForm = dynamic(
 const EmailVerificationContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get("email");
+  const email = searchParams?.get("email") ?? null;
 
   useEffect(() => {
     if (!email) {
@@ -34,7 +34,7 @@ const EmailVerificationContent = () => {
 
   return (
     <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <VerifyEmailForm />
+      <VerifyEmailForm email={email} />
     </div>
   );
 };

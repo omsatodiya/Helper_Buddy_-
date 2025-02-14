@@ -623,7 +623,7 @@ export default function BecomeProviderPage() {
       // Upload photo to Cloudinary
       const formDataForUpload = new FormData();
       formDataForUpload.append('file', formData.photo);
-      formDataForUpload.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '');
+      formDataForUpload.append('upload_preset', 'service_providers');
       formDataForUpload.append('folder', 'provider-photos');
 
       // Sanitize email for use as filename (replace @ and . with underscores)

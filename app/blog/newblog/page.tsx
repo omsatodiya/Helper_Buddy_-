@@ -111,7 +111,7 @@ function NewBlog() {
   useEffect(() => {
     // Verify Cloudinary configuration
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    const uploadPreset = 'blogs_HB';
     
     if (!cloudName || !uploadPreset) {
       console.error('Missing Cloudinary configuration:', {

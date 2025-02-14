@@ -413,7 +413,7 @@ export default function AdminDashboard() {
                       <div className="flex items-start gap-4">
                         {/* Provider Image */}
                         <img 
-                          src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${application.photo}`}
+                          src={`https://res.cloudinary.com/service_providers/image/upload/${application.photo}`}
                           alt={application.userName}
                           className="w-16 h-16 rounded-full object-cover border border-black/10 dark:border-white/10"
                         />

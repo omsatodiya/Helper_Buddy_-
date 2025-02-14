@@ -10,15 +10,16 @@ import { AlertCircle } from "lucide-react";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-export default function VerifyEmailForm() {
+interface VerifyEmailFormProps {
+  email: string;
+}
+
+export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [countdown, setCountdown] = useState(60);
-
-  const email = searchParams.get("email");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {

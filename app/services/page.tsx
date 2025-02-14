@@ -85,7 +85,7 @@ const priceRanges = [
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
   const searchParams = useSearchParams();
-  const category = searchParams.get("category");
+  const category = searchParams?.get("category");
 
   const [services, setServices] = useState<SimpleService[]>([]);
   const [filteredServices, setFilteredServices] = useState<SimpleService[]>([]);

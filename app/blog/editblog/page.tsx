@@ -37,7 +37,7 @@ interface FormData {
 const EditBlog = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const blogId = searchParams.get('id');
+  const blogId = searchParams?.get('id');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);

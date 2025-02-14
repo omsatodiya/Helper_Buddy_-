@@ -41,7 +41,7 @@ export default function WholeBlogClient() {
     useEffect(() => {
       const fetchBlog = async () => {
         try {
-          const id = searchParams.get('id');
+          const id = searchParams?.get('id');
           if (!id) throw new Error('Blog ID is missing');
           
           const blogData = await BlogModel.getById(id);
