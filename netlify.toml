@@ -1,6 +1,32 @@
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=UTF-8"
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=3600"
+    X-Robots-Tag = "all"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain"
+    X-Robots-Tag = "all"
+
 [build]
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  NEXT_USE_NETLIFY_EDGE = "true"
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+
 [[plugins]]
-  package = "@netlify/plugin-nextjs" 
+  package = "@netlify/plugin-nextjs"
+
+[[edge_functions]]
+  function = "next-server"
+  path = "/*"
+
+# Remove the redirect since we're serving directly from public
+# The sitemap.xml will be served directly from the public directory 
