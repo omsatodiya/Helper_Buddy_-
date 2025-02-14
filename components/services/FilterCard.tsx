@@ -2,15 +2,18 @@
 import React from "react";
 import Image from "next/image";
 import { Star, X, Search } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Input } from "../ui/input";
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ServiceOption {
   id: string;
@@ -28,6 +31,7 @@ interface PriceRange {
 }
 
 interface FilterCardProps {
+  className?: string;
   selectedService: string | null;
   selectedPriceRanges: string[];
   minReviewRating: number | null;
@@ -45,6 +49,7 @@ interface FilterCardProps {
 }
 
 function FilterCard({
+  className,
   selectedService,
   selectedPriceRanges,
   minReviewRating,
@@ -104,41 +109,41 @@ function FilterCard({
   };
 
   return (
-    <div className="sticky top-4 rounded-lg p-4 my-5 border md:w-[350px] bg-white shadow-sm">
+    <div className="sticky top-4 rounded-lg p-4 my-5 border md:w-[350px] dark:bg-[#111] dark:border-white/10">
       {/* Search Input */}
-      <div className="border-b pb-4">
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">
+      <div className="border-b pb-4 dark:border-white/10">
+        <h2 className="text-lg font-semibold mb-3 dark:text-white">
           Search Services
         </h2>
         <div className="relative group">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 
-            group-hover:text-gray-600 transition-colors"
+            group-hover:text-gray-600 transition-colors dark:text-white/70"
           />
           <Input
             type="text"
             placeholder="Search services..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 w-full border-gray-200 focus:border-blue-300 transition-all
-              hover:border-gray-300"
+            className="pl-9 w-full dark:bg-[#1a1a1a] dark:text-white dark:border-white/10
+              dark:placeholder:text-white/50"
           />
         </div>
       </div>
 
       {/* Sort Options Dropdown */}
-      <div className="border-b py-4">
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">Sort By</h2>
+      <div className="border-b py-4 dark:border-white/10">
+        <h2 className="text-lg font-semibold mb-3 dark:text-white">Sort By</h2>
         <Select value={sortOption} onValueChange={onSortChange}>
-          <SelectTrigger className="w-full border-gray-200 hover:border-gray-300 transition-colors">
+          <SelectTrigger className="w-full dark:bg-[#1a1a1a] dark:text-white dark:border-white/10">
             <SelectValue placeholder="Select sorting option" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="dark:bg-[#1a1a1a] dark:border-white/10">
             {sortOptions.map((option) => (
               <SelectItem
                 key={option.id}
                 value={option.id}
-                className="hover:bg-gray-50 transition-colors"
+                className="dark:text-white dark:hover:bg-[#222]"
               >
                 {option.label}
               </SelectItem>
@@ -202,8 +207,8 @@ function FilterCard({
       )}
 
       {/* Price Ranges */}
-      <div className="py-4 border-b">
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">
+      <div className="py-4 border-b dark:border-white/10">
+        <h2 className="text-lg font-semibold mb-3 dark:text-white">
           Price Range
         </h2>
         <div className="grid grid-cols-2 gap-2">
@@ -212,11 +217,11 @@ function FilterCard({
               key={range.id}
               onClick={() => handlePriceRangeClick(range.id)}
               className={`
-                p-2.5 rounded-lg border text-sm font-medium
+                p-2.5 rounded-lg text-sm font-medium
                 ${
                   selectedPriceRanges.includes(range.id)
-                    ? "bg-green-50 border-green-500 text-green-700 shadow-sm"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    ? "dark:bg-white dark:text-black"
+                    : "dark:bg-[#1a1a1a] dark:text-white dark:border-white/10"
                 }
                 transition-all duration-200
               `}
@@ -228,8 +233,8 @@ function FilterCard({
       </div>
 
       {/* Review Filter */}
-      <div className="py-4 border-b">
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">
+      <div className="py-4 border-b dark:border-white/10">
+        <h2 className="text-lg font-semibold mb-3 dark:text-white">
           Minimum Reviews
         </h2>
         <div className="space-y-2">
@@ -238,12 +243,11 @@ function FilterCard({
               key={option.rating}
               onClick={() => onReviewRatingChange(option.rating)}
               className={`
-                w-full flex items-center justify-center 
-                p-2.5 rounded-lg border text-sm font-medium
+                w-full flex items-center justify-center p-2.5 rounded-lg text-sm font-medium
                 ${
                   minReviewRating === option.rating
-                    ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    ? "dark:bg-white dark:text-black"
+                    : "dark:bg-[#1a1a1a] dark:text-white dark:border-white/10"
                 }
                 transition-all duration-200
               `}
@@ -252,14 +256,11 @@ function FilterCard({
                 {[...Array(5)].map((_, index) => (
                   <Star
                     key={index}
-                    className={`
-                      w-4 h-4 
-                      ${
-                        index < option.rating
-                          ? "text-yellow-400 fill-current"
-                          : "text-gray-300"
-                      }
-                    `}
+                    className={`w-4 h-4 ${
+                      index < option.rating
+                        ? "text-yellow-400 fill-current"
+                        : "text-gray-300 dark:text-white/30"
+                    }`}
                   />
                 ))}
                 <span className="ml-2">& above</span>
@@ -272,8 +273,9 @@ function FilterCard({
       {/* Reset Filters Button */}
       <div className="pt-4">
         <Button
-          variant="destructive"
-          className="w-full font-medium hover:bg-red-600 transition-colors"
+          variant="outline"
+          className="w-full font-medium dark:bg-[#1a1a1a] dark:text-white dark:border-white/10 
+                   dark:hover:bg-[#222]"
           onClick={onResetFilters}
         >
           Reset All Filters

@@ -12,7 +12,7 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 export default function VerifyEmailHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const oobCode = searchParams.get("oobCode");
+  const oobCode = searchParams?.get("oobCode");
   
   const [verifying, setVerifying] = useState(true);
   const [error, setError] = useState("");

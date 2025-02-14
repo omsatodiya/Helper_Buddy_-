@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npm run generate-sitemap",
+    "build": "next build",
+    "postbuild": "node scripts/generate-sitemap.js && node scripts/copy-public.js",
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node scripts/seedData.ts",
@@ -30,6 +31,7 @@
     "add": "^2.0.6",
     "bcryptjs": "^2.4.3",
     "button": "^1.1.1",
+    "chart.js": "^4.4.7",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.5.1",
     "clsx": "^2.1.1",
@@ -46,6 +48,7 @@
     "protobufjs": "^7.4.0",
     "razorpay": "^2.9.5",
     "react": "^18.0.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.0.0",
     "react-hot-toast": "^2.5.1",
     "react-icons": "^5.4.0",
@@ -57,6 +60,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.9.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",

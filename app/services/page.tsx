@@ -7,6 +7,7 @@ import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import { Filter, X } from "lucide-react";
 import Header from "@/components/layout/Header";
+import Preloader from "@/components/ui/preloader";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -19,6 +20,7 @@ import {
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
 import { Service, SimpleService } from "@/types/service";
+import { useLoadingStore } from "@/store/loading-store";
 
 type ServiceCategory =
   | "electrician"
@@ -85,11 +87,11 @@ const priceRanges = [
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
   const searchParams = useSearchParams();
-  const category = searchParams.get("category");
+  const category = searchParams?.get("category");
 
+  const [isLoading, setIsLoading] = useState(true);
   const [services, setServices] = useState<SimpleService[]>([]);
   const [filteredServices, setFilteredServices] = useState<SimpleService[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -104,10 +106,9 @@ function ServicesContent() {
   const [sortOption, setSortOption] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Extract fetchServices function outside useEffect
   async function fetchServices() {
     try {
-      setLoading(true);
+      setIsLoading(true);
       let servicesQuery;
 
       if (category) {
@@ -144,14 +145,12 @@ function ServicesContent() {
       setServices(transformedServices);
       setFilteredServices(transformedServices);
     } catch (err: any) {
-      console.error("Error fetching services:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
-  // Use fetchServices in useEffect
   useEffect(() => {
     fetchServices();
   }, [category]);
@@ -415,12 +414,12 @@ function ServicesContent() {
     setSortOption(option);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-4 flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading services...</div>
-      </div>
-    );
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <Preloader onLoadingComplete={handleLoadingComplete} />;
   }
 
   if (error) {
@@ -432,12 +431,12 @@ function ServicesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Mobile Filter Button */}
       <div className="md:hidden fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsFilterOpen(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg"
+          className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-full shadow-lg"
         >
           <Filter className="w-6 h-6" />
         </button>
@@ -512,7 +511,7 @@ function ServicesContent() {
       <Header />
       <div className="max-w-7xl mx-auto mt-24 p-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">
             {category
               ? category.charAt(0).toUpperCase() + category.slice(1)
               : "All Services"}
@@ -523,6 +522,7 @@ function ServicesContent() {
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard
+              className="bg-white dark:bg-black text-black dark:text-white border-black/10 dark:border-white/10"
               selectedService={selectedService ? selectedService.id : null}
               selectedPriceRanges={selectedPriceRanges}
               minReviewRating={minReviewRating}
@@ -562,7 +562,7 @@ function ServicesContent() {
           </div>
 
           {/* Services Grid */}
-          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border w-full">
+          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black w-full">
             {/* Active Filters Summary - Mobile Only */}
             <div className="md:hidden mb-4">
               {(selectedService ||
@@ -583,6 +583,7 @@ function ServicesContent() {
                 {filteredServices.map((service) => (
                   <ServiceCard
                     key={service.id}
+                    className="bg-white dark:bg-black text-black dark:text-white"
                     title={service.name}
                     price={service.price}
                     rating={service.rating}
@@ -605,15 +606,44 @@ function ServicesContent() {
 
 // Main page component
 export default function ServicesPage() {
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const setIsLoading = useLoadingStore((state) => state.setIsLoading);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsLoading(true);
+
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setIsLoading(false);
+    }, 2500);
+
+    return () => {
+      clearTimeout(timer);
+      setIsLoading(false);
+    };
+  }, [setIsLoading]);
+
+  // Don't render anything until mounted
+  if (!mounted) {
+    return <Preloader onLoadingComplete={() => {}} />;
+  }
+
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen p-4 flex items-center justify-center">
-          <div className="animate-pulse text-lg">Loading services...</div>
-        </div>
-      }
-    >
-      <ServicesContent />
-    </Suspense>
+    <>
+      {loading ? (
+        <Preloader 
+          onLoadingComplete={() => {
+            setLoading(false);
+            setIsLoading(false);
+          }} 
+        />
+      ) : (
+        <main>
+          <ServicesContent />
+        </main>
+      )}
+    </>
   );
 }

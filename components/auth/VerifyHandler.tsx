@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function VerifyHandler() {
   const searchParams = useSearchParams();
-  const mode = searchParams.get("mode");
+  const mode = searchParams?.get("mode");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

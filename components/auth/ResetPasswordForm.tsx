@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const oobCode = searchParams.get("oobCode");
+  const oobCode = searchParams?.get("oobCode");
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

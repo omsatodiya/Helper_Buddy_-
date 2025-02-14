@@ -42,7 +42,7 @@ const pages = [
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="sitemap.xsl"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(page => `  <url>
     <loc>${domain}${page.url}</loc>
@@ -52,19 +52,31 @@ ${pages.map(page => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-// Define directories
-const publicDir = path.join(process.cwd(), 'public');
-const nextDir = path.join(process.cwd(), '.next/static');
-
-// Ensure directories exist
-[publicDir, nextDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+try {
+  // Ensure the public directory exists
+  const publicDir = path.join(process.cwd(), 'public');
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
   }
-});
 
-// Write sitemap to both directories
-fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemap);
-fs.writeFileSync(path.join(nextDir, 'sitemap.xml'), sitemap);
+  // Write sitemap to public directory
+  const sitemapPath = path.join(publicDir, 'sitemap.xml');
+  fs.writeFileSync(sitemapPath, sitemap);
 
-console.log('Sitemap generated successfully in both public and .next/static directories!'); 
+  // Generate robots.txt
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+
+# Sitemap
+Sitemap: ${domain}/sitemap.xml`;
+
+  const robotsPath = path.join(publicDir, 'robots.txt');
+  fs.writeFileSync(robotsPath, robotsTxt);
+
+  console.log(`Sitemap and robots.txt generated successfully in ${publicDir}`);
+} catch (error) {
+  console.error('Error generating files:', error);
+  process.exit(1);
+} 

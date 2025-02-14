@@ -191,7 +191,7 @@ export default function SignupForm() {
         return;
       }
 
-      if (formData.password !== formData.confirmPassword) {
+      if (!isGoogleUser && formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
         setLoading(false);
         return;
@@ -221,9 +221,13 @@ export default function SignupForm() {
         gender: formData.gender,
         displayName: `${formData.firstName} ${formData.lastName}`,
         role: "user",
-        coins: 0,
+        coins: 1000,
         referralCode: generateReferralCode(),
+        createdAt: new Date().toISOString()
       };
+
+      const db = getFirestore();
+      await setDoc(doc(db, "users", userCredential.user.uid), dataToStore);
 
       localStorage.setItem('signupFormData', JSON.stringify(dataToStore));
       console.log('Stored signup data:', dataToStore);
@@ -234,8 +238,7 @@ export default function SignupForm() {
       if (referralCode) {
         const success = await processReferral(referralCode, userCredential.user.uid, formData.email);
         if (!success) {
-          setError("Invalid or already used referral code");
-          return;
+          console.warn("Invalid or already used referral code");
         }
       }
     } catch (err: any) {
@@ -554,7 +557,7 @@ export default function SignupForm() {
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-semibold" 
-                  disabled={loading || isLocked}
+                  disabled={loading || isLocked || (!isGoogleUser && !formData.email) || (!isGoogleUser && !formData.password)}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
