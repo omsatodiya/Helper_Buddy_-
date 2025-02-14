@@ -190,7 +190,6 @@ export default function Home() {
         <Header />
 
 
-        {/* </div> */}
         <LandingPage />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
