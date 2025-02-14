@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { PenSquare, User, Clock, Tag, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function BlogsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [currentPage, setCurrentPage] = useState(1);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
@@ -69,6 +70,44 @@ export default function BlogsPage() {
 
     fetchBlogs();
   }, []);
+
+  useEffect(() => {
+    // Add structured data for the admin blog management page
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Blog Management Dashboard',
+      description: 'Manage and maintain blog content for Dudh-Kela platform',
+      url: `https://dudhkela.com${pathname}`,
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Admin',
+            item: 'https://dudhkela.com/admin'
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Blog Management',
+            item: 'https://dudhkela.com/admin/blogs'
+          }
+        ]
+      }
+    };
+
+    // Add structured data to the page
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [pathname]);
 
   const handleDeleteBlog = async (blogId: string) => {
     try {
