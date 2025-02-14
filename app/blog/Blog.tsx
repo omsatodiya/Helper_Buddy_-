@@ -49,8 +49,30 @@ const Blog: React.FC = () => {
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const blogCardsRef = useRef<HTMLDivElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Animation for blog cards
+  useEffect(() => {
+    if (!isLoading && blogCardsRef.current) {
+      const cards = blogCardsRef.current.children;
+      
+      gsap.fromTo(cards,
+        {
+          opacity: 0,
+          y: 50
+        },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out"
+        }
+      );
+    }
+  }, [isLoading, currentPage, selectedTag]);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -235,12 +257,12 @@ const Blog: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ref={blogCardsRef}>
           {paginatedPosts.map((post, index) => (
             <div
               key={post.id}
               onClick={() => router.push(`/blog/wholeblog?id=${post.id}`)}
-              className="group relative bg-white dark:bg-black rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 cursor-pointer"
+              className="opacity-0 group relative bg-white dark:bg-black rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 cursor-pointer"
             >
               <div className="relative w-full pt-[56.25%] overflow-hidden">
                 <img

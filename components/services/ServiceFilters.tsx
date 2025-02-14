@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import gsap from "gsap";
 
 // Define TypeScript interfaces
 interface CategoryOption {
@@ -25,6 +25,61 @@ interface FilterCard {
 const ServiceFilters = () => {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<keyof Categories | null>(null);
+  const modalOverlayRef = useRef<HTMLDivElement>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // Handle modal open/close animations
+  useEffect(() => {
+    if (activeModal) {
+      // Show modal with animation
+      if (modalOverlayRef.current && modalContentRef.current) {
+        // First set initial states
+        gsap.set(modalOverlayRef.current, { opacity: 0 });
+        gsap.set(modalContentRef.current, { opacity: 0, y: 100 });
+        
+        // Create timeline for smooth animation
+        const tl = gsap.timeline();
+        
+        // Animate overlay
+        tl.to(modalOverlayRef.current, {
+          opacity: 1,
+          duration: 0.3,
+          ease: "power2.out"
+        });
+        
+        // Animate modal content
+        tl.to(modalContentRef.current, {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "back.out(1.7)"
+        }, "-=0.1");
+      }
+    }
+  }, [activeModal]);
+
+  const closeModal = () => {
+    if (modalOverlayRef.current && modalContentRef.current) {
+      const tl = gsap.timeline({
+        onComplete: () => setActiveModal(null)
+      });
+
+      // Animate modal content out
+      tl.to(modalContentRef.current, {
+        opacity: 0,
+        y: 100,
+        duration: 0.3,
+        ease: "power2.in"
+      });
+
+      // Animate overlay out
+      tl.to(modalOverlayRef.current, {
+        opacity: 0,
+        duration: 0.3,
+        ease: "power2.in"
+      }, "-=0.1");
+    }
+  };
 
   const categories: Categories = {
     appliances: [
@@ -104,8 +159,28 @@ const ServiceFilters = () => {
   ];
 
   const handleCategorySelect = (category: string) => {
-    router.push(`/services?category=${category}`);
-    setActiveModal(null);
+    // Animate modal close before navigation
+    if (modalOverlayRef.current && modalContentRef.current) {
+      const tl = gsap.timeline({
+        onComplete: () => {
+          router.push(`/services?category=${category}`);
+          setActiveModal(null);
+        }
+      });
+
+      tl.to(modalContentRef.current, {
+        opacity: 0,
+        y: 100,
+        duration: 0.3,
+        ease: "power2.in"
+      });
+
+      tl.to(modalOverlayRef.current, {
+        opacity: 0,
+        duration: 0.3,
+        ease: "power2.in"
+      }, "-=0.1");
+    }
   };
 
   return (
@@ -143,61 +218,53 @@ const ServiceFilters = () => {
           </div>
         </div>
       </div>
+
       {/* Category Selection Modal */}
-      <AnimatePresence>
-        {activeModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      {activeModal && (
+        <div
+          ref={modalOverlayRef}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          style={{ opacity: 0 }}
+        >
+          <div
+            ref={modalContentRef}
+            className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 relative"
+            style={{ opacity: 0, transform: 'translateY(100px)' }}
           >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-              }}
-              className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 relative"
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 text-gray-500 dark:text-gray-400
+                       hover:text-gray-700 dark:hover:text-gray-200"
             >
-              <button
-                onClick={() => setActiveModal(null)}
-                className="absolute right-4 top-4 text-gray-500 dark:text-gray-400
-                         hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <X className="h-6 w-6" />
+            </button>
 
-              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                {typeof activeModal === "string"
-                  ? activeModal.charAt(0).toUpperCase() + activeModal.slice(1)
-                  : activeModal}
-              </h3>
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              {typeof activeModal === "string"
+                ? activeModal.charAt(0).toUpperCase() + activeModal.slice(1)
+                : activeModal}
+            </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                {categories[activeModal].map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleCategorySelect(option.link)}
-                    className="flex flex-col items-center p-4 
-                             bg-gray-50 dark:bg-gray-900
-                             hover:bg-gray-100 dark:hover:bg-gray-900 
-                             rounded-lg transition-colors"
-                  >
-                    <span className="text-2xl mb-2">{option.icon}</span>
-                    <span className="text-center text-sm text-gray-900 dark:text-gray-200">
-                      {option.title}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="grid grid-cols-2 gap-4">
+              {categories[activeModal].map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleCategorySelect(option.link)}
+                  className="flex flex-col items-center p-4 
+                           bg-gray-50 dark:bg-gray-900
+                           hover:bg-gray-100 dark:hover:bg-gray-900 
+                           rounded-lg transition-colors"
+                >
+                  <span className="text-2xl mb-2">{option.icon}</span>
+                  <span className="text-center text-sm text-gray-900 dark:text-gray-200">
+                    {option.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
