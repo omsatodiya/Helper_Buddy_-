@@ -22,15 +22,15 @@ interface UserReferral {
 interface ReferralsCardProps {
   currentPage: number;
   itemsPerPage: number;
+  referrals: UserReferral[];
 }
 
-export function ReferralsCard({ currentPage, itemsPerPage }: ReferralsCardProps) {
-  const [referrals, setReferrals] = useState<UserReferral[]>([]);
+export function ReferralsCard({ currentPage, itemsPerPage, referrals }: ReferralsCardProps) {
   const [allUsers, setAllUsers] = useState<Record<string, UserReferral>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchReferrals = async () => {
+    const fetchUsers = async () => {
       try {
         const db = getFirestore();
         const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -41,25 +41,15 @@ export function ReferralsCard({ currentPage, itemsPerPage }: ReferralsCardProps)
           usersMap[userData.email] = userData;
         });
         
-        const usersWithReferrals = usersSnapshot.docs
-          .map(doc => ({ ...doc.data() } as UserReferral))
-          .filter(user => user.referralHistory && user.referralHistory.length > 0)
-          .sort((a, b) => {
-            const aDate = a.referralHistory?.[0]?.referralDate || '';
-            const bDate = b.referralHistory?.[0]?.referralDate || '';
-            return new Date(bDate).getTime() - new Date(aDate).getTime();
-          });
-        
         setAllUsers(usersMap);
-        setReferrals(usersWithReferrals);
       } catch (error) {
-        console.error('Error fetching referrals:', error);
+        console.error('Error fetching users:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchReferrals();
+    fetchUsers();
   }, []);
 
   // Get paginated data

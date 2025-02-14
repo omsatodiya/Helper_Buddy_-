@@ -44,9 +44,11 @@ interface UserData {
 interface UsersCardProps {
   currentPage: number;
   itemsPerPage: number;
+  onTotalUsersChange?: (total: number) => void;
+  onDataLoad?: () => void;
 }
 
-export function UsersCard({ currentPage, itemsPerPage }: UsersCardProps) {
+export function UsersCard({ currentPage, itemsPerPage, onTotalUsersChange, onDataLoad }: UsersCardProps) {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -72,10 +74,12 @@ export function UsersCard({ currentPage, itemsPerPage }: UsersCardProps) {
       );
       
       setUsers(sortedUsers);
+      onTotalUsersChange?.(sortedUsers.length);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
+      onDataLoad?.();
     }
   };
 

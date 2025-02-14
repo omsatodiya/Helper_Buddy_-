@@ -46,6 +46,7 @@ export interface Service {
   description: string;
   category?: string;
   price: number;
+  imageUrl?: string;
   pricing?: {
     basePrice: number;
     discountedPrice?: number;
@@ -101,4 +102,5 @@ export interface SimpleService {
   imageUrl: string;
   createdAt: string;
   updatedAt: string;
+  reviews?: ServiceReview[];
 } 
