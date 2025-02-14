@@ -4,16 +4,21 @@
     Content-Type = "application/xml; charset=UTF-8"
     Access-Control-Allow-Origin = "*"
     X-Robots-Tag = "all"
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    Pragma = "no-cache"
+    Expires = "0"
+    Surrogate-Control = "no-store"
 
 [[headers]]
   for = "/robots.txt"
   [headers.values]
     Content-Type = "text/plain"
     X-Robots-Tag = "all"
+    Cache-Control = "public, max-age=3600"
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "public"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
@@ -26,15 +31,4 @@
 [build.processing]
   skip_processing = false
 
-[[redirects]]
-  from = "/sitemap.xml"
-  to = "/.next/static/sitemap.xml"
-  status = 200
-
-[[redirects]]
-  from = "/robots.txt"
-  to = "/.next/static/robots.txt"
-  status = 200
-
-# Remove the redirect since we're serving directly from public
-# The sitemap.xml will be served directly from the public directory 
+# Remove redirects as we're serving directly from public directory 

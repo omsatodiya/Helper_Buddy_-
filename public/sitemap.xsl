@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="2.0" 
-                xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-                xmlns:sitemap="http://www.sitemaps.org/schemas/sitemap/0.9">
+                xmlns:html="http://www.w3.org/TR/REC-html40"
+                xmlns:sitemap="http://www.sitemaps.org/schemas/sitemap/0.9"
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="html" version="1.0" encoding="UTF-8" indent="yes"/>
   <xsl:template match="/">
     <html xmlns="http://www.w3.org/1999/xhtml">
@@ -27,37 +28,28 @@
             border-bottom: 1px solid #eee;
           }
           th {
-            background: #f5f5f5;
-            font-weight: 600;
+            background: #f8f9fa;
+            font-weight: 500;
           }
-          .url {
-            color: #2563eb;
-            text-decoration: none;
-          }
-          .url:hover {
-            text-decoration: underline;
-          }
+          .url { width: 50%; }
+          .lastmod, .changefreq, .priority { width: 16.66%; }
         </style>
       </head>
       <body>
         <h1>XML Sitemap</h1>
         <table>
           <tr>
-            <th>URL</th>
-            <th>Last Modified</th>
-            <th>Change Frequency</th>
-            <th>Priority</th>
+            <th class="url">URL</th>
+            <th class="lastmod">Last Modified</th>
+            <th class="changefreq">Change Frequency</th>
+            <th class="priority">Priority</th>
           </tr>
           <xsl:for-each select="sitemap:urlset/sitemap:url">
             <tr>
-              <td>
-                <a class="url" href="{sitemap:loc}">
-                  <xsl:value-of select="sitemap:loc"/>
-                </a>
-              </td>
-              <td><xsl:value-of select="sitemap:lastmod"/></td>
-              <td><xsl:value-of select="sitemap:changefreq"/></td>
-              <td><xsl:value-of select="sitemap:priority"/></td>
+              <td class="url"><a href="{sitemap:loc}"><xsl:value-of select="sitemap:loc"/></a></td>
+              <td class="lastmod"><xsl:value-of select="sitemap:lastmod"/></td>
+              <td class="changefreq"><xsl:value-of select="sitemap:changefreq"/></td>
+              <td class="priority"><xsl:value-of select="sitemap:priority"/></td>
             </tr>
           </xsl:for-each>
         </table>

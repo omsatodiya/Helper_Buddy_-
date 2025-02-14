@@ -52,12 +52,25 @@ ${pages.map(page => `  <url>
 </urlset>`;
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Remove any incoming cache-related headers
+  delete req.headers['if-none-match'];
+  delete req.headers['if-modified-since'];
+  
+  // Set response headers to prevent caching
   res.setHeader('Content-Type', 'application/xml; charset=UTF-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('X-Robots-Tag', 'all');
   
+  // Remove ETag and Last-Modified headers to prevent 304
+  res.removeHeader('ETag');
+  res.removeHeader('Last-Modified');
+  
   const sitemap = generateSiteMap();
-  res.write(sitemap);
-  res.end();
+  
+  // Always send fresh response with 200
+  res.status(200).send(sitemap);
 } 
