@@ -178,7 +178,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
 
         <div 
           ref={carouselWrapperRef}
-          className="relative w-screen  h-64"
+          className="relative w-svw  h-64"
         >
           <div 
             ref={carouselRef}
