@@ -22,7 +22,7 @@ function PaymentPageContent() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const amountFromUrl = searchParams.get("amount");
+    const amountFromUrl = searchParams?.get("amount");
     if (amountFromUrl) {
       setAmount(Number(amountFromUrl));
     }

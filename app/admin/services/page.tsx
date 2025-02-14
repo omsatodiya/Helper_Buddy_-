@@ -115,13 +115,13 @@ export default function ServicesPage() {
         {paginatedServices.map((service) => (
           <ServiceCard
             key={service.id}
-            service={service}
+            id={service.id}
             title={service.name}
             description={service.description}
             price={service.price}
+            rating={service.rating}
+            totalRatings={service.totalReviews}
             imageUrl={service.imageUrl}
-            rating={service.rating || 0}
-            totalRatings={service.reviews?.length || 0}
             onAddToCart={() => {}}
             onBuyNow={() => {}}
             onClick={() => {

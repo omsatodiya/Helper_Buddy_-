@@ -34,7 +34,6 @@ import { Button } from "@/components/ui/button";
 import { auth } from '@/lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useLoadingStore } from "@/store/loading-store";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import gsap from "gsap";
