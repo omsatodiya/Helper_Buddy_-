@@ -17,7 +17,7 @@
     Cache-Control = "public, max-age=3600"
 
 [build]
-  command = "npm run build && cp -r public/* .next/"
+  command = "npm run build"
   publish = ".next"
 
 # Ensure static files from public directory are copied to the publish directory
