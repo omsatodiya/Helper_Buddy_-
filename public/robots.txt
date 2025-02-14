@@ -1,7 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /_next/static/
 
-# Sitemap
 Sitemap: https://dudhkela.netlify.app/sitemap.xml

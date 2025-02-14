@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -123,27 +124,32 @@ export default function LandingPage() {
   }, [isSearchFocused]);
 
   return (
-    <div ref={containerRef} className="bg-black min-h-screen relative overflow-hidden">
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black pointer-events-none" />
+    <div ref={containerRef} className="bg-black dark:bg-black bg-white min-h-screen relative overflow-hidden">
+      {/* Theme Toggle - Add this near the top of the content */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
+      {/* Gradient overlay - Update with dark mode support */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black dark:via-black/50 dark:to-black via-gray-100/50 to-white pointer-events-none" />
 
       {/* Main content */}
-      <div className="relative mt-16 z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
+      <div className="relative  z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
         <div className="text-center">
-          <h1 ref={headingRef} className="text-5xl md:text-7xl font-bold text-white mb-10 opacity-0">
+          <h1 ref={headingRef} className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-10 opacity-0">
             Welcome to{" "}
             <span className="bg-gradient-to-r from-[#2C786C] to-[#004AAD] text-transparent bg-clip-text">
               Helper Buddy
             </span>
           </h1>
           <div ref={subHeadingsRef} className="flex flex-col gap-2 my-10">
-            <p className="text-3xl md:text-5xl text-[#EAEAEA] font-light opacity-0">
+            <p className="text-3xl md:text-5xl text-gray-800 dark:text-[#EAEAEA] font-light opacity-0">
               Reliable, Fast & Affordable Services
             </p>
-            <p className="text-3xl md:text-5xl text-[#EAEAEA] font-light opacity-0">
+            <p className="text-3xl md:text-5xl text-gray-800 dark:text-[#EAEAEA] font-light opacity-0">
               Your Helper Buddy
             </p>
-            <p className="text-3xl md:text-5xl text-[#EAEAEA] font-light opacity-0">
+            <p className="text-3xl md:text-5xl text-gray-800 dark:text-[#EAEAEA] font-light opacity-0">
               is Just a Click Away
             </p>
           </div>
@@ -157,7 +163,7 @@ export default function LandingPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={handleSearchFocus}
                 placeholder="Search for services..."
-                className="w-full px-6 py-4 bg-white/10 border border-[#2C786C]/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-[#2C786C] transition-colors text-xl"
+                className="w-full px-6 py-4 bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-[#2C786C]/30 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:border-[#2C786C] transition-colors text-xl"
               />
 
               {/* Dropdown Content */}
@@ -252,7 +258,7 @@ export default function LandingPage() {
         </div>
 
         {/* Features Section */}
-        <div ref={featuresRef} className="w-full mt-10 relative z-10">
+        {/* <div ref={featuresRef} className="w-full mt-10 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
@@ -273,15 +279,15 @@ export default function LandingPage() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="feature-card p-6 rounded-lg border border-[#2C786C]/20 backdrop-blur-sm bg-black/30 opacity-0"
+                className="feature-card p-6 rounded-lg border border-gray-200 dark:border-[#2C786C]/20 backdrop-blur-sm bg-white/30 dark:bg-black/30 opacity-0"
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-[#EAEAEA] mb-2">{feature.title}</h3>
-                <p className="text-[#EAEAEA]/80">{feature.description}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-[#EAEAEA] mb-2">{feature.title}</h3>
+                <p className="text-gray-700 dark:text-[#EAEAEA]/80">{feature.description}</p>
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
