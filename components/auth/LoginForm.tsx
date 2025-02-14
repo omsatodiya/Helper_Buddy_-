@@ -130,19 +130,27 @@ const ProfileFields = memo(function ProfileFields({
 }) {
   const handlePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const pincode = e.target.value;
-    onChange(e);
+    // Update pincode first
+    onChange({
+      target: { name: 'pincode', value: pincode }
+    } as React.ChangeEvent<HTMLInputElement>);
 
     if (pincode.length === 6) {
-      const data = await getCityFromPincode(pincode);
-      if (data) {
-        // Update city and state
-        onChange({
-          target: { name: 'city', value: data.city }
-        } as React.ChangeEvent<HTMLInputElement>);
-        
-        onChange({
-          target: { name: 'state', value: data.state }
-        } as React.ChangeEvent<HTMLInputElement>);
+      try {
+        const locationData = await getCityFromPincode(pincode);
+        if (locationData) {
+          // Update city
+          onChange({
+            target: { name: 'city', value: locationData.city }
+          } as React.ChangeEvent<HTMLInputElement>);
+          
+          // Update state
+          onChange({
+            target: { name: 'state', value: locationData.state }
+          } as React.ChangeEvent<HTMLInputElement>);
+        }
+      } catch (error) {
+        console.error('Error fetching location:', error);
       }
     }
   };
