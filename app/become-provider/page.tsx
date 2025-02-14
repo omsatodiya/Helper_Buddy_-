@@ -163,7 +163,7 @@ const ProviderForm = ({
       if (!open || hasSubmitted) setShowForm(false);
     }}
   >
-    <DialogContent className="max-w-3xl h-[90vh] flex flex-col bg-white dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10">
+    <DialogContent className="max-w-[95vw] md:max-w-3xl h-[90vh] md:h-[85vh] flex flex-col bg-white dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 p-4 md:p-6">
       {hasSubmitted ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
           <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
@@ -183,16 +183,18 @@ const ProviderForm = ({
       ) : (
         <>
           <DialogHeader className="pb-4 flex-shrink-0">
-            <DialogTitle className="text-2xl font-semibold text-black dark:text-white">Provider Application</DialogTitle>
+            <DialogTitle className="text-xl md:text-2xl font-semibold text-black dark:text-white">
+              Provider Application
+            </DialogTitle>
             <p className="text-sm text-black/60 dark:text-white/60 mt-1">
               Complete the form below to join our network of professional service providers.
             </p>
           </DialogHeader>
           
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0">
+          <div className="flex-1 flex flex-col md:grid md:grid-cols-2 gap-6 min-h-0 overflow-y-auto">
             {/* Left Column */}
-            <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              {/* Photo Upload Section */}
+            <div className="flex flex-col gap-4">
+              {/* Photo Upload Section - make image preview responsive */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Profile Photo</Label>
                 <div className="flex flex-col gap-1">
@@ -208,7 +210,7 @@ const ProviderForm = ({
                 <div className="relative group">
                   <label 
                     htmlFor="photo-upload"
-                    className="block w-40 aspect-square mx-auto cursor-pointer"
+                    className="block w-32 md:w-40 aspect-square mx-auto cursor-pointer"
                   >
                     {previewUrl ? (
                       <div className="relative w-full h-full rounded-lg bg-black/5 dark:bg-white/5 overflow-hidden">
@@ -243,7 +245,7 @@ const ProviderForm = ({
                 </div>
               </div>
 
-              {/* Service Area Section */}
+              {/* Service Area Section - adjust pincode tag sizing */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Service Areas</Label>
                 <p className="text-sm text-black/60 dark:text-white/60">
@@ -270,15 +272,15 @@ const ProviderForm = ({
                 {formData.pincodes.length > 0 && (
                   <div className="bg-black/5 dark:bg-white/5 rounded-lg">
                     <div className="p-2 max-h-[120px] overflow-y-auto">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 md:gap-2">
                         {formData.pincodes.map(({ pincode, city, state }) => (
                           <div
                             key={pincode}
-                            className="px-3 py-1.5 bg-white dark:bg-black rounded-full text-sm flex items-center gap-2 border border-black/10 dark:border-white/10"
+                            className="px-2 md:px-3 py-1 md:py-1.5 bg-white dark:bg-black rounded-full text-xs md:text-sm flex items-center gap-1.5 md:gap-2 border border-black/10 dark:border-white/10"
                           >
-                            <MapPin className="w-4 h-4" />
+                            <MapPin className="w-3 h-3 md:w-4 md:h-4" />
                             <span>{pincode}</span>
-                            {city && <span className="text-black/60 dark:text-white/60">({city})</span>}
+                            {city && <span className="text-black/60 dark:text-white/60 hidden sm:inline">({city})</span>}
                             <button
                               onClick={() => setFormData(prev => ({
                                 ...prev,
@@ -297,19 +299,18 @@ const ProviderForm = ({
               </div>
             </div>
 
-            {/* Right Column */}
-            <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              {/* Services Selection */}
+            {/* Right Column - adjust service selection grid */}
+            <div className="flex flex-col gap-4">
               <div className="space-y-2 flex-1">
                 <Label className="text-base font-medium">Services Offered</Label>
                 <p className="text-sm text-black/60 dark:text-white/60">
                   Select the services you can provide
                 </p>
-                <div className="grid grid-cols-1 gap-2 mt-2 h-[280px] overflow-y-auto p-2 bg-black/5 dark:bg-white/5 rounded-lg">
+                <div className="grid grid-cols-1 gap-1.5 md:gap-2 mt-2 h-[240px] md:h-[280px] overflow-y-auto p-2 bg-black/5 dark:bg-white/5 rounded-lg">
                   {AVAILABLE_SERVICES.map((service) => (
                     <label 
                       key={service}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all
+                      className={`flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg cursor-pointer transition-all text-sm md:text-base
                         ${formData.services.includes(service) 
                           ? 'bg-black dark:bg-white text-white dark:text-black' 
                           : 'bg-white dark:bg-black hover:bg-black/5 dark:hover:bg-white/5'
@@ -337,7 +338,7 @@ const ProviderForm = ({
               />
               <label 
                 htmlFor="terms" 
-                className="text-sm text-black/60 dark:text-white/60 cursor-pointer"
+                className="text-xs md:text-sm text-black/60 dark:text-white/60 cursor-pointer"
               >
                 I agree to the terms and conditions and confirm that all provided information is accurate
               </label>
@@ -346,7 +347,7 @@ const ProviderForm = ({
             <Button
               onClick={handleBecomeProvider}
               disabled={isSubmitting || formData.services.length === 0 || formData.pincodes.length === 0 || !formData.photo || !termsAccepted}
-              className="w-full h-12 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black font-medium"
+              className="w-full h-10 md:h-12 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black font-medium text-sm md:text-base"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -364,9 +365,17 @@ const ProviderForm = ({
   </Dialog>
 );
 
+// Update the HeroPattern component for black/white only
+const HeroPattern = () => (
+  <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent dark:from-white/20" />
+  </div>
+);
+
 export default function BecomeProviderPage() {
-  // Remove redundant loading states
+  // Update loading state to track both initial load and application check
   const [loading, setLoading] = useState(true);
+  const [applicationChecked, setApplicationChecked] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ProviderFormData>({
@@ -383,37 +392,52 @@ export default function BecomeProviderPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  // Single effect to handle loading
+  // Update the effect to handle auth state properly
   useEffect(() => {
-    const checkApplicationStatus = async () => {
+    let isSubscribed = true; // For cleanup
+    
+    const checkApplicationStatus = async (user: any) => {
       try {
-        const user = auth.currentUser;
-        if (user) {
-          const db = getFirestore();
-          const [applicationDoc, userDoc] = await Promise.all([
-            getDoc(doc(db, 'provider-applications', user.uid)),
-            getDoc(doc(db, 'users', user.uid))
-          ]);
-          
-          if (applicationDoc.exists() || (userDoc.exists() && userDoc.data()?.hasProviderApplication)) {
-            setHasSubmitted(true);
-            setShowForm(false);
-            toast({
-              title: "Existing Application",
-              description: "You have already submitted an application. Please wait for admin review.",
-              variant: "default",
-            });
+        if (!user) {
+          if (isSubscribed) {
+            setApplicationChecked(true);
+            setHasSubmitted(false);
           }
+          return;
+        }
+
+        const db = getFirestore();
+        const [applicationDoc, userDoc] = await Promise.all([
+          getDoc(doc(db, 'provider-applications', user.uid)),
+          getDoc(doc(db, 'users', user.uid))
+        ]);
+        
+        if (!isSubscribed) return;
+
+        const hasExistingApplication = applicationDoc.exists() || 
+          (userDoc.exists() && userDoc.data()?.hasProviderApplication);
+        
+        setHasSubmitted(hasExistingApplication);
+        
+        if (hasExistingApplication) {
+          setShowForm(false);
+          toast({
+            title: "Existing Application",
+            description: "You have already submitted an application. Please wait for admin review.",
+            variant: "default",
+          });
         }
       } catch (error) {
         console.error('Error checking application status:', error);
+        if (isSubscribed) {
+          setHasSubmitted(false);
+        }
       } finally {
-        // Set loading to false after status check
-        setTimeout(() => setLoading(false), 2000);
+        if (isSubscribed) {
+          setApplicationChecked(true);
+        }
       }
     };
-
-    checkApplicationStatus();
 
     // Hide footer during loading
     const footer = document.querySelector('footer');
@@ -421,13 +445,24 @@ export default function BecomeProviderPage() {
       footer.style.display = 'none';
     }
 
+    // Set up auth state listener
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      await checkApplicationStatus(user);
+      if (isSubscribed) {
+        setTimeout(() => setLoading(false), 1000);
+      }
+    });
+
+    // Cleanup function
     return () => {
+      isSubscribed = false;
+      unsubscribe();
       const footer = document.querySelector('footer');
       if (footer) {
         footer.style.display = 'block';
       }
     };
-  }, [toast]);
+  }, [toast]); // Only depend on toast
 
   // Update footer visibility based on loading state
   useEffect(() => {
@@ -719,82 +754,117 @@ export default function BecomeProviderPage() {
       <main className={`min-h-screen bg-white dark:bg-black transition-opacity duration-300 ${
         loading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}>
-        {/* Hero Section */}
-        <section className="relative h-[600px] bg-[#0A0A0A] dark:bg-white flex items-center">
-          <div className="absolute inset-0 bg-white/5 dark:bg-black/5" />
-          <div className="container px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto relative">
-            <div className="max-w-3xl">
-              <h1 className="text-5xl font-bold mb-6 text-white dark:text-black">
-                Turn Your Skills into Success
-              </h1>
-              <p className="text-xl text-white/80 dark:text-black/80 leading-relaxed mb-8 max-w-2xl">
-                Join our growing network of professional service providers and connect with clients looking for your expertise. Start your journey to success today.
-              </p>
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setShowForm(true)}
-                  disabled={hasSubmitted}
-                  className="h-14 px-8 bg-white hover:bg-white/90 text-[#0A0A0A] dark:bg-black dark:hover:bg-black/90 dark:text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {hasSubmitted ? 'Application Pending' : 'Apply Now'}
-                  {!hasSubmitted && <ArrowRight className="h-5 w-5" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-14 px-8 border-2 border-white/80 bg-transparent hover:bg-white/10 text-white hover:text-white dark:border-black/80 dark:bg-transparent dark:hover:bg-black/10 dark:text-black dark:hover:text-black font-medium rounded-lg transition-all"
-                  onClick={() => window.scrollTo({ top: document.getElementById('benefits')?.offsetTop, behavior: 'smooth' })}
-                >
-                  Learn More
-                </Button>
+        {/* Updated Hero Section */}
+        <section className="relative min-h-screen bg-black dark:bg-white overflow-hidden">
+          <HeroPattern />
+          
+          <div className="absolute inset-0 flex flex-col">
+            {/* Content Container */}
+            <div className="flex-1 flex items-start px-6 pt-32 pb-40"> {/* Changed items-center to items-start and increased padding */}
+              <div className="w-full max-w-xl mx-auto">
+                {/* Status Badge */}
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm mb-6">
+                  <span className="flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-white dark:bg-black opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white dark:bg-black"></span>
+                  </span>
+                  <span className="text-sm text-white/90 dark:text-black/90">
+                    Now accepting new providers
+                  </span>
+                </div>
+                
+                {/* Main Heading */}
+                <h1 className="text-[32px] sm:text-4xl md:text-5xl font-bold mb-4 text-white dark:text-black leading-tight">
+                  Turn Your Skills into{' '}
+                  <span className="text-white dark:text-black underline decoration-2 underline-offset-4">
+                    Success
+                  </span>
+                </h1>
+                
+                {/* Description */}
+                <p className="text-base sm:text-lg text-white/80 dark:text-black/80 leading-relaxed mb-6">
+                  Join our growing network of professional service providers and connect with clients looking for your expertise.
+                </p>
+                
+                {/* Buttons */}
+                <div className="flex flex-col gap-3 mb-8"> {/* Reduced bottom margin */}
+                  <Button
+                    onClick={() => setShowForm(true)}
+                    disabled={!applicationChecked || hasSubmitted}
+                    className="w-full h-14 bg-white hover:bg-white/90 text-black dark:bg-black dark:hover:bg-black/90 dark:text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {!applicationChecked ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Checking status...</span>
+                      </div>
+                    ) : hasSubmitted ? (
+                      'Application Pending'
+                    ) : (
+                      <>
+                        <span>Apply Now</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 border border-white/20 dark:border-black/20 bg-white/5 dark:bg-black/5 hover:bg-white/10 dark:hover:bg-black/10 text-white dark:text-black font-medium rounded-lg transition-all flex items-center justify-center"
+                    onClick={() => window.scrollTo({ top: document.getElementById('benefits')?.offsetTop, behavior: 'smooth' })}
+                  >
+                    Learn More
+                  </Button>
+                </div>
+
+                {/* Stats Grid - fix spacing and layout */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-8 pt-6 border-t border-white/10 dark:border-black/10">
+                  <div className="flex flex-col">
+                    <div className="text-2xl sm:text-3xl font-bold text-white dark:text-black">
+                      500+
+                    </div>
+                    <div className="text-sm text-white/60 dark:text-black/60 mt-1">
+                      Active Providers
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="text-2xl sm:text-3xl font-bold text-white dark:text-black">
+                      10K+
+                    </div>
+                    <div className="text-sm text-white/60 dark:text-black/60 mt-1">
+                      Happy Customers
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-16 bg-white dark:bg-[#0A0A0A] border-b border-black/10 dark:border-white/10">
-          <div className="container px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              {[
-                { number: '500+', label: 'Active Providers' },
-                { number: '10K+', label: 'Happy Customers' },
-                { number: '95%', label: 'Satisfaction Rate' },
-                { number: '24/7', label: 'Support Available' },
-              ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-4xl font-bold text-black dark:text-white mb-2">{stat.number}</div>
-                  <div className="text-black/60 dark:text-white/60">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Benefits Section */}
-        <section id="benefits" className="py-24 bg-black/[0.02] dark:bg-[#0A0A0A]">
-          <div className="container px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-4xl font-bold mb-4 text-black dark:text-white">
+        {/* Benefits Section - increase top spacing */}
+        <section id="benefits" className="relative pt-24 pb-12 sm:py-16 md:py-24 bg-white dark:bg-black">
+          <div className="container px-6 mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-black dark:text-white">
                 Why Choose Us?
               </h2>
-              <p className="text-lg text-black/60 dark:text-white/60">
-                Join our platform and unlock a world of opportunities to grow your business
+              <p className="text-base text-black/60 dark:text-white/60">
+                Join our platform and unlock a world of opportunities
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {benefits.map((benefit, index) => (
                 <Card 
                   key={index}
-                  className="group relative border border-black/10 dark:border-white/10 bg-white dark:bg-[#111] hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all duration-300"
+                  className="border border-black/10 dark:border-white/10 bg-white dark:bg-black"
                 >
-                  <div className="p-8">
-                    <div className="h-14 w-14 rounded-xl bg-black dark:bg-white group-hover:scale-110 transition-transform duration-300 flex items-center justify-center mb-6">
-                      <benefit.icon className="h-7 w-7 text-white dark:text-black" />
+                  <div className="p-6 sm:p-8">
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black dark:bg-white flex items-center justify-center mb-6">
+                      <benefit.icon className="h-6 w-6 sm:h-7 sm:w-7 text-white dark:text-black" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black dark:text-white">
                       {benefit.title}
                     </h3>
-                    <p className="text-black/60 dark:text-white/60 text-base leading-relaxed">
+                    <p className="text-sm sm:text-base text-black/60 dark:text-white/60 leading-relaxed">
                       {benefit.description}
                     </p>
                   </div>
@@ -804,23 +874,23 @@ export default function BecomeProviderPage() {
           </div>
         </section>
 
-        {/* How It Works Section */}
-        <section className="py-24 bg-[#0A0A0A] dark:bg-white">
-          <div className="container px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-4xl font-bold mb-4 text-white dark:text-black">
+        {/* How It Works Section - make responsive */}
+        <section className="py-12 sm:py-16 md:py-24 bg-black dark:bg-white">
+          <div className="container px-6 mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white dark:text-black">
                 How It Works
               </h2>
-              <p className="text-lg text-white/80 dark:text-black/80">
+              <p className="text-base text-white/80 dark:text-black/80">
                 Get started in just a few simple steps
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
               {[
                 {
                   number: '01',
                   title: 'Create Profile',
-                  description: 'Fill out your professional details and upload required documents'
+                  description: 'Fill out your professional details'
                 },
                 {
                   number: '02',
@@ -839,16 +909,16 @@ export default function BecomeProviderPage() {
                 }
               ].map((item, index) => (
                 <div key={index} className="relative">
-                  <div className="mb-6">
-                    <span className="text-[32px] font-bold text-white/20 dark:text-black/20">
+                  <div className="mb-4">
+                    <span className="text-2xl sm:text-3xl font-bold text-white/20 dark:text-black/20">
                       {item.number}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2 text-white dark:text-black">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white dark:text-black">
                       {item.title}
                     </h3>
-                    <p className="text-white/80 dark:text-black/80">
+                    <p className="text-sm sm:text-base text-white/80 dark:text-black/80">
                       {item.description}
                     </p>
                   </div>
@@ -858,7 +928,6 @@ export default function BecomeProviderPage() {
           </div>
         </section>
 
-        {/* Render the form modal with props */}
         <ProviderForm
           showForm={showForm}
           setShowForm={setShowForm}
