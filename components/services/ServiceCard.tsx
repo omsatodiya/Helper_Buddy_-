@@ -55,8 +55,6 @@ const ServiceCard = memo(
     const [isLoading, setIsLoading] = useState(false);
     const pathname = usePathname();
 
-    console.log("ServiceCard received imageUrl:", imageUrl);
-
     useEffect(() => {
       if (!user) return;
 
