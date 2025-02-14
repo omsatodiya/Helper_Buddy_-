@@ -98,21 +98,21 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
         '@type': 'LocalBusiness',
         '@id': `https://dudhkela.com${pathname}`,
         name: provider.name,
-        image: provider.profileImage,
+        image: provider.profileImage || undefined,
         email: provider.email,
         telephone: provider.phone,
-        address: {
+        address: provider.location ? {
           '@type': 'PostalAddress',
-          addressLocality: provider.location?.city,
-          addressRegion: provider.location?.state,
-          postalCode: provider.location?.pincode,
+          addressLocality: provider.location.city,
+          addressRegion: provider.location.state,
+          postalCode: provider.location.pincode,
           addressCountry: 'IN'
-        },
-        geo: {
+        } : undefined,
+        geo: provider.location ? {
           '@type': 'GeoCoordinates',
-          latitude: provider.location?.latitude,
-          longitude: provider.location?.longitude
-        },
+          latitude: provider.location.latitude,
+          longitude: provider.location.longitude
+        } : undefined,
         aggregateRating: provider.rating ? {
           '@type': 'AggregateRating',
           ratingValue: provider.rating,
@@ -148,7 +148,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
     }
   }, [provider, services, pathname]);
 
-  // Add meta tags dynamically
+  // Update meta tags dynamically
   useEffect(() => {
     if (provider) {
       // Update meta tags
@@ -157,8 +157,9 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
       // Update meta description
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
+        const specializations = provider.specializations?.join(', ') || 'various services';
         metaDescription.setAttribute('content', 
-          `Book services from ${provider.name}. Specializing in ${provider.specializations?.join(', ')}. Rated ${provider.rating}/5 based on ${provider.totalReviews} reviews.`
+          `Book services from ${provider.name}. Specializing in ${specializations}. Rated ${provider.rating}/5 based on ${provider.totalReviews || 0} reviews.`
         );
       }
 
@@ -171,7 +172,9 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
       if (ogDescription) ogDescription.setAttribute('content', 
         `Book quality dairy services from ${provider.name}. Professional service provider on Dudh-Kela.`
       );
-      if (ogImage && provider.profileImage) ogImage.setAttribute('content', provider.profileImage);
+      if (ogImage && provider.profileImage) {
+        ogImage.setAttribute('content', provider.profileImage);
+      }
     }
   }, [provider]);
 
