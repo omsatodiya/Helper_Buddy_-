@@ -10,7 +10,9 @@
     "seed": "ts-node scripts/seedData.ts"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@radix-ui/react-alert-dialog": "^1.1.6",
+    "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.2",
@@ -21,6 +23,7 @@
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.1.8",
     "add": "^2.0.6",
     "bcryptjs": "^2.4.3",
     "button": "^1.1.1",
@@ -29,12 +32,12 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^11.3.0",
-    "framer-motion": "^12.3.1",
     "gsap": "^3.12.7",
     "lucide-react": "^0.474.0",
     "mongoose": "^8.10.0",
     "next": "^14.2.23",
     "next-auth": "^4.24.11",
+    "next-seo": "^6.6.0",
     "next-themes": "^0.4.4",
     "protobufjs": "^7.4.0",
     "razorpay": "^2.9.5",
@@ -43,8 +46,10 @@
     "react-hot-toast": "^2.5.1",
     "react-icons": "^5.4.0",
     "shadcn-ui": "^0.9.4",
+    "split-type": "^0.3.4",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.173.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

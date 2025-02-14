@@ -1,0 +1,21 @@
+# Allow crawling of all content
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+
+# Googlebot specific rules
+User-agent: Googlebot
+Allow: /
+Allow: /*.js
+Allow: /*.css
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Disallow: /api/
+Disallow: /_next/static/
+
+# Sitemap
+Sitemap: https://dudhkela.netlify.app/sitemap.xml 

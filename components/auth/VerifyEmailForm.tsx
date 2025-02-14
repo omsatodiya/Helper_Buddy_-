@@ -115,14 +115,22 @@ export default function VerifyEmailForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              We've sent a verification email to{" "}
-              <span className="font-medium text-foreground">{email}</span>
-            </p>
-            <p className="text-center text-sm text-muted-foreground">
-              Click the link in the email to verify your account. If you don't see it,
-              check your spam folder.
-            </p>
+            {email ? (
+              <>
+                <p className="text-center text-muted-foreground">
+                  We've sent a verification email to{" "}
+                  <span className="font-medium text-foreground">{email}</span>
+                </p>
+                <p className="text-center text-sm text-muted-foreground">
+                  Click the link in the email to verify your account. If you don't see it,
+                  check your spam folder.
+                </p>
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Please check your email for the verification link.
+              </p>
+            )}
 
             <div className="space-y-2">
               <Button

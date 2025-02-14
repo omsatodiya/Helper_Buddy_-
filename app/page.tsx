@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
@@ -12,7 +12,7 @@ import { Service } from "@/types/service";
 import ServiceCard from "@/components/services/ServiceCard";
 import {
   getFirestore,
-  collection,
+  collection, 
   getDocs,
   query,
   where,
@@ -21,6 +21,7 @@ import {
   query as firestoreQuery,
 } from "firebase/firestore";
 import ServiceModal from "@/components/services/serviceModal";
+import LandingPage from "./landing/page";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -163,7 +164,7 @@ export default function Home() {
         <Header />
 
         {/* Hero Section with Search */}
-        <div className="relative h-[500px] bg-gradient-to-r from-primary to-primary/80">
+        {/* <div className="relative h-[500px] bg-gradient-to-r from-primary to-primary/80">
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative container mx-auto px-4 h-full flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl md:text-6xl font-bold text-center mb-6">
@@ -197,9 +198,9 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-
+          </div> */}
+        {/* </div> */}
+        <LandingPage />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
           <div className="mb-12">
