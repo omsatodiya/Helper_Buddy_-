@@ -1,9 +1,12 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ServiceProviderCard from "@/components/services/ServiceProviderCard";
 import ServiceCard from "@/components/services/ServiceCard";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { Service, SimpleService, ServiceProvider } from "@/types/service";
+import { getFirestore } from "firebase/firestore";
 
 interface ServiceProviderPageProps {
   params: {
@@ -45,11 +48,49 @@ async function getProviderServices(providerId: string) {
   }));
 }
 
-export default async function ServiceProviderPage({
-  params,
-}: ServiceProviderPageProps) {
-  const provider = await getProviderData(params.id);
-  const services = await getProviderServices(params.id);
+export default function ServiceProviderPage({ params }: ServiceProviderPageProps) {
+  const [provider, setProvider] = useState<ServiceProvider | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProviderAndServices = async () => {
+      try {
+        const db = getFirestore();
+        
+        // Fetch provider data
+        const providerDoc = await getDoc(doc(db, "users", params.id));
+        if (providerDoc.exists()) {
+          setProvider({
+            id: providerDoc.id,
+            ...providerDoc.data()
+          } as ServiceProvider);
+        }
+
+        // Fetch services
+        const servicesQuery = query(
+          collection(db, "services"),
+          where("providerId", "==", params.id)
+        );
+        const servicesSnapshot = await getDocs(servicesQuery);
+        const servicesData = servicesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Service));
+        setServices(servicesData);
+      } catch (error) {
+        console.error("Error fetching provider data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProviderAndServices();
+  }, [params.id]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   if (!provider) {
     return <div>Provider not found</div>;
@@ -67,20 +108,36 @@ export default async function ServiceProviderPage({
             Services by {provider.name}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                title={service.name}
-                price={service.pricing?.basePrice || 0}
-                rating={service.rating}
-                totalRatings={service.totalReviews}
-                description={service.description}
-                imageUrl={service.images?.[0]?.url}
-                onAddToCart={() => {}}
-                onBuyNow={() => {}}
-                onClick={() => {}}
-              />
-            ))}
+            {services.map((service: Service) => {
+              const simpleService: SimpleService = {
+                id: service.id,
+                name: service.name,
+                description: service.description || "",
+                price: service.pricing?.basePrice || 0,
+                details: service.details || "",
+                category: service.category || "uncategorized",
+                rating: service.rating || 0,
+                totalReviews: service.totalReviews || 0,
+                imageUrl: typeof service.images?.[0] === "string" ? service.images[0] : service.images?.[0]?.url || "/placeholder-image.jpg",
+                createdAt: service.createdAt || new Date().toISOString(),
+                updatedAt: service.updatedAt || new Date().toISOString()
+              };
+              return (
+                <ServiceCard
+                  key={service.id}
+                  service={simpleService}
+                  title={service.name}
+                  description={service.description || ""}
+                  price={service.pricing?.basePrice || 0}
+                  imageUrl={simpleService.imageUrl}
+                  rating={service.rating || 0}
+                  totalRatings={service.totalReviews || 0}
+                  onAddToCart={() => {}}
+                  onBuyNow={() => {}}
+                  onClick={() => {}}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

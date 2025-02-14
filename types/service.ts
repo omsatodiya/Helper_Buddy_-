@@ -88,6 +88,7 @@ export interface Service {
   updatedAt: string;
   maxQuantity?: number;
   availableQuantity?: number;
+  servicePincodes?: { pincode: string }[];
 }
 
 export interface SimpleService {
@@ -103,4 +104,5 @@ export interface SimpleService {
   createdAt: string;
   updatedAt: string;
   reviews?: ServiceReview[];
+  servicePincodes?: { pincode: string }[];
 } 

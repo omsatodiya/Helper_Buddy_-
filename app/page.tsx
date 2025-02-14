@@ -8,7 +8,7 @@ import FAQ from "@/components/FAQ/FAQ";
 import ServiceFilters from "@/components/services/ServiceFilters";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Service } from "@/types/service";
+import { Service, SimpleService } from "@/types/service";
 import ServiceCard from "@/components/services/ServiceCard";
 import {
   getFirestore,
@@ -142,27 +142,39 @@ export default function Home() {
         {title}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {services.map((service) => (
-          <ServiceCard
-            key={service.id}
-            title={service.name}
-            description={service.description}
-            price={service.price}
-            imageUrl={
-              typeof service.images?.[0] === "string"
-                ? service.images[0]
-                : service.images?.[0]?.url || "/placeholder-image.jpg"
-            }
-            rating={service.rating || 0}
-            totalRatings={service.reviews?.length || 0}
-            onAddToCart={() => {}}
-            onBuyNow={() => {}}
-            onClick={() => {
-              setSelectedService(service);
-              setIsServiceModalOpen(true);
-            }}
-          />
-        ))}
+        {services.map((service) => {
+          const simpleService: SimpleService = {
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            price: service.price,
+            imageUrl: typeof service.images?.[0] === "string" ? service.images[0] : service.images?.[0]?.url || "/placeholder-image.jpg",
+            details: service.details || "",
+            category: service.category || "uncategorized",
+            rating: service.rating || 0,
+            totalReviews: service.totalReviews || 0,
+            createdAt: service.createdAt || new Date().toISOString(),
+            updatedAt: service.updatedAt || new Date().toISOString()
+          };
+          return (
+            <ServiceCard
+              key={service.id}
+              service={simpleService}
+              title={service.name}
+              description={service.description}
+              price={service.price}
+              imageUrl={simpleService.imageUrl}
+              rating={service.rating || 0}
+              totalRatings={service.totalReviews || 0}
+              onAddToCart={() => {}}
+              onBuyNow={() => {}}
+              onClick={() => {
+                setSelectedService(service);
+                setIsServiceModalOpen(true);
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

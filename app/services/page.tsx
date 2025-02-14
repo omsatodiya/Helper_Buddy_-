@@ -139,6 +139,7 @@ function ServicesContent() {
           imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
           createdAt: service.createdAt || new Date().toISOString(),
           updatedAt: service.updatedAt || new Date().toISOString(),
+          servicePincodes: service.servicePincodes || []
         })
       );
 
@@ -580,21 +581,40 @@ function ServicesContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    className="bg-white dark:bg-black text-black dark:text-white"
-                    title={service.name}
-                    price={service.price}
-                    rating={service.rating}
-                    totalRatings={service.totalReviews}
-                    description={service.description}
-                    imageUrl={service.imageUrl || "/api/placeholder/400/300"}
-                    onAddToCart={() => handleAddToCart(service.id)}
-                    onBuyNow={() => handleBuyNow(service.id)}
-                    onClick={() => handleServiceClick(service)}
-                  />
-                ))}
+                {filteredServices.map((service: Service) => {
+                  const simpleService: SimpleService = {
+                    id: service.id,
+                    name: service.name,
+                    description: service.description || "",
+                    price: service.price || service.pricing?.basePrice || 0,
+                    details: service.details || "",
+                    category: service.category || "uncategorized",
+                    rating: service.rating || 0,
+                    totalReviews: service.totalReviews || 0,
+                    imageUrl: service.imageUrl || (typeof service.images?.[0] === "string" ? service.images[0] : service.images?.[0]?.url) || "/placeholder-image.jpg",
+                    createdAt: service.createdAt || new Date().toISOString(),
+                    updatedAt: service.updatedAt || new Date().toISOString(),
+                    servicePincodes: service.servicePincodes || []
+                  };
+                  return (
+                    <ServiceCard
+                      key={service.id}
+                      service={simpleService}
+                      title={service.name}
+                      description={service.description || ""}
+                      price={simpleService.price}
+                      imageUrl={simpleService.imageUrl}
+                      rating={service.rating || 0}
+                      totalRatings={service.totalReviews || 0}
+                      onAddToCart={() => {}}
+                      onBuyNow={() => {}}
+                      onClick={() => {
+                        setSelectedService(service);
+                        setIsModalOpen(true);
+                      }}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

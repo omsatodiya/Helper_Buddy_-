@@ -36,16 +36,25 @@ const staticPages = [
   }
 ];
 
+interface SitemapUrl {
+  url: string;
+  lastmod?: string;
+  changefreq?: string;
+  priority?: number;
+}
+
 async function generateDynamicUrls() {
   const db = getFirestore();
-  const urls = [];
+  const urls: SitemapUrl[] = [];
 
   // Get services
   const servicesSnapshot = await getDocs(collection(db, 'services'));
-  servicesSnapshot.forEach(doc => {
+  
+  servicesSnapshot.forEach((doc) => {
     urls.push({
       url: `/services/${doc.id}`,
-      changefreq: 'weekly',
+      lastmod: new Date().toISOString(),
+      changefreq: 'daily',
       priority: 0.8
     });
   });
