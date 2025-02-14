@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import FilterCard from "@/components/services/FilterCard";
 import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Search } from "lucide-react";
 import Header from "@/components/layout/Header";
 import { db } from "@/lib/firebase";
 import {
@@ -15,10 +15,26 @@ import {
   getDoc,
   query,
   where,
+  setDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
 import { Service, SimpleService } from "@/types/service";
+import Footer from "@/components/layout/Footer";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import FloatingCart from "@/components/services/FloatingCart";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import gsap from "gsap";
+import React from "react";
 
 type ServiceCategory =
   | "electrician"
@@ -82,6 +98,22 @@ const priceRanges = [
   { id: "above-5000", label: "Above ₹5000", min: 5000, max: null },
 ];
 
+const reviewFilterOptions = [
+  { rating: 4, label: "4 Star and above" },
+  { rating: 3, label: "3 Star and above" },
+  { rating: 2, label: "2 Star and above" },
+];
+
+const sortOptions = [
+  { id: "newest", label: "Newest First" },
+  { id: "oldest", label: "Oldest First" },
+  { id: "trending", label: "Trending" },
+  { id: "price_low_high", label: "Price: Low to High" },
+  { id: "price_high_low", label: "Price: High to Low" },
+  { id: "rating_high_low", label: "Rating: High to Low" },
+  { id: "most_reviewed", label: "Most Reviewed" },
+];
+
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
   const searchParams = useSearchParams();
@@ -103,6 +135,26 @@ function ServicesContent() {
   const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCartVisible, setIsCartVisible] = useState(false);
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Add ref for the grid
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  // Add effect to animate grid changes
+  useEffect(() => {
+    if (gridRef.current) {
+      gsap.to(gridRef.current.children, {
+        duration: 0.5,
+        scale: 1,
+        opacity: 1,
+        stagger: 0.1,
+        ease: "power3.out",
+      });
+    }
+  }, [isCartVisible]);
 
   // Extract fetchServices function outside useEffect
   async function fetchServices() {
@@ -127,6 +179,7 @@ function ServicesContent() {
 
       const transformedServices: SimpleService[] = servicesData.map(
         (service) => ({
+          provider: service.provider,
           id: service.id,
           name: service.name,
           description: service.description,
@@ -265,8 +318,81 @@ function ServicesContent() {
     setSearchQuery("");
   };
 
-  const handleAddToCart = (serviceId: string) => {
-    console.log(`Added service ${serviceId} to cart`);
+  // Add useEffect to check cart status
+  useEffect(() => {
+    if (!user) return;
+
+    const cartRef = doc(db, "carts", user.uid);
+    const unsubscribe = onSnapshot(cartRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setIsCartVisible(data?.items?.length > 0);
+      } else {
+        setIsCartVisible(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAddToCart = async (serviceId: string) => {
+    if (!user) {
+      toast({
+        title: "Please login",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const cartRef = doc(db, "carts", user.uid);
+      const cartDoc = await getDoc(cartRef);
+      const serviceDoc = await getDoc(doc(db, "services", serviceId));
+
+      if (!serviceDoc.exists()) {
+        throw new Error("Service not found");
+      }
+
+      const serviceData = serviceDoc.data();
+      let cartItems = [];
+
+      if (cartDoc.exists()) {
+        const cartData = cartDoc.data();
+        cartItems = cartData.items || [];
+      }
+      const existingItemIndex = cartItems.findIndex(
+        (item: { id: string }) => item.id === serviceId
+      );
+
+      if (existingItemIndex !== -1) {
+        cartItems[existingItemIndex].quantity += 1;
+      } else {
+        cartItems.push({
+          id: serviceId,
+          name: serviceData.name,
+          price: serviceData.price,
+          quantity: 1,
+          imageUrl: serviceData.imageUrl || "/placeholder-image.jpg",
+          serviceProvider: serviceData.provider?.name || "",
+        });
+      }
+
+      await setDoc(cartRef, { items: cartItems }, { merge: true });
+      setIsCartVisible(true);
+
+      toast({
+        title: "Added to cart",
+        description: "Service has been added to your cart",
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add service to cart",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBuyNow = (serviceId: string) => {
@@ -417,9 +543,77 @@ function ServicesContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-4 flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading services...</div>
-      </div>
+      <>
+        <Header />
+        <div className="min-h-screen bg-white dark:bg-black">
+          <div className="max-w-7xl mx-auto mt-24 p-4">
+            {/* Title Skeleton */}
+            <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-8" />
+
+            <div className="flex flex-col md:flex-row md:gap-14">
+              {/* Desktop Filter Skeleton */}
+              <div className="hidden md:block flex-1 max-w-xs">
+                <div className="space-y-6 p-4 border border-gray-200 dark:border-white/10 rounded-lg">
+                  {/* Search Skeleton */}
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+
+                  {/* Filter Sections */}
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="space-y-3">
+                      <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((j) => (
+                          <div
+                            key={j}
+                            className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Services Grid Skeleton */}
+              <div className="flex-[3] my-4 py-4 px-4 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="border border-gray-200 dark:border-white/10 rounded-lg p-4 space-y-4"
+                    >
+                      {/* Image Skeleton */}
+                      <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+
+                      {/* Title Skeleton */}
+                      <div className="h-6 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+
+                      {/* Description Skeleton */}
+                      <div className="space-y-2">
+                        <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      </div>
+
+                      {/* Price and Rating Skeleton */}
+                      <div className="flex justify-between items-center">
+                        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      </div>
+
+                      {/* Buttons Skeleton */}
+                      <div className="flex gap-2">
+                        <div className="h-10 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-10 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
     );
   }
 
@@ -432,70 +626,114 @@ function ServicesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Filter Button */}
-      <div className="md:hidden fixed bottom-4 right-4 z-50">
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg"
-        >
-          <Filter className="w-6 h-6" />
-        </button>
+    <div className="min-h-screen bg-white dark:bg-black">
+      {/* Mobile Search and Filters */}
+      <div className="md:hidden sticky top-[96px] bg-white dark:bg-black z-40 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        {/* Search Bar */}
+        <div className="relative group mb-3">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 h-4 w-4" />
+          <Input
+            type="text"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 w-full border-gray-200 dark:border-white/20 focus:border-black dark:focus:border-white"
+          />
+        </div>
+
+        {/* Filter Dropdowns Row */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {/* Sort Dropdown */}
+          <Select value={sortOption} onValueChange={handleSortChange}>
+            <SelectTrigger className="min-w-[120px] bg-white dark:bg-black border-gray-200 dark:border-white/20">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent className="dark:bg-black">
+              {sortOptions.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Rating Dropdown */}
+          <Select
+            value={minReviewRating?.toString() || ""}
+            onValueChange={(value) => setMinReviewRating(Number(value))}
+          >
+            <SelectTrigger className="min-w-[120px] bg-white dark:bg-black border-gray-200 dark:border-white/20">
+              <SelectValue placeholder="Rating" />
+            </SelectTrigger>
+            <SelectContent className="dark:bg-black">
+              {reviewFilterOptions.map((option) => (
+                <SelectItem
+                  key={option.rating}
+                  value={option.rating.toString()}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Price Range Dropdown */}
+          <Select
+            value={selectedPriceRanges[0] || ""}
+            onValueChange={(value) => setSelectedPriceRanges([value])}
+          >
+            <SelectTrigger className="min-w-[120px] bg-white dark:bg-black border-gray-200 dark:border-white/20">
+              <SelectValue placeholder="Price" />
+            </SelectTrigger>
+            <SelectContent className="dark:bg-black">
+              {priceRanges.map((range) => (
+                <SelectItem key={range.id} value={range.id}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Active Filters */}
+        {(selectedPriceRanges.length > 0 ||
+          minReviewRating ||
+          sortOption !== "newest") && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {selectedPriceRanges.map((rangeId) => (
+              <span
+                key={rangeId}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs
+                bg-green-50 text-green-700 dark:bg-black dark:text-white border border-green-200 dark:border-white/20"
+              >
+                {priceRanges.find((r) => r.id === rangeId)?.label}
+                <button
+                  onClick={() => handleClearPriceRange(rangeId)}
+                  className="ml-1"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            {minReviewRating && (
+              <span
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs
+                bg-yellow-50 text-yellow-700 dark:bg-black dark:text-white border border-yellow-200 dark:border-white/20"
+              >
+                {minReviewRating}+ Stars
+                <button onClick={handleClearReviewFilter} className="ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Mobile Filter Overlay */}
-      {isFilterOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="absolute right-0 top-0 h-full w-[80%] bg-white overflow-y-auto">
-            <div className="p-4">
-              <button
-                onClick={() => setIsFilterOpen(false)}
-                className="absolute top-4 right-4"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <FilterCard
-                selectedService={selectedService ? selectedService.id : null}
-                selectedPriceRanges={selectedPriceRanges}
-                minReviewRating={minReviewRating}
-                sortOption={sortOption}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onServiceSelect={async (serviceId: string) => {
-                  try {
-                    const response = await fetch(`/api/services/${serviceId}`);
-                    if (!response.ok)
-                      throw new Error("Failed to fetch service details");
-
-                    const fullService: Service = await response.json();
-
-                    const serviceWithDetails: Service = {
-                      ...fullService,
-                      serviceTime: fullService.serviceTime,
-                    };
-
-                    setSelectedService(serviceWithDetails);
-                  } catch (error) {
-                    console.error("Error fetching service details:", error);
-                  }
-                  setIsFilterOpen(false);
-                }}
-                onPriceRangeChange={setSelectedPriceRanges}
-                onReviewRatingChange={setMinReviewRating}
-                onSortChange={handleSortChange}
-                onClearServiceFilter={handleClearServiceFilter}
-                onClearPriceRange={handleClearPriceRange}
-                onClearReviewFilter={handleClearReviewFilter}
-                onResetFilters={() => {
-                  handleResetFilters();
-                  setSortOption("newest");
-                  setSearchQuery("");
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add FloatingCart component */}
+      <div className="mt-[73px] border border-gray-300 rounded-md absolute right-20 z-50">
+        <FloatingCart />
+      </div>
 
       {/* Service Modal */}
       {isModalOpen && selectedService && (
@@ -512,7 +750,7 @@ function ServicesContent() {
       <Header />
       <div className="max-w-7xl mx-auto mt-24 p-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">
             {category
               ? category.charAt(0).toUpperCase() + category.slice(1)
               : "All Services"}
@@ -562,36 +800,51 @@ function ServicesContent() {
           </div>
 
           {/* Services Grid */}
-          <div className="flex-[3] my-5 py-4 px-4 rounded-lg border w-full">
+          <div
+            className={`flex-[3] my-5 py-4 px-4 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-black w-full transition-[margin] duration-500 ease-out ${
+              isCartVisible ? "mr-[300px]" : ""
+            }`}
+          >
             {/* Active Filters Summary - Mobile Only */}
             <div className="md:hidden mb-4">
               {(selectedService ||
                 selectedPriceRanges.length > 0 ||
                 minReviewRating) && (
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-sm text-gray-500">Active filters:</span>
+                  <span className="text-sm text-gray-500 dark:text-white/70">
+                    Active filters:
+                  </span>
                 </div>
               )}
             </div>
 
             {filteredServices.length === 0 ? (
-              <div className="text-gray-600 text-center py-8">
+              <div className="text-gray-600 dark:text-white/70 text-center py-8">
                 No services match the selected filters.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div
+                ref={gridRef}
+                className={`grid grid-cols-1 md:grid-cols-2 ${
+                  isCartVisible ? "lg:grid-cols-2" : "lg:grid-cols-3"
+                } gap-4 md:gap-6 transition-all duration-500`}
+                style={{ willChange: "grid-template-columns" }}
+              >
                 {filteredServices.map((service) => (
                   <ServiceCard
                     key={service.id}
+                    id={service.id}
                     title={service.name}
                     price={service.price}
                     rating={service.rating}
                     totalRatings={service.totalReviews}
                     description={service.description}
-                    imageUrl={service.imageUrl || "/api/placeholder/400/300"}
+                    imageUrl={service.imageUrl}
+                    providerName={service.provider?.name}
                     onAddToCart={() => handleAddToCart(service.id)}
                     onBuyNow={() => handleBuyNow(service.id)}
                     onClick={() => handleServiceClick(service)}
+                    className="transform transition-all duration-500"
                   />
                 ))}
               </div>
@@ -599,6 +852,7 @@ function ServicesContent() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

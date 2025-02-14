@@ -8,6 +8,7 @@ import {
   DollarSign,
   TrendingUp,
   ArrowLeft,
+  Star,
 } from "lucide-react";
 import { DashboardCard } from "@/components/admin/DashboardCard";
 import { Button } from "@/components/ui/button";
@@ -143,25 +144,62 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {services.map((service: Service) => (
-                <ServiceCard
+                <div
                   key={service.id}
-                  title={service.name}
-                  description={service.description}
-                  price={service.price}
-                  imageUrl={
-                    typeof service.images?.[0] === "string"
-                      ? service.images[0]
-                      : service.images?.[0]?.url || "/placeholder-image.jpg"
-                  }
-                  rating={service.rating || 0}
-                  totalRatings={service.reviews?.length || 0}
-                  onAddToCart={() => {}}
-                  onBuyNow={() => {}}
+                  className="bg-white dark:bg-black border border-gray-200 dark:border-white/20 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => {
                     setSelectedService(service);
                     setIsServiceModalOpen(true);
                   }}
-                />
+                >
+                  <div className="aspect-video relative">
+                    <img
+                      src={
+                        typeof service.images?.[0] === "string"
+                          ? service.images[0]
+                          : service.images?.[0]?.url || "/placeholder-image.jpg"
+                      }
+                      alt={service.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {service.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                      {service.description}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        ₹{service.price}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= (service.rating || 0)
+                                  ? "text-white fill-white"
+                                  : "text-gray-300 dark:text-white/20"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          ({service.reviews?.length || 0})
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-2 border-gray-200 dark:border-white/20 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10"
+                    >
+                      Add to Cart
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
             {selectedService && (
@@ -194,15 +232,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-white/20 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
         <div className="flex h-16 items-center px-4 md:px-6">
           <Button
             variant="ghost"
             size="icon"
-            className="mr-4 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="mr-4 hover:bg-gray-100 dark:hover:bg-white/10"
             onClick={() => router.push("/")}
           >
-            <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+            <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-white" />
           </Button>
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
             Admin Dashboard
@@ -221,30 +259,30 @@ export default function AdminDashboard() {
               value: stats.growthRate,
               isPositive: stats.growthRate > 0,
             }}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black shadow-sm hover:shadow-md transition-shadow dark:border dark:border-white/20"
           />
           <DashboardCard
             title="Service Providers"
             value={stats.totalServiceProviders}
             icon={Users}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black shadow-sm hover:shadow-md transition-shadow dark:border dark:border-white/20"
           />
           <DashboardCard
             title="Revenue"
             value={`₹${stats.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black shadow-sm hover:shadow-md transition-shadow dark:border dark:border-white/20"
           />
           <DashboardCard
             title="Growth"
             value={`${stats.growthRate}%`}
             icon={TrendingUp}
-            className="bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow dark:border dark:border-gray-800"
+            className="bg-white dark:bg-black shadow-sm hover:shadow-md transition-shadow dark:border dark:border-white/20"
           />
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mt-8 bg-white dark:bg-gray-900 rounded-lg p-4 shadow-sm dark:border dark:border-gray-800">
+        <div className="mt-8 bg-white dark:bg-black rounded-lg p-4 shadow-sm dark:border dark:border-white/20">
           <RadioGroup
             defaultValue="users"
             value={activeTable}
@@ -255,12 +293,9 @@ export default function AdminDashboard() {
               <RadioGroupItem
                 value="users"
                 id="users"
-                className="dark:border-gray-700"
+                className="dark:border-white/20"
               />
-              <Label
-                htmlFor="users"
-                className="cursor-pointer dark:text-gray-200"
-              >
+              <Label htmlFor="users" className="cursor-pointer dark:text-white">
                 All Users
               </Label>
             </div>
@@ -309,39 +344,77 @@ export default function AdminDashboard() {
         {/* Content Area */}
         <div className="mt-6">
           {activeTable === "services" ? (
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 dark:border dark:border-gray-800">
+            <div className="bg-white dark:bg-black rounded-lg shadow-sm p-6 dark:border dark:border-white/20">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                   Services Management
                 </h2>
                 <Button
                   onClick={() => router.push("/services/add")}
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white"
+                  className="w-full sm:w-auto bg-black hover:bg-black/90 text-white dark:bg-black dark:text-white dark:border dark:border-white/20 dark:hover:bg-white/10"
                 >
                   Add New Service
                 </Button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {services.map((service: Service) => (
-                  <ServiceCard
+                  <div
                     key={service.id}
-                    title={service.name}
-                    description={service.description}
-                    price={service.price}
-                    imageUrl={
-                      typeof service.images?.[0] === "string"
-                        ? service.images[0]
-                        : service.images?.[0]?.url || "/placeholder-image.jpg"
-                    }
-                    rating={service.rating || 0}
-                    totalRatings={service.reviews?.length || 0}
-                    onAddToCart={() => {}}
-                    onBuyNow={() => {}}
+                    className="bg-white dark:bg-black border border-gray-200 dark:border-white/20 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => {
                       setSelectedService(service);
                       setIsServiceModalOpen(true);
                     }}
-                  />
+                  >
+                    <div className="aspect-video relative">
+                      <img
+                        src={
+                          typeof service.images?.[0] === "string"
+                            ? service.images[0]
+                            : service.images?.[0]?.url ||
+                              "/placeholder-image.jpg"
+                        }
+                        alt={service.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {service.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                        {service.description}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          ₹{service.price}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= (service.rating || 0)
+                                    ? "text-white fill-white"
+                                    : "text-gray-300 dark:text-white/20"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            ({service.reviews?.length || 0})
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full mt-2 border-gray-200 dark:border-white/20 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10"
+                      >
+                        Add to Cart
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

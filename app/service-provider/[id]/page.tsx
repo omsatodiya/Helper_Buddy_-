@@ -70,6 +70,7 @@ export default async function ServiceProviderPage({
             {services.map((service) => (
               <ServiceCard
                 key={service.id}
+                id={service.id}
                 title={service.name}
                 price={service.pricing?.basePrice || 0}
                 rating={service.rating}

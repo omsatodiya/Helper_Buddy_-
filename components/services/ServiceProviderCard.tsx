@@ -47,7 +47,7 @@ const ServiceProviderCard = ({
               <div className="flex items-center gap-2 mt-1">
                 <div className="flex">{renderStars(provider.rating)}</div>
                 <span className="text-sm text-gray-500">
-                  ({provider.totalServices} services)
+                  ({provider.totalServices} reviews)
                 </span>
               </div>
             </div>

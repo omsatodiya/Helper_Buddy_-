@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Star,
@@ -10,6 +10,8 @@ import {
   Edit2,
   Plus,
   Minus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -17,7 +19,13 @@ import { Service } from "@/types/service";
 import AddReviewModal from "./AddReviewModal";
 import { useToast } from "../../hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import {
+  deleteDoc,
+  doc,
+  updateDoc,
+  arrayRemove,
+  arrayUnion,
+} from "firebase/firestore";
 import ServiceProviderCard from "./ServiceProviderCard";
 import {
   AlertDialog,
@@ -32,6 +40,8 @@ import {
 import EditServiceForm from "./EditServiceForm";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import EditReviewModal from "./EditReviewModal";
+import { addToCart } from "@/lib/firebase/cart";
 
 interface ServiceProvider {
   id: string;
@@ -44,11 +54,13 @@ interface ServiceProvider {
 
 interface ServiceReview {
   id: string;
-  rating: 1 | 2 | 3 | 4 | 5;
+  rating: number;
   comment: string;
   userName: string;
   userEmail: string;
   date: string;
+  editedAt?: string;
+  isEdited?: boolean;
   helpful: number;
   reply?: {
     comment: string;
@@ -74,6 +86,12 @@ interface ServicePricing {
   }[];
 }
 
+interface ServiceStatus {
+  isCompleted: boolean;
+  purchaseDate?: string;
+  completionDate?: string;
+}
+
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,6 +100,10 @@ interface ServiceModalProps {
   onServiceDeleted?: () => void;
   onReviewAdded?: (updatedService: Service) => void;
   onServiceUpdated?: (updatedService: Service) => void;
+  isInCart?: boolean;
+  quantity?: number;
+  onQuantityChange?: (newQuantity: number) => void;
+  serviceStatus?: ServiceStatus;
 }
 
 const ServiceModal = ({
@@ -92,6 +114,10 @@ const ServiceModal = ({
   onServiceDeleted,
   onReviewAdded,
   onServiceUpdated,
+  isInCart = false,
+  quantity = 1,
+  onQuantityChange,
+  serviceStatus,
 }: ServiceModalProps) => {
   const [selectedImage, setSelectedImage] = useState(
     service.images?.[0]?.url || "/placeholder-image.jpg"
@@ -101,26 +127,68 @@ const ServiceModal = ({
   const [localService, setLocalService] = useState(service);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<ServiceReview | null>(
+    null
+  );
+  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const [localQuantity, setLocalQuantity] = useState(1);
 
   useEffect(() => {
     setLocalService(service);
   }, [service]);
 
+  // Auto-slide effect
+  useEffect(() => {
+    if (!service.images || service.images.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) =>
+        prev === service.images!.length - 1 ? 0 : prev + 1
+      );
+    }, 3000); // Change slide every 3 seconds
+
+    return () => clearInterval(timer);
+  }, [service.images]);
+
+  // Navigation functions
+  const nextImage = useCallback(() => {
+    if (!service.images) return;
+    setCurrentImageIndex((prev) =>
+      prev === service.images!.length - 1 ? 0 : prev + 1
+    );
+  }, [service.images]);
+
+  const prevImage = useCallback(() => {
+    if (!service.images) return;
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? service.images!.length - 1 : prev - 1
+    );
+  }, [service.images]);
+
   const renderStars = (rating: number) => {
-    return Array(5)
-      .fill(0)
-      .map((_, index) => (
-        <Star
-          key={index}
-          className={`w-4 h-4 ${
-            index < Math.floor(rating)
-              ? "fill-yellow-400 text-yellow-400"
-              : "text-gray-300"
-          }`}
-        />
-      ));
+    return (
+      <div className="flex items-center">
+        <div className="flex">
+          {[1, 2, 3, 4, 5].map((index) => (
+            <Star
+              key={index}
+              className={`w-4 h-4 ${
+                index <= Math.floor(rating)
+                  ? "fill-yellow-400 text-yellow-400"
+                  : index - rating <= 0.5
+                  ? "fill-yellow-400 text-yellow-400 opacity-50"
+                  : "text-gray-300 dark:text-gray-600"
+              }`}
+            />
+          ))}
+        </div>
+        <span className="ml-2 text-sm text-gray-600">{rating.toFixed(1)}</span>
+      </div>
+    );
   };
 
   const formatServiceTime = () => {
@@ -176,6 +244,16 @@ const ServiceModal = ({
       });
       return;
     }
+
+    if (!serviceStatus?.isCompleted) {
+      toast({
+        title: "Service not completed",
+        description: "You can only review services after they are completed",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsReviewModalOpen(true);
   };
 
@@ -209,9 +287,8 @@ const ServiceModal = ({
         rating: newRating,
         totalReviews: allReviews.length,
       };
-
-      setLocalService(updatedService);
-      onReviewAdded?.(updatedService);
+      setLocalService(updatedService as Service);
+      onReviewAdded?.(updatedService as Service);
 
       toast({
         title: "Review added successfully",
@@ -257,10 +334,211 @@ const ServiceModal = ({
     }
   };
 
-  const handleQuantityChange = (change: number) => {
-    const newQuantity = quantity + change;
+  const handleQuantityAdjustment = (change: number) => {
+    const newQuantity = localQuantity + change;
     if (newQuantity >= 1 && newQuantity <= 10) {
-      setQuantity(newQuantity);
+      setLocalQuantity(newQuantity);
+    }
+  };
+
+  const handleEditReview = (review: ServiceReview) => {
+    setSelectedReview(review);
+    setIsEditModalOpen(true);
+  };
+
+  const handleReviewEdited = async (editedReview: {
+    rating: number;
+    comment: string;
+  }) => {
+    if (!selectedReview || !user) return;
+
+    try {
+      const serviceRef = doc(db, "services", service.id);
+
+      // Remove old review
+      await updateDoc(serviceRef, {
+        reviews: arrayRemove(selectedReview),
+      });
+
+      // Create updated review
+      const updatedReview = {
+        ...selectedReview,
+        rating: editedReview.rating,
+        comment: editedReview.comment,
+        editedAt: new Date().toISOString(),
+        isEdited: true,
+      };
+
+      // Add updated review
+      await updateDoc(serviceRef, {
+        reviews: arrayUnion(updatedReview),
+      });
+
+      // Update local state
+      const updatedService = {
+        ...localService,
+        reviews: localService.reviews?.map((review) =>
+          review.id === selectedReview.id ? updatedReview : review
+        ),
+      };
+      setLocalService(updatedService as Service);
+      onServiceUpdated?.(updatedService as Service);
+
+      toast({
+        title: "Review updated",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating review",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
+
+    setIsEditModalOpen(false);
+    setSelectedReview(null);
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!user) return;
+
+    try {
+      const serviceRef = doc(db, "services", service.id);
+      const reviewToDelete = localService.reviews?.find(
+        (r) => r.id === reviewId
+      );
+
+      if (!reviewToDelete) return;
+
+      // Remove review from Firebase
+      await updateDoc(serviceRef, {
+        reviews: arrayRemove(reviewToDelete),
+      });
+
+      // Update local state
+      const updatedService = {
+        ...localService,
+        reviews: localService.reviews?.filter((r) => r.id !== reviewId),
+      };
+
+      setLocalService(updatedService);
+      onServiceUpdated?.(updatedService);
+
+      toast({
+        title: "Review deleted",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting review",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Add this function to calculate average rating
+  const calculateAverageRating = (
+    reviews: ServiceReview[] | undefined
+  ): number => {
+    if (!reviews || reviews.length === 0) return 0;
+
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    const average = sum / reviews.length;
+
+    // Round to 1 decimal place
+    return Math.round(average * 10) / 10;
+  };
+
+  // Use it in your component
+  const averageRating = calculateAverageRating(service.reviews);
+
+  // Add this function to calculate rating distribution
+  const calculateRatingDistribution = (
+    reviews: ServiceReview[] | undefined
+  ) => {
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    if (!reviews?.length) return distribution;
+
+    reviews.forEach((review) => {
+      const rating = Math.round(review.rating);
+      distribution[rating as keyof typeof distribution]++;
+    });
+
+    return distribution;
+  };
+
+  // In your ServiceModal component, add this JSX after the average rating display
+  const ratingDistribution = calculateRatingDistribution(service.reviews);
+  const totalReviews = service.reviews?.length || 0;
+
+  // Add this function to handle the scroll
+  const scrollToReviews = () => {
+    const reviewsSection = document.getElementById("reviews-section");
+    if (reviewsSection) {
+      reviewsSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleDeleteClick = (reviewId: string) => {
+    setReviewToDelete(reviewId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!reviewToDelete) return;
+
+    try {
+      await handleDeleteReview(reviewToDelete);
+      setReviewToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Error deleting review",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to add items to cart",
+        variant: "destructive",
+        className: "bg-white dark:bg-black border dark:border-white/10",
+      });
+      return;
+    }
+
+    try {
+      await addToCart(user.uid, {
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        quantity: localQuantity,
+        imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
+        serviceProvider: service.provider?.name,
+      });
+
+      toast({
+        title: "Added to cart",
+        description: `${localQuantity} ${
+          localQuantity === 1 ? "item" : "items"
+        } added to your cart`,
+        variant: "default",
+      });
+
+      setLocalQuantity(1);
+      onClose();
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add service to cart",
+        variant: "destructive",
+      });
     }
   };
 
@@ -319,16 +597,65 @@ const ServiceModal = ({
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Main Image */}
-            <div className="h-64 w-full overflow-hidden rounded-lg">
-              <img
-                src={selectedImage}
-                alt={
-                  service.images?.find((img) => img.url === selectedImage)
-                    ?.alt || service.name
-                }
-                className="h-full w-full object-cover"
-              />
+            {/* Main Image Slider */}
+            <div
+              className="relative h-64 w-full"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
+              <div className="absolute inset-0 overflow-hidden rounded-lg">
+                {service.images && service.images.length > 0 && (
+                  <img
+                    src={service.images[currentImageIndex].url}
+                    alt={service.images[currentImageIndex].alt || service.name}
+                    className="h-full w-full object-cover transition-transform duration-500"
+                  />
+                )}
+
+                {/* Navigation Arrows */}
+                {service.images && service.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevImage();
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextImage();
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dots Indicator */}
+                {service.images && service.images.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {service.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex(index);
+                        }}
+                        className={`h-2 w-2 rounded-full transition-all ${
+                          currentImageIndex === index
+                            ? "bg-white w-4"
+                            : "bg-white/50 hover:bg-white/75"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Thumbnail Gallery */}
@@ -339,12 +666,12 @@ const ServiceModal = ({
                     key={index}
                     src={image.url}
                     alt={image.alt}
-                    className={`h-16 w-16 object-cover cursor-pointer rounded ${
-                      selectedImage === image.url
-                        ? "border-2 border-blue-500"
-                        : ""
+                    className={`h-16 w-16 object-cover cursor-pointer rounded transition-all ${
+                      currentImageIndex === index
+                        ? "border-2 border-blue-500 opacity-100"
+                        : "opacity-60 hover:opacity-100"
                     }`}
-                    onClick={() => setSelectedImage(image.url)}
+                    onClick={() => setCurrentImageIndex(index)}
                   />
                 ))}
               </div>
@@ -354,9 +681,19 @@ const ServiceModal = ({
             <div className="flex justify-between items-center">
               <div className="text-2xl font-bold">{formatPrice()}</div>
               <div className="flex items-center gap-2">
-                <div className="flex">{renderStars(service.rating || 0)}</div>
+                <div className="flex">{renderStars(averageRating)}</div>
                 <span className="text-sm text-blue-600">
-                  ({service.totalReviews || 0} reviews)
+                  {averageRating > 0 && (
+                    <>
+                      {averageRating}
+                      <button
+                        onClick={scrollToReviews}
+                        className="ml-1 hover:underline cursor-pointer"
+                      >
+                        ({service.reviews?.length} reviews)
+                      </button>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
@@ -423,50 +760,49 @@ const ServiceModal = ({
               </div>
             )}
 
-            {/* Quantity and Action Buttons */}
+            {/* Quantity and Add to Cart Section */}
             <div className="space-y-4 my-6">
-              <div className="flex items-center justify-start gap-4">
-                <span className="text-sm font-medium">Quantity:</span>
-                <div className="flex items-center border rounded-md">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium dark:text-white">
+                  Quantity:
+                </span>
+                <div className="flex items-center border rounded-md dark:border-white/20">
                   <button
-                    onClick={() => handleQuantityChange(-1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleQuantityAdjustment(-1)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors dark:text-white"
                     aria-label="Decrease quantity"
+                    disabled={localQuantity <= 1}
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="px-4 py-2 min-w-[40px] text-center">
-                    {quantity}
+                  <span className="px-4 py-2 min-w-[40px] text-center dark:text-white">
+                    {localQuantity}
                   </span>
                   <button
-                    onClick={() => handleQuantityChange(1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleQuantityAdjustment(1)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors dark:text-white"
                     aria-label="Increase quantity"
+                    disabled={localQuantity >= 10}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    /* Add buy now logic with quantity */
-                  }}
-                >
-                  Buy Now ({quantity})
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    /* Add to cart logic with quantity */
-                  }}
-                >
-                  Add to Cart ({quantity})
-                </Button>
+              <div className="flex items-center justify-between text-sm dark:text-white">
+                <span>Total Price:</span>
+                <span className="font-semibold">
+                  ₹{(service.price * localQuantity).toLocaleString()}
+                </span>
               </div>
+
+              <Button
+                variant="outline"
+                className="w-full mt-4 dark:bg-black dark:text-white dark:border-white/20 dark:hover:bg-white/10"
+                onClick={handleAddToCart}
+              >
+                Add {localQuantity} to Cart
+              </Button>
             </div>
 
             {/* Add Review Button */}
@@ -475,55 +811,131 @@ const ServiceModal = ({
                 variant="secondary"
                 className="w-full"
                 onClick={handleReviewClick}
+                disabled={!serviceStatus?.isCompleted}
               >
-                {user ? "Write a Review" : "Sign in to Review"}
+                {!user
+                  ? "Sign in to Review"
+                  : !serviceStatus?.isCompleted
+                  ? "Complete service to review"
+                  : "Write a Review"}
               </Button>
             </div>
 
+            {/* Add this JSX where you want to show the rating distribution */}
+            <div className="mb-8 border-b pb-6">
+              {/* Rating Overview */}
+              <div className="flex items-baseline gap-3 mb-4">
+                <div className="flex items-center">
+                  <Star className="w-8 h-8 fill-yellow-400 text-yellow-400" />
+                  <span className="text-4xl font-bold ml-2">
+                    {averageRating.toFixed(2)}
+                  </span>
+                </div>
+                <span className="text-gray-600">{totalReviews} reviews</span>
+              </div>
+
+              {/* Rating Distribution Bars */}
+              <div className="space-y-3 max-w-md ">
+                {[5, 4, 3, 2, 1].map((rating) => {
+                  const count =
+                    ratingDistribution[
+                      rating as keyof typeof ratingDistribution
+                    ];
+                  const percentage = totalReviews
+                    ? (count / totalReviews) * 100
+                    : 0;
+
+                  return (
+                    <div key={rating} className="flex items-center gap-3">
+                      <div className="flex items-center w-12">
+                        <Star className="w-4 h-4 fill-gray-400 text-gray-400" />
+                        <span className="text-sm text-gray-600 ml-1">
+                          {rating}
+                        </span>
+                      </div>
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-400 transition-all duration-300"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-600 w-10">
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Reviews Section */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">
-                Reviews ({localService.reviews?.length || 0})
+            <div id="reviews-section" className="space-y-6">
+              <h3 className="text-xl font-semibold">
+                Reviews ({totalReviews})
               </h3>
+
               {localService.reviews && localService.reviews.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-8">
                   {localService.reviews.map((review) => (
-                    <div key={review.id} className="border-b pb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">
-                          {review.userName || "Anonymous"}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(review.date)}
-                        </span>
-                      </div>
-                      <div className="flex mb-2">
-                        {renderStars(review.rating)}
-                      </div>
-                      <p className="text-gray-600">{review.comment}</p>
-                      {review.reply && (
-                        <div className="mt-3 ml-6 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium mb-1">
-                            Provider Response
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {review.reply.comment}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDate(review.reply.date)}
-                          </p>
+                    <div
+                      key={review.id}
+                      className="border-b pb-6 last:border-0"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-lg">
+                              {review.userName || "Anonymous"}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-white text-sm ${
+                                review.rating >= 4
+                                  ? "bg-green-600"
+                                  : "bg-red-600"
+                              }`}
+                            >
+                              ★ {review.rating}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center gap-2">
+                            {formatDate(review.date)}
+                            {review.isEdited && (
+                              <>
+                                <span>•</span>
+                                <span className="italic">(edited)</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {review.helpful > 0 && (
-                        <div className="mt-2 text-sm text-gray-500">
-                          {review.helpful} people found this helpful
-                        </div>
-                      )}
+                        {user?.email === review.userEmail && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-50"
+                              onClick={() => handleEditReview(review)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 text-red-600 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteClick(review.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        {review.comment}
+                      </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">No reviews yet</p>
+                <p className="text-gray-500 italic">No reviews yet</p>
               )}
             </div>
 
@@ -590,6 +1002,44 @@ const ServiceModal = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add EditReviewModal */}
+      {selectedReview && (
+        <EditReviewModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedReview(null);
+          }}
+          review={selectedReview}
+          onReviewEdited={handleReviewEdited}
+        />
+      )}
+
+      {/* Add the Alert Dialog */}
+      <AlertDialog
+        open={!!reviewToDelete}
+        onOpenChange={() => setReviewToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Review</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this review? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

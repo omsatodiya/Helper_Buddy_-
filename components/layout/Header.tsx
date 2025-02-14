@@ -22,11 +22,12 @@ import {
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import gsap from "gsap";
-import { auth } from '@/lib/firebase';
-import { User as FirebaseUser } from 'firebase/auth';
+import { auth } from "@/lib/firebase";
+import { User as FirebaseUser } from "firebase/auth";
 import { useLoadingStore } from "@/store/loading-store";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
   label: string;
@@ -44,8 +45,9 @@ const Header = () => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoading = useLoadingStore((state: any) => state.isLoading);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { user } = useAuth();
   const [coins, setCoins] = useState<number>(0);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
 
   // Refs for GSAP animations
   const headerRef = useRef<HTMLDivElement>(null);
@@ -56,21 +58,22 @@ const Header = () => {
   useEffect(() => {
     if (headerRef.current) {
       // Always ensure the header is visible with base styles
-      gsap.set(headerRef.current, { 
+      gsap.set(headerRef.current, {
         y: 0,
         opacity: 1,
-        display: "block"
+        display: "block",
       });
 
       // Only animate if we're transitioning from loading to not loading
       if (!isLoading) {
-        gsap.fromTo(headerRef.current,
+        gsap.fromTo(
+          headerRef.current,
           { y: -100, opacity: 0 },
           {
             y: 0,
             opacity: 1,
             duration: 0.8,
-            ease: "power3.out"
+            ease: "power3.out",
           }
         );
       }
@@ -78,17 +81,9 @@ const Header = () => {
   }, [isLoading]);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
     const fetchUserCoins = async () => {
       if (!user) return;
-      
+
       try {
         const db = getFirestore();
         const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -101,6 +96,32 @@ const Header = () => {
     };
 
     fetchUserCoins();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setCartItemsCount(0);
+      return;
+    }
+
+    const db = getFirestore();
+    const cartRef = doc(db, "carts", user.uid);
+
+    const unsubscribe = onSnapshot(cartRef, (doc) => {
+      if (doc.exists()) {
+        const cartData = doc.data();
+        const items = Array.isArray(cartData.items) ? cartData.items : [];
+        const itemCount = items.reduce(
+          (total: number, item: any) => total + (item.quantity || 0),
+          0
+        );
+        setCartItemsCount(itemCount);
+      } else {
+        setCartItemsCount(0);
+      }
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const handleHoverScale = (target: HTMLElement) => {
@@ -142,7 +163,7 @@ const Header = () => {
           {navItems.map((item) => (
             <NavigationMenuItem key={item.label}>
               <Link href={item.href} legacyBehavior passHref>
-                <NavigationMenuLink 
+                <NavigationMenuLink
                   className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
                   text-white dark:text-white
                   before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
@@ -158,7 +179,7 @@ const Header = () => {
           {!user && (
             <NavigationMenuItem>
               <Link href="/auth/login" legacyBehavior passHref>
-                <NavigationMenuLink 
+                <NavigationMenuLink
                   className="text-lg uppercase tracking-wide font-montserrat transition-all duration-300 hover:no-underline relative 
                   text-white dark:text-white
                   before:content-[''] before:absolute before:block before:w-full before:h-[0.5px] 
@@ -185,6 +206,25 @@ const Header = () => {
   const AuthSection = () => (
     <div className="flex items-center gap-4">
       <ThemeToggle />
+
+      {/* Cart Icon with Counter */}
+      <div className="relative">
+        <Link href="/cart">
+          <div className="cursor-pointer">
+            <ShoppingCart
+              className="text-white hover:opacity-80 transition-opacity"
+              size={28}
+              strokeWidth={2}
+            />
+            {cartItemsCount > 0 && (
+              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-in fade-in z-50">
+                {cartItemsCount > 99 ? "99+" : cartItemsCount}
+              </div>
+            )}
+          </div>
+        </Link>
+      </div>
+
       {user && (
         <div
           onClick={() => router.push("/profile")}
@@ -194,7 +234,7 @@ const Header = () => {
           onMouseDown={(e) => handleTapScale(e.currentTarget)}
         >
           <User
-            className="text-green-400 hover:opacity-80 transition-opacity"
+            className="text-white hover:opacity-80 transition-opacity"
             size={28}
             strokeWidth={2}
           />
@@ -206,7 +246,8 @@ const Header = () => {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full z-50 bg-black/95 backdrop-blur-sm">
+      className="fixed top-0 w-full z-50 bg-black/95 backdrop-blur-sm"
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-24">
           {/* Mobile Layout */}
@@ -214,7 +255,8 @@ const Header = () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="flex flex-col justify-center items-center w-8 h-8 z-50"
-              aria-label="Toggle menu">
+              aria-label="Toggle menu"
+            >
               <div className="relative w-6 h-6">
                 <span
                   className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
@@ -240,10 +282,12 @@ const Header = () => {
 
             <Link
               href="/"
-              className="absolute left-1/2 transform -translate-x-1/2">
+              className="absolute left-1/2 transform -translate-x-1/2"
+            >
               <div
                 onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}>
+                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
+              >
                 <Image
                   src="/images/logo2.png"
                   alt="HB Logo"
@@ -264,7 +308,8 @@ const Header = () => {
             <Link href="/" className="relative">
               <div
                 onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}>
+                onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
+              >
                 <Image
                   src="/images/logo2.png"
                   alt="HB Logo"
@@ -281,21 +326,6 @@ const Header = () => {
 
               <div className="flex items-center space-x-6">
                 <AuthSection />
-
-                {user && (
-                  <div
-                    className="cursor-pointer"
-                    onMouseEnter={(e) => handleHoverScale(e.currentTarget)}
-                    onMouseLeave={(e) => handleHoverScaleExit(e.currentTarget)}
-                    onMouseDown={(e) => handleTapScale(e.currentTarget)}
-                  >
-                    <ShoppingCart
-                      className="text-white dark:text-white hover:opacity-80 transition-opacity"
-                      size={28}
-                      strokeWidth={2}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -306,29 +336,32 @@ const Header = () => {
       <div
         ref={mobileMenuRef}
         className="fixed left-0 right-0 top-24 h-[calc(100vh-6rem)] bg-gradient-to-b from-black via-black/95 to-black/90 backdrop-blur-lg border-t border-white/10 shadow-2xl md:hidden overflow-y-auto"
-        style={{ display: "none" }}>
+        style={{ display: "none" }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="relative">
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[100px] -z-10" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] -z-10" />
-            
+
             {/* Menu items */}
             <div className="space-y-0">
               {navItems.map((item, index) => (
                 <div
                   key={item.label}
                   ref={(el) => addToMenuItemsRef(el, index)}
-                  className="opacity-0">
+                  className="opacity-0"
+                >
                   <Link
                     href={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className="group block">
+                    className="group block"
+                  >
                     <div className="relative py-5 px-8">
                       {/* Background hover effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-2" />
-                      
+
                       {/* Menu item content */}
                       <div className="relative flex items-center justify-between">
                         {/* Text */}
@@ -342,7 +375,8 @@ const Header = () => {
                             className="w-6 h-6 text-white/70"
                             fill="none"
                             viewBox="0 0 24 24"
-                            stroke="currentColor">
+                            stroke="currentColor"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -365,11 +399,13 @@ const Header = () => {
               {!user && (
                 <div
                   ref={(el) => addToMenuItemsRef(el, navItems.length)}
-                  className="opacity-0">
+                  className="opacity-0"
+                >
                   <Link
                     href="/auth/login"
                     onClick={() => setIsMenuOpen(false)}
-                    className="group block">
+                    className="group block"
+                  >
                     <div className="relative py-5 px-8">
                       <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-2" />
                       <div className="relative flex items-center justify-between">
@@ -381,7 +417,8 @@ const Header = () => {
                             className="w-6 h-6 text-white/70"
                             fill="none"
                             viewBox="0 0 24 24"
-                            stroke="currentColor">
+                            stroke="currentColor"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"

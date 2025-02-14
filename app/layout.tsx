@@ -1,16 +1,17 @@
-import './globals.css';
+import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata = {
-  title: 'Helper Buddy',
-  description: 'Made by Helper Buddy',
-}
+  title: "Helper Buddy",
+  description: "Made by Helper Buddy",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -25,7 +26,8 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
-  )
+  );
 }

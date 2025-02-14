@@ -1,16 +1,31 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Professional Services | Book Trusted Service Providers",
+  title: "Professional Services | Find Local Service Providers",
   description:
-    "Browse and book professional services from verified providers. Find electricians, plumbers, cleaners, and more with real customer reviews.",
+    "Browse and book trusted local service providers for plumbing, electrical work, carpentry, cleaning, and more. Compare prices, read reviews, and schedule services online.",
   keywords:
-    "services, home services, professional services, cleaning, plumbing, electrical work",
+    "home services, local services, plumber, electrician, carpenter, cleaning services, service booking",
   openGraph: {
-    title: "Professional Services | Your Service Platform",
-    description: "Find and book trusted service providers in your area",
+    title: "Professional Services | Find Local Service Providers",
+    description:
+      "Browse and book trusted local service providers for plumbing, electrical work, carpentry, cleaning, and more.",
     type: "website",
-    url: "https://yourdomain.com/services",
+    locale: "en_US",
+    images: [
+      {
+        url: "/og-image.jpg", // Add your OG image
+        width: 1200,
+        height: 630,
+        alt: "Professional Services Marketplace",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Professional Services | Find Local Service Providers",
+    description:
+      "Browse and book trusted local service providers for plumbing, electrical work, carpentry, cleaning, and more.",
   },
   robots: "index, follow",
   alternates: {

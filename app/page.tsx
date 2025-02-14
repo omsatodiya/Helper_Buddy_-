@@ -130,6 +130,7 @@ export default function Home() {
         {services.map((service) => (
           <ServiceCard
             key={service.id}
+            id={service.id}
             title={service.name}
             description={service.description}
             price={service.price}
@@ -140,6 +141,7 @@ export default function Home() {
             }
             rating={service.rating || 0}
             totalRatings={service.reviews?.length || 0}
+            providerName={service.provider?.name}
             onAddToCart={() => {}}
             onBuyNow={() => {}}
             onClick={() => {
