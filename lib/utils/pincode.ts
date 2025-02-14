@@ -10,9 +10,8 @@ export async function getCityFromPincode(pincode: string): Promise<{ city: strin
         state: postOffice.State
       };
     }
-    return null;
+    throw new Error("Invalid pincode");
   } catch (error) {
-    console.error("Error fetching pincode data:", error);
-    return null;
+    throw new Error("Failed to fetch location details");
   }
 } 
