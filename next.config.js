@@ -5,14 +5,6 @@ const nextConfig = {
     unoptimized: true,
     domains: ["localhost", "res.cloudinary.com"],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap',
-      },
-    ]
-  },
 };
 
 module.exports = nextConfig;
