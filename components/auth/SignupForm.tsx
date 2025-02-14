@@ -128,17 +128,6 @@ export default function SignupForm() {
 
   const handleChange = useCallback(async (name: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-
-    if (name === 'pincode' && value.length === 6) {
-      const data = await getCityFromPincode(value);
-      if (data) {
-        setFormData(prev => ({
-          ...prev,
-          city: data.city,
-          state: data.state
-        }));
-      }
-    }
   }, []);
 
   const handleGoogleSignIn = async () => {
@@ -332,6 +321,21 @@ export default function SignupForm() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InputField
+                    name="city"
+                    label="City"
+                    value={formData.city}
+                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
+                  />
+                  <InputField
+                    name="state"
+                    label="State"
+                    value={formData.state}
+                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
                     name="pincode"
                     label="Pincode"
                     value={formData.pincode}
@@ -355,25 +359,6 @@ export default function SignupForm() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField
-                    name="city"
-                    label="City"
-                    value={formData.city}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                    readOnly
-                    disabled
-                  />
-                  <InputField
-                    name="state"
-                    label="State"
-                    value={formData.state}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                    readOnly
-                    disabled
-                  />
                 </div>
               </div>
 
@@ -471,16 +456,12 @@ export default function SignupForm() {
                     label="City"
                     value={formData.city}
                     onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                    readOnly
-                    disabled
                   />
                   <InputField 
                     name="state" 
                     label="State"
                     value={formData.state}
                     onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                    readOnly
-                    disabled
                   />
                 </div>
 
