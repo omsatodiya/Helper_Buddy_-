@@ -23,7 +23,7 @@ import { ReferralsCard } from "@/components/admin/ReferralsCard";
 import { UsersCard } from "@/components/admin/UsersCard";
 import { PaymentsCard } from "@/components/admin/PaymentsCard";
 import { cn } from "@/lib/utils";
-import { getFirestore, getDocs, collection, query, where, updateDoc, doc } from "firebase/firestore";
+import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,10 @@ import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { BlogModel } from "@/app/blog/BlogModel";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import emailjs from '@emailjs/browser';
+
+// Initialize EmailJS with your public key
+emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
 
 interface BlogPost {
   id: string;
@@ -215,6 +219,44 @@ export default function AdminDashboard() {
           providerSince: new Date(),
           applicationStatus: 'approved'
         });
+
+        // Get the application data to send email
+        const applicationDoc = await getDoc(doc(db, 'provider-applications', applicationId));
+        const applicationData = applicationDoc.data();
+
+        if (applicationData) {
+          // Send approval email using EmailJS
+          try {
+            await emailjs.send(
+              process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+              process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
+              {
+                to_email: applicationData.email,
+                to_name: applicationData.userName,
+                from_name: "Dudh-Kela Support",
+                reply_to: "support@dudhkela.com",
+                subject: "Welcome to Dudh-Kela as a Service Provider!",
+                services: applicationData.services.join(', '),
+                service_areas: applicationData.servicePincodes.map((p: { pincode: string }) => p.pincode).join(', '),
+                application_date: new Date(applicationData.applicationDate).toLocaleDateString(),
+                approval_date: new Date().toLocaleDateString(),
+              },
+              process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+            );
+
+            toast({
+              title: "Email Sent",
+              description: "Provider approval notification email sent successfully",
+            });
+          } catch (emailError) {
+            console.error('Error sending approval email:', emailError);
+            toast({
+              title: "Email Error",
+              description: "Failed to send approval notification email",
+              variant: "destructive",
+            });
+          }
+        }
       } else {
         await updateDoc(doc(db, 'users', applicationId), {
           applicationStatus: 'rejected'
@@ -399,7 +441,7 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                               <span className="text-black/40 dark:text-white/40">Areas:</span>{' '}
-                              <span className="text-black/80 dark:text-white/80">{application.servicePincodes.map(p => p.pincode).join(', ')}</span>
+                              <span className="text-black/80 dark:text-white/80">{application.servicePincodes.map((p: { pincode: string }) => p.pincode).join(', ')}</span>
                             </div>
                           </div>
 
