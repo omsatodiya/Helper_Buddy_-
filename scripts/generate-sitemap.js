@@ -51,14 +51,19 @@ ${pages.map(page => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-// Ensure the public directory exists
-const publicDir = path.join(process.cwd(), 'public');
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir, { recursive: true });
-}
+try {
+  // Ensure the public directory exists
+  const publicDir = path.join(process.cwd(), 'public');
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+  }
 
-// Write sitemap to public directory
-const sitemapPath = path.join(publicDir, 'sitemap.xml');
-fs.writeFileSync(sitemapPath, sitemap);
+  // Write sitemap to public directory
+  const sitemapPath = path.join(publicDir, 'sitemap.xml');
+  fs.writeFileSync(sitemapPath, sitemap);
 
-console.log(`Sitemap generated successfully at ${sitemapPath}`); 
+  console.log(`Sitemap generated successfully at ${sitemapPath}`);
+} catch (error) {
+  console.error('Error generating sitemap:', error);
+  process.exit(1);
+} 

@@ -1,9 +1,7 @@
 [[headers]]
   for = "/sitemap.xml"
   [headers.values]
-    Content-Type = "application/xml; charset=UTF-8"
-    Access-Control-Allow-Origin = "*"
-    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/xml"
     X-Robots-Tag = "all"
 
 [[headers]]
@@ -14,7 +12,7 @@
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "public"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"

@@ -1,6 +1,14 @@
 # Allow crawling of all content
 User-agent: *
 Allow: /
+Allow: /*.js
+Allow: /*.css
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Allow: /sitemap.xml
 Disallow: /api/
 Disallow: /_next/static/
 
@@ -14,6 +22,7 @@ Allow: /*.jpg
 Allow: /*.gif
 Allow: /*.svg
 Allow: /*.ico
+Allow: /sitemap.xml
 Disallow: /api/
 Disallow: /_next/static/
 
