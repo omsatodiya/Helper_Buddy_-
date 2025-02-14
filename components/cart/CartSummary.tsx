@@ -15,9 +15,11 @@ interface CartItem {
 interface CartSummaryProps {
   items: CartItem[];
   isAddressSelected: boolean;
+  onNotifyProviders: () => Promise<void>;
+  isSendingEmails: boolean;
 }
 
-const CartSummary = ({ items, isAddressSelected }: CartSummaryProps) => {
+const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEmails }: CartSummaryProps) => {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -88,6 +90,25 @@ const CartSummary = ({ items, isAddressSelected }: CartSummaryProps) => {
       >
         Proceed to Checkout
       </Button>
+      <Button
+        className="w-full mt-6"
+        disabled={!isAddressSelected || isSendingEmails}
+        onClick={onNotifyProviders}
+      >
+        {isSendingEmails ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Notifying Providers...
+          </div>
+        ) : (
+          'Find Service Providers'
+        )}
+      </Button>
+      {!isAddressSelected && (
+        <p className="text-sm text-red-500 mt-2">
+          Please select a delivery address to continue
+        </p>
+      )}
       <p className="text-xs text-center text-gray-500 dark:text-white/50 mt-2">
         Taxes and shipping calculated at checkout
       </p>

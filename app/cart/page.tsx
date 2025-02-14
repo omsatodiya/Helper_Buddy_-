@@ -18,6 +18,9 @@ import {
 } from "@/lib/firebase/cart";
 import { getAddresses } from "@/lib/firebase/address";
 import { CartItem } from "@/types/cart";
+import { sendProviderNotifications } from '@/lib/email';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface Address {
   id: string;
@@ -36,6 +39,15 @@ interface LocationDetails {
   country?: string;
   postcode?: string;
   formatted?: string;
+}
+
+interface ServiceProvider {
+  id: string;
+  email: string;
+  name: string;
+  location?: {
+    city?: string;
+  };
 }
 
 export default function CartPage() {
@@ -57,6 +69,7 @@ export default function CartPage() {
     useState<LocationDetails | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
 
   // Fetch cart items
   const fetchCartItems = async () => {
@@ -243,6 +256,69 @@ export default function CartPage() {
     }
   };
 
+  const handleNotifyProviders = async () => {
+    if (!selectedAddress || !user) return;
+
+    try {
+      setIsSendingEmails(true);
+      
+      // Get all providers from the selected city
+      const providersRef = collection(db, 'users');
+      const q = query(
+        providersRef, 
+        where('role', '==', 'provider'),
+        where('location.city', '==', selectedAddress.city)
+      );
+      const providersSnapshot = await getDocs(q);
+      
+      const providers: ServiceProvider[] = [];
+      providersSnapshot.forEach((doc) => {
+        providers.push({ id: doc.id, ...doc.data() } as ServiceProvider);
+      });
+
+      if (providers.length === 0) {
+        toast({
+          title: "No Providers Found",
+          description: "Currently there are no service providers in your area.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send emails to all providers
+      await Promise.all(providers.map(provider => 
+        sendProviderNotifications({
+          providerEmail: provider.email,
+          providerName: provider.name,
+          customerName: user.displayName || 'Customer',
+          customerEmail: user.email || '',
+          customerAddress: selectedAddress.address,
+          customerCity: selectedAddress.city,
+          items: cartItems.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        })
+      ));
+
+      toast({
+        title: "Success",
+        description: `Notified ${providers.length} service providers in your area.`,
+      });
+
+    } catch (error) {
+      console.error('Error notifying providers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to notify service providers. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmails(false);
+    }
+  };
+
   // Loading skeleton component
   const LoadingSkeleton = () => (
     <>
@@ -423,6 +499,8 @@ export default function CartPage() {
                 <CartSummary
                   items={cartItems}
                   isAddressSelected={!!selectedAddress}
+                  onNotifyProviders={handleNotifyProviders}
+                  isSendingEmails={isSendingEmails}
                 />
               </div>
             </div>

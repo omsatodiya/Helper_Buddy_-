@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import emailjs from '@emailjs/browser';
+import { usePathname } from 'next/navigation';
 
 // Initialize EmailJS with your public key
 emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
@@ -31,37 +32,6 @@ interface ProviderApplication {
 
 const ITEMS_PER_PAGE = 10;
 
-// Add this helper function for Cloudinary upload
-const uploadToCloudinary = async (imageUrl: string) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', imageUrl);
-    formData.append('upload_preset', 'provider_photos'); // Make sure this preset exists in your Cloudinary settings
-    formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to upload image to Cloudinary');
-    }
-
-    const data = await response.json();
-    return {
-      public_id: data.public_id,
-      secure_url: data.secure_url
-    };
-  } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
-    throw error;
-  }
-};
-
 // Add this helper function for Cloudinary deletion
 const deleteFromCloudinary = async (publicId: string) => {
   try {
@@ -82,10 +52,17 @@ const deleteFromCloudinary = async (publicId: string) => {
   }
 };
 
+// Add this helper function to construct Cloudinary URL
+const getCloudinaryUrl = (path: string) => {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${path}`;
+};
+
 export default function ProviderApplicationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [applications, setApplications] = useState<ProviderApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -100,28 +77,9 @@ export default function ProviderApplicationsPage() {
         querySnapshot.forEach((doc) => {
           apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
         });
-        
-        // Upload images to Cloudinary for new applications
-        const updatedApps = await Promise.all(
-          apps.map(async (app) => {
-            if (app.photo && !app.cloudinaryData) {
-              try {
-                const cloudinaryData = await uploadToCloudinary(app.photo);
-                // Update application with Cloudinary data
-                await updateDoc(doc(db, 'provider-applications', app.userId), {
-                  cloudinaryData
-                });
-                return { ...app, cloudinaryData };
-              } catch (error) {
-                console.error('Error uploading image:', error);
-                return app;
-              }
-            }
-            return app;
-          })
-        );
 
-        setApplications(updatedApps);
+        // No need to upload images - they're already in Cloudinary
+        setApplications(apps);
       } catch (error) {
         console.error('Error fetching applications:', error);
         toast({
@@ -136,6 +94,27 @@ export default function ProviderApplicationsPage() {
 
     fetchApplications();
   }, []);
+
+  useEffect(() => {
+    // Add structured data for the page
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Provider Applications Management',
+      description: 'Manage and review service provider applications',
+      url: `https://dudhkela.com${pathname}`,
+    };
+
+    // Add structured data to the page
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [pathname]);
 
   const handleApplicationReview = async (
     applicationId: string,
@@ -287,9 +266,9 @@ export default function ProviderApplicationsPage() {
               <div key={application.userId} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-start gap-4">
                   {/* Provider Image */}
-                  {application.cloudinaryData?.secure_url ? (
+                  {application.photo ? (
                     <img 
-                      src={application.cloudinaryData.secure_url}
+                      src={getCloudinaryUrl(application.photo)}
                       alt={application.userName}
                       className="w-16 h-16 rounded-full object-cover border border-black/10 dark:border-white/10"
                       onError={(e) => {

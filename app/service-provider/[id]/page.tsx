@@ -7,6 +7,7 @@ import ServiceCard from "@/components/services/ServiceCard";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Service, SimpleService, ServiceProvider } from "@/types/service";
 import { getFirestore } from "firebase/firestore";
+import { usePathname } from 'next/navigation';
 
 interface ServiceProviderPageProps {
   params: {
@@ -52,6 +53,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
   const [provider, setProvider] = useState<ServiceProvider | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchProviderAndServices = async () => {
@@ -87,6 +89,94 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
 
     fetchProviderAndServices();
   }, [params.id]);
+
+  useEffect(() => {
+    if (provider) {
+      // Add structured data for the service provider
+      const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        '@id': `https://dudhkela.com${pathname}`,
+        name: provider.name,
+        image: provider.profileImage || undefined,
+        email: provider.email,
+        telephone: provider.phone,
+        address: provider.location ? {
+          '@type': 'PostalAddress',
+          addressLocality: provider.location.city,
+          addressRegion: provider.location.state,
+          postalCode: provider.location.pincode,
+          addressCountry: 'IN'
+        } : undefined,
+        geo: provider.location ? {
+          '@type': 'GeoCoordinates',
+          latitude: provider.location.latitude,
+          longitude: provider.location.longitude
+        } : undefined,
+        aggregateRating: provider.rating ? {
+          '@type': 'AggregateRating',
+          ratingValue: provider.rating,
+          reviewCount: provider.totalReviews || 0,
+          bestRating: 5,
+          worstRating: 1
+        } : undefined,
+        hasOfferCatalog: {
+          '@type': 'OfferCatalog',
+          name: `Services by ${provider.name}`,
+          itemListElement: services.map(service => ({
+            '@type': 'Service',
+            name: service.name,
+            description: service.description,
+            offers: {
+              '@type': 'Offer',
+              price: service.pricing?.basePrice,
+              priceCurrency: 'INR'
+            }
+          }))
+        }
+      };
+
+      // Add structured data to the page
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      document.head.appendChild(script);
+
+      return () => {
+        document.head.removeChild(script);
+      };
+    }
+  }, [provider, services, pathname]);
+
+  // Update meta tags dynamically
+  useEffect(() => {
+    if (provider) {
+      // Update meta tags
+      document.title = `${provider.name} - Service Provider | Dudh-Kela`;
+      
+      // Update meta description
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        const specializations = provider.specializations?.join(', ') || 'various services';
+        metaDescription.setAttribute('content', 
+          `Book services from ${provider.name}. Specializing in ${specializations}. Rated ${provider.rating}/5 based on ${provider.totalReviews || 0} reviews.`
+        );
+      }
+
+      // Update OpenGraph tags
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      const ogDescription = document.querySelector('meta[property="og:description"]');
+      const ogImage = document.querySelector('meta[property="og:image"]');
+
+      if (ogTitle) ogTitle.setAttribute('content', `${provider.name} - Service Provider | Dudh-Kela`);
+      if (ogDescription) ogDescription.setAttribute('content', 
+        `Book quality dairy services from ${provider.name}. Professional service provider on Dudh-Kela.`
+      );
+      if (ogImage && provider.profileImage) {
+        ogImage.setAttribute('content', provider.profileImage);
+      }
+    }
+  }, [provider]);
 
   if (loading) {
     return <div>Loading...</div>;

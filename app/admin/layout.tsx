@@ -1,4 +1,14 @@
+import { Metadata } from 'next';
 import { AdminHeader } from "@/components/admin/AdminHeader";
+
+export const metadata: Metadata = {
+  title: 'Admin Dashboard',
+  description: 'Dudh-Kela administration dashboard for managing services, providers, and content.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function AdminLayout({
   children,

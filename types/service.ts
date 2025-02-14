@@ -5,6 +5,16 @@ export interface ServiceProvider {
   phone: string;
   rating: number;
   totalServices: number;
+  totalReviews?: number;
+  profileImage?: string;
+  specializations?: string[];
+  location?: {
+    city?: string;
+    state?: string;
+    pincode?: string;
+    latitude?: number;
+    longitude?: number;
+  };
 }
 
 export interface ServiceReview {

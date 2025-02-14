@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Image from "next/image"; // Using Next.js Image for better performance
+import { usePathname } from 'next/navigation';
 
 interface ServiceCardProps {
   id: string;
@@ -52,8 +53,7 @@ const ServiceCard = memo(
     const { toast } = useToast();
     const [quantity, setQuantity] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
-
-    console.log("ServiceCard received imageUrl:", imageUrl);
+    const pathname = usePathname();
 
     useEffect(() => {
       if (!user) return;
@@ -79,6 +79,47 @@ const ServiceCard = memo(
 
       return () => unsubscribe();
     }, [user, id]);
+
+    useEffect(() => {
+      // Add structured data for the service
+      const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        productID: id,
+        name: title,
+        description: description,
+        image: imageUrl,
+        offers: {
+          '@type': 'Offer',
+          price: price,
+          priceCurrency: 'INR',
+          availability: 'https://schema.org/InStock',
+        },
+        ...(rating > 0 && {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: rating,
+            reviewCount: totalRatings,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }),
+        provider: {
+          '@type': 'Organization',
+          name: providerName,
+        },
+      };
+
+      // Add structured data to the page
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      document.head.appendChild(script);
+
+      return () => {
+        document.head.removeChild(script);
+      };
+    }, [id, title, price, rating, totalRatings, description, imageUrl, providerName]);
 
     const handleAddToCart = useCallback(
       async (e: React.MouseEvent) => {
