@@ -1086,6 +1086,17 @@ export default function AdminDashboard() {
                   >
                     Back to Home
                   </Button>
+                  <Button
+                    variant={activeTable === "analytics" ? "default" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setActiveTable("analytics");
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Analytics
+                  </Button>
                 </div>
               </SheetHeader>
               <div className="px-6 py-4 flex flex-col space-y-2">
@@ -1121,17 +1132,6 @@ export default function AdminDashboard() {
                 >
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Referral History
-                </Button>
-                <Button
-                  variant={activeTable === "analytics" ? "default" : "ghost"}
-                  className="justify-start w-full"
-                  onClick={() => {
-                    setActiveTable("analytics");
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Analytics
                 </Button>
                 <Button
                   variant={activeTable === "services" ? "default" : "ghost"}
