@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { deleteUser, signOut } from "firebase/auth";
@@ -28,6 +28,7 @@ import { useTheme } from "next-themes";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { INDIAN_STATES } from "@/lib/constants/states";
 import { getCityFromPincode } from "@/lib/utils/pincode";
+import gsap from "gsap";
 
 interface UserData {
   firstName: string;
@@ -102,6 +103,13 @@ export default function ProfilePage() {
   const [copyStatus, setCopyStatus] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Add refs for GSAP animations
+  const loadingRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const accountCardRef = useRef<HTMLDivElement>(null);
+  const infoCardRef = useRef<HTMLDivElement>(null);
+  const deleteDialogRef = useRef<HTMLDivElement>(null);
+
   // Handle theme mounting
   useEffect(() => {
     setMounted(true);
@@ -142,6 +150,60 @@ export default function ProfilePage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  // Add animation effects
+  useEffect(() => {
+    if (loading || !mounted) {
+      // Loading animation
+      if (loadingRef.current) {
+        gsap.fromTo(loadingRef.current,
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }
+        );
+      }
+    } else {
+      // Content reveal animations
+      const tl = gsap.timeline();
+
+      if (headerRef.current) {
+        tl.fromTo(headerRef.current,
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }
+        );
+      }
+
+      if (accountCardRef.current && infoCardRef.current) {
+        tl.fromTo([accountCardRef.current, infoCardRef.current],
+          { y: 30, opacity: 0 },
+          { 
+            y: 0, 
+            opacity: 1, 
+            duration: 0.6, 
+            stagger: 0.1, 
+            ease: "power3.out" 
+          },
+          "-=0.3"
+        );
+      }
+    }
+  }, [loading, mounted]);
+
+  // Add hover animations for buttons
+  const handleHoverScale = (target: HTMLElement) => {
+    gsap.to(target, {
+      scale: 1.05,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+  };
+
+  const handleHoverScaleExit = (target: HTMLElement) => {
+    gsap.to(target, {
+      scale: 1,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+  };
 
   const handleInputChange = async (name: keyof UserData, value: string) => {
     setUserData(prev => ({ ...prev, [name]: value }));
@@ -221,9 +283,27 @@ export default function ProfilePage() {
   // Show loading spinner
   if (loading || !mounted) {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <main className="min-h-screen flex items-center justify-center">
+        <AnimatedBackground />
+        <div 
+          ref={loadingRef}
+          className="relative z-10 w-full max-w-7xl"
+        >
+          <div className={`
+            rounded-xl bg-background/95 backdrop-blur-xl p-8
+            ${theme === "dark" ? "border border-white/10" : "border border-black/10"}
+            shadow-2xl flex flex-col items-center justify-center gap-4
+          `}>
+            <div className="relative">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="absolute inset-0 h-8 w-8 animate-ping opacity-20 rounded-full bg-primary" />
+            </div>
+            <p className="text-base text-muted-foreground animate-pulse">
+              Loading your profile...
+            </p>
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -232,11 +312,14 @@ export default function ProfilePage() {
       <AnimatedBackground />
       <div className="relative z-10 w-full max-w-7xl space-y-4 sm:space-y-6">
         {/* Header Card */}
-        <div className={`
-          rounded-none sm:rounded-xl bg-background/95 backdrop-blur-xl px-4 py-4 sm:p-6
-          ${theme === "dark" ? "border-b sm:border border-white/10" : "border-b sm:border border-black/10"}
-          shadow-lg sm:shadow-2xl
-        `}>
+        <div 
+          ref={headerRef}
+          className={`
+            rounded-none sm:rounded-xl bg-background/95 backdrop-blur-xl px-4 py-4 sm:p-6
+            ${theme === "dark" ? "border-b sm:border border-white/10" : "border-b sm:border border-black/10"}
+            shadow-lg sm:shadow-2xl
+          `}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
               <Button
@@ -286,11 +369,14 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
           {/* Account Overview Card */}
-          <div className={`
-            col-span-1 rounded-xl bg-background/95 backdrop-blur-xl p-4 sm:p-6
-            ${theme === "dark" ? "border border-white/10" : "border border-black/10"}
-            shadow-lg sm:shadow-2xl space-y-4 sm:space-y-6
-          `}>
+          <div 
+            ref={accountCardRef}
+            className={`
+              col-span-1 rounded-xl bg-background/95 backdrop-blur-xl p-4 sm:p-6
+              ${theme === "dark" ? "border border-white/10" : "border border-black/10"}
+              shadow-lg sm:shadow-2xl space-y-4 sm:space-y-6
+            `}
+          >
             <div className="space-y-2 sm:space-y-3">
               <h2 className="text-base sm:text-lg font-semibold">Account Overview</h2>
               <div className="flex flex-col gap-3 sm:gap-4">
@@ -339,11 +425,14 @@ export default function ProfilePage() {
           </div>
 
           {/* Personal Information Card */}
-          <div className={`
-            lg:col-span-2 rounded-xl bg-background/95 backdrop-blur-xl
-            ${theme === "dark" ? "border border-white/10" : "border border-black/10"}
-            shadow-lg sm:shadow-2xl
-          `}>
+          <div 
+            ref={infoCardRef}
+            className={`
+              lg:col-span-2 rounded-xl bg-background/95 backdrop-blur-xl
+              ${theme === "dark" ? "border border-white/10" : "border border-black/10"}
+              shadow-lg sm:shadow-2xl
+            `}
+          >
             <div className="p-4 sm:p-6 border-b flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-semibold">Personal Information</h2>
               <Button
@@ -498,7 +587,10 @@ export default function ProfilePage() {
 
       {/* Delete Account Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-[425px] p-4 sm:p-6">
+        <DialogContent 
+          ref={deleteDialogRef}
+          className="sm:max-w-[425px] p-4 sm:p-6"
+        >
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Delete Account</DialogTitle>
             <DialogDescription className="text-sm">
