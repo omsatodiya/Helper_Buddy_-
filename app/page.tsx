@@ -83,9 +83,18 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchServices();
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
+    const handleStart = () => {
+      setLoading(true);
+    };
+
+    // Handle both initial load and refresh
+    window.addEventListener('load', handleStart);
+    window.addEventListener('beforeunload', handleStart);
+
+    return () => {
+      window.removeEventListener('load', handleStart);
+      window.removeEventListener('beforeunload', handleStart);
+    };
   }, []);
 
   // Search functionality

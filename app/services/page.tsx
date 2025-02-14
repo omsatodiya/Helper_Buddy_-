@@ -20,6 +20,7 @@ import {
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
 import { Service, SimpleService } from "@/types/service";
+import { useLoadingStore } from "@/store/loading-store";
 
 type ServiceCategory =
   | "electrician"
@@ -82,8 +83,6 @@ const priceRanges = [
   { id: "2000-5000", label: "₹2000 - ₹5000", min: 2000, max: 5000 },
   { id: "above-5000", label: "Above ₹5000", min: 5000, max: null },
 ];
-
-
 
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
@@ -605,19 +604,44 @@ function ServicesContent() {
 
 // Main page component
 export default function ServicesPage() {
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const setIsLoading = useLoadingStore((state) => state.setIsLoading);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    setIsLoading(true);
 
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setIsLoading(false);
+    }, 2500);
+
+    return () => {
+      clearTimeout(timer);
+      setIsLoading(false);
+    };
+  }, [setIsLoading]);
+
+  // Don't render anything until mounted
   if (!mounted) {
-    return <Preloader onLoadingComplete={() => setMounted(true)} />;
+    return <Preloader onLoadingComplete={() => {}} />;
   }
 
   return (
-    <Suspense fallback={<Preloader onLoadingComplete={() => {}} />}>
-      <ServicesContent />
-    </Suspense>
+    <>
+      {loading ? (
+        <Preloader 
+          onLoadingComplete={() => {
+            setLoading(false);
+            setIsLoading(false);
+          }} 
+        />
+      ) : (
+        <main>
+          <ServicesContent />
+        </main>
+      )}
+    </>
   );
 }
