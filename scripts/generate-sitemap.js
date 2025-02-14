@@ -53,25 +53,29 @@ ${pages.map(page => `  <url>
 </urlset>`;
 
 try {
-  // Ensure the public directory exists
-  const publicDir = path.join(process.cwd(), 'public');
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
+  // Ensure the static directory exists
+  const staticDir = path.join(process.cwd(), '.next', 'static');
+  if (!fs.existsSync(staticDir)) {
+    fs.mkdirSync(staticDir, { recursive: true });
   }
 
-  // Write sitemap to public directory
-  const publicSitemapPath = path.join(publicDir, 'sitemap.xml');
-  fs.writeFileSync(publicSitemapPath, sitemap);
+  // Write sitemap to static directory
+  const sitemapPath = path.join(staticDir, 'sitemap.xml');
+  fs.writeFileSync(sitemapPath, sitemap);
 
-  // Also write to .next/static if it exists (for production build)
-  const nextStaticDir = path.join(process.cwd(), '.next', 'static');
-  if (fs.existsSync(nextStaticDir)) {
-    const nextSitemapPath = path.join(nextStaticDir, 'sitemap.xml');
-    fs.writeFileSync(nextSitemapPath, sitemap);
-  }
+  // Also write robots.txt to static directory
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
 
-  console.log('Sitemap generated successfully in multiple locations');
+Sitemap: ${domain}/sitemap.xml`;
+  
+  const robotsPath = path.join(staticDir, 'robots.txt');
+  fs.writeFileSync(robotsPath, robotsTxt);
+
+  console.log('Sitemap and robots.txt generated successfully');
 } catch (error) {
-  console.error('Error generating sitemap:', error);
+  console.error('Error generating files:', error);
   process.exit(1);
 } 
