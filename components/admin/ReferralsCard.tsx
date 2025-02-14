@@ -19,7 +19,12 @@ interface UserReferral {
   referredEmails?: string[];
 }
 
-export function ReferralsCard() {
+interface ReferralsCardProps {
+  currentPage: number;
+  itemsPerPage: number;
+}
+
+export function ReferralsCard({ currentPage, itemsPerPage }: ReferralsCardProps) {
   const [referrals, setReferrals] = useState<UserReferral[]>([]);
   const [allUsers, setAllUsers] = useState<Record<string, UserReferral>>({});
   const [loading, setLoading] = useState(true);
@@ -38,7 +43,12 @@ export function ReferralsCard() {
         
         const usersWithReferrals = usersSnapshot.docs
           .map(doc => ({ ...doc.data() } as UserReferral))
-          .filter(user => user.referralHistory && user.referralHistory.length > 0);
+          .filter(user => user.referralHistory && user.referralHistory.length > 0)
+          .sort((a, b) => {
+            const aDate = a.referralHistory?.[0]?.referralDate || '';
+            const bDate = b.referralHistory?.[0]?.referralDate || '';
+            return new Date(bDate).getTime() - new Date(aDate).getTime();
+          });
         
         setAllUsers(usersMap);
         setReferrals(usersWithReferrals);
@@ -51,6 +61,11 @@ export function ReferralsCard() {
 
     fetchReferrals();
   }, []);
+
+  // Get paginated data
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReferrals = referrals.slice(startIndex, endIndex);
 
   if (loading) {
     return (
@@ -82,7 +97,7 @@ export function ReferralsCard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10 dark:divide-white/10">
-              {referrals.slice(0, 5).map((user, i) => (
+              {paginatedReferrals.map((user, i) => (
                 user.referralHistory?.map((referral, j) => (
                   <tr key={`${i}-${j}`} className="hover:bg-black/5 dark:hover:bg-white/5">
                     <td className="p-4 truncate text-black/60 dark:text-white/60">

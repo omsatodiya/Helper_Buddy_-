@@ -15,6 +15,7 @@ import {
   Clock,
   Tag,
   PenSquare,
+  Menu,
 } from "lucide-react";
 import { DashboardCard } from "@/components/admin/DashboardCard";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,15 @@ import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { BlogModel } from "@/app/blog/BlogModel";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import emailjs from '@emailjs/browser';
+import { Pagination } from "@/components/ui/pagination";
 
 // Initialize EmailJS with your public key
 emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
@@ -49,6 +58,24 @@ interface BlogPost {
   description: string;
   imageUrl: string;
   tags: string[];
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  userId: string;
+  userEmail: string;
+  status: string;
+  createdAt: string;
+}
+
+interface UserReferral {
+  email: string;
+  coins: number;
+  referralHistory?: {
+    referredEmail: string;
+    referralDate: string;
+  }[];
 }
 
 interface ProviderApplication {
@@ -87,6 +114,11 @@ export default function AdminDashboard() {
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [dialogType, setDialogType] = useState<'edit' | 'delete'>('delete');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [referrals, setReferrals] = useState<UserReferral[]>([]);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     const header = headerRef.current;
@@ -167,8 +199,74 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTable === 'provider-applications') {
       fetchApplications();
+    } else if (activeTable === 'blogs') {
+      const fetchBlogs = async () => {
+        try {
+          const blogs = await BlogModel.getAll();
+          const formattedBlogs: BlogPost[] = blogs.map(blog => ({
+            id: blog.id,
+            title: blog.title || '',
+            author: blog.author || '',
+            publishedDate: blog.publishedDate || new Date().toISOString(),
+            readTime: blog.readTime || '5 min read',
+            description: blog.description || '',
+            imageUrl: blog.imageUrl || '',
+            tags: blog.tags || []
+          }));
+          setBlogPosts(formattedBlogs);
+        } catch (error) {
+          console.error('Error fetching blogs:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch blog posts",
+            variant: "destructive",
+          });
+        }
+      };
+      fetchBlogs();
+    } else if (activeTable === 'payments') {
+      fetchPayments();
+    } else if (activeTable === 'referrals') {
+      fetchReferrals();
     }
   }, [activeTable]);
+
+  const fetchPayments = async () => {
+    try {
+      const db = getFirestore();
+      const paymentsSnapshot = await getDocs(collection(db, 'payments'));
+      const paymentsData = paymentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Payment));
+
+      setPayments(paymentsData.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ));
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+  };
+
+  const fetchReferrals = async () => {
+    try {
+      const db = getFirestore();
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      
+      const usersWithReferrals = usersSnapshot.docs
+        .map(doc => ({ ...doc.data() } as UserReferral))
+        .filter(user => user.referralHistory && user.referralHistory.length > 0)
+        .sort((a, b) => {
+          const aDate = a.referralHistory?.[0]?.referralDate || '';
+          const bDate = b.referralHistory?.[0]?.referralDate || '';
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+      
+      setReferrals(usersWithReferrals);
+    } catch (error) {
+      console.error('Error fetching referrals:', error);
+    }
+  };
 
   const fetchApplications = async () => {
     try {
@@ -280,36 +378,6 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const blogs = await BlogModel.getAll();
-        const formattedBlogs: BlogPost[] = blogs.map(blog => ({
-          id: blog.id,
-          title: blog.title || '',
-          author: blog.author || '',
-          publishedDate: blog.publishedDate || new Date().toISOString(),
-          readTime: blog.readTime || '5 min read',
-          description: blog.description || '',
-          imageUrl: blog.imageUrl || '',
-          tags: blog.tags || []
-        }));
-        setBlogPosts(formattedBlogs);
-      } catch (error) {
-        console.error('Error fetching blogs:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch blog posts",
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (activeTable === 'blogs') {
-      fetchBlogs();
-    }
-  }, [activeTable]);
-
   const handleDeleteBlog = async (blogId: string) => {
     try {
       await BlogModel.delete(blogId);
@@ -328,17 +396,66 @@ export default function AdminDashboard() {
     }
   };
 
-  const renderTable = () => {
+  const getPaginatedData = (data: any[], page: number) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (totalItems: number) => {
+    return Math.ceil(totalItems / ITEMS_PER_PAGE);
+  };
+
+  // Reset page when changing tables
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTable]);
+
+  const renderContent = () => {
     switch (activeTable) {
-      case "payments":
-        return <PaymentsCard />;
-      case "referrals":
-        return <ReferralsCard />;
-      case "services":
+      case "users":
         return (
           <div className="space-y-4">
+            <UsersCard currentPage={currentPage} itemsPerPage={ITEMS_PER_PAGE} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(stats.totalUsers / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        );
+      case "payments":
+        return (
+          <div className="space-y-4">
+            <PaymentsCard 
+              currentPage={currentPage} 
+              itemsPerPage={ITEMS_PER_PAGE} 
+              payments={payments}
+            />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(payments.length / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        );
+      case "referrals":
+        return (
+          <div className="space-y-4">
+            <ReferralsCard currentPage={currentPage} itemsPerPage={ITEMS_PER_PAGE} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(referrals.length / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        );
+      case "services":
+        const paginatedServices = getPaginatedData(services, currentPage);
+        return (
+          <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Services Management
               </h2>
               <Button
@@ -348,8 +465,8 @@ export default function AdminDashboard() {
                 Add New Service
               </Button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {services.map((service: Service) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {paginatedServices.map((service) => (
                 <ServiceCard
                   key={service.id}
                   title={service.name}
@@ -371,31 +488,17 @@ export default function AdminDashboard() {
                 />
               ))}
             </div>
-            {selectedService && (
-              <ServiceModal
-                isOpen={isServiceModalOpen}
-                onClose={() => {
-                  setIsServiceModalOpen(false);
-                  setSelectedService(null);
-                }}
-                service={selectedService}
-                isAdminView={true}
-                onServiceDeleted={() => {
-                  fetchServices();
-                  setIsServiceModalOpen(false);
-                  setSelectedService(null);
-                }}
-                onServiceUpdated={(updatedService) => {
-                  fetchServices();
-                  setSelectedService(updatedService);
-                }}
-              />
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(services.length / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
           </div>
         );
       case "provider-applications":
+        const paginatedApplications = getPaginatedData(applications, currentPage);
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-black dark:text-white">
                 Provider Applications
@@ -408,7 +511,7 @@ export default function AdminDashboard() {
             <div className="rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
               {applications.length > 0 ? (
                 <div className="divide-y divide-black/10 dark:divide-white/10">
-                  {applications.map((application) => (
+                  {paginatedApplications.map((application) => (
                     <div key={application.userId} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-start gap-4">
                         {/* Provider Image */}
@@ -485,11 +588,17 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(applications.length / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
           </div>
         );
       case "blogs":
+        const paginatedBlogs = getPaginatedData(blogPosts, currentPage);
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-black dark:text-white">
                 Blog Management
@@ -506,7 +615,7 @@ export default function AdminDashboard() {
             <div className="rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
               {blogPosts.length > 0 ? (
                 <div className="divide-y divide-black/10 dark:divide-white/10">
-                  {blogPosts.map((post) => (
+                  {paginatedBlogs.map((post) => (
                     <div key={post.id} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-start gap-4">
                         <img 
@@ -582,10 +691,15 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.max(1, Math.ceil(blogPosts.length / ITEMS_PER_PAGE))}
+              onPageChange={setCurrentPage}
+            />
           </div>
         );
       default:
-        return <UsersCard />;
+        return null;
     }
   };
 
@@ -594,15 +708,100 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
         <div className="flex h-16 items-center px-4 md:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-4 hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => router.push("/")}
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-200" />
-          </Button>
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <Menu className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] p-0">
+              <SheetHeader className="p-6 pb-2 border-b">
+                <div className="flex flex-col space-y-4">
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => router.push("/")}
+                  >
+                    Back to Home
+                  </Button>
+                </div>
+              </SheetHeader>
+              <div className="px-6 py-4 flex flex-col space-y-2">
+                <Button
+                  variant={activeTable === "users" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("users");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  All Users
+                </Button>
+                <Button
+                  variant={activeTable === "payments" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("payments");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Recent Payments
+                </Button>
+                <Button
+                  variant={activeTable === "referrals" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("referrals");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Referral History
+                </Button>
+                <Button
+                  variant={activeTable === "services" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("services");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <Tag className="mr-2 h-4 w-4" />
+                  Services
+                </Button>
+                <Button
+                  variant={activeTable === "provider-applications" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("provider-applications");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Provider Applications
+                </Button>
+                <Button
+                  variant={activeTable === "blogs" ? "default" : "ghost"}
+                  className="justify-start w-full"
+                  onClick={() => {
+                    setActiveTable("blogs");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <PenSquare className="mr-2 h-4 w-4" />
+                  Blog Management
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white ml-4">
             Admin Dashboard
           </h2>
         </div>
@@ -641,139 +840,9 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="mt-8 bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-4 shadow-sm">
-          <RadioGroup
-            defaultValue="users"
-            value={activeTable}
-            onValueChange={setActiveTable}
-            className="flex flex-wrap gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="users"
-                id="users"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="users"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                All Users
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="payments"
-                id="payments"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="payments"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                Recent Payments
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="referrals"
-                id="referrals"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="referrals"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                Referral History
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="services"
-                id="services"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="services"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                Services
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="provider-applications"
-                id="provider-applications"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="provider-applications"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                Provider Applications
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                value="blogs"
-                id="blogs"
-                className="dark:border-gray-700"
-              />
-              <Label
-                htmlFor="blogs"
-                className="cursor-pointer dark:text-gray-200"
-              >
-                Blog Management
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
         {/* Content Area */}
         <div className="mt-6">
-          {activeTable === "services" ? (
-            <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  Services Management
-                </h2>
-                <Button
-                  onClick={() => router.push("/services/add")}
-                  className="w-full sm:w-auto bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                >
-                  Add New Service
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {services.map((service: Service) => (
-                  <ServiceCard
-                    key={service.id}
-                    title={service.name}
-                    description={service.description}
-                    price={service.price}
-                    imageUrl={
-                      typeof service.images?.[0] === "string"
-                        ? service.images[0]
-                        : service.images?.[0]?.url || "/placeholder-image.jpg"
-                    }
-                    rating={service.rating || 0}
-                    totalRatings={service.reviews?.length || 0}
-                    onAddToCart={() => {}}
-                    onBuyNow={() => {}}
-                    onClick={() => {
-                      setSelectedService(service);
-                      setIsServiceModalOpen(true);
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg shadow-sm p-6">
-              {renderTable()}
-            </div>
-          )}
+          {renderContent()}
         </div>
       </div>
 
