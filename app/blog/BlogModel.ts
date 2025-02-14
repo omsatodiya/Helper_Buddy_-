@@ -97,7 +97,6 @@ export const BlogModel = {
   // Delete blog
   async delete(id: string): Promise<void> {
     try {
-      // First, get the blog data to get the image URL
       const blogRef = doc(db, COLLECTION_NAME, id);
       const blogDoc = await getDoc(blogRef);
       
@@ -107,12 +106,8 @@ export const BlogModel = {
 
       const blogData = blogDoc.data();
       
-      // Delete the image from Cloudinary if it exists
       if (blogData.imageUrl) {
         try {
-          console.log('Starting image deletion process...');
-          console.log('Image URL to delete:', blogData.imageUrl);
-          
           const response = await fetch('/api/cloudinary/delete', {
             method: 'POST',
             headers: {
@@ -128,19 +123,14 @@ export const BlogModel = {
             throw new Error(errorData.error || 'Failed to delete image');
           }
 
-          const result = await response.json();
-          console.log('Image deletion response:', result);
+          await response.json();
         } catch (error) {
-          console.error('Error deleting image:', error);
           // Continue with blog deletion even if image deletion fails
         }
       }
 
-      // Delete the blog document from Firebase
       await deleteDoc(blogRef);
-      console.log('Blog deleted successfully from Firebase');
     } catch (error) {
-      console.error('Error in delete process:', error);
       throw error;
     }
   },

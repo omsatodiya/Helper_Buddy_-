@@ -49,7 +49,6 @@ export default function WholeBlogClient() {
           
           setBlog(blogData);
         } catch (error) {
-          console.error('Fetch error:', error);
           router.push('/blog');
         } finally {
           setIsLoading(false);
@@ -120,7 +119,6 @@ export default function WholeBlogClient() {
           day: 'numeric'
         });
       } catch (error) {
-        console.error('Date formatting error:', error);
         return '';
       }
     };
