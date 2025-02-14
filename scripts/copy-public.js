@@ -24,11 +24,11 @@ function copyFolderSync(from, to) {
 
 try {
     const publicDir = path.join(process.cwd(), 'public');
-    const nextDir = path.join(process.cwd(), '.next');
+    const staticDir = path.join(process.cwd(), '.next', 'static');
     
-    console.log('Copying public files to .next directory...');
-    copyFolderSync(publicDir, nextDir);
-    console.log('Successfully copied public files to .next directory');
+    console.log('Copying public files to .next/static directory...');
+    copyFolderSync(publicDir, staticDir);
+    console.log('Successfully copied public files to .next/static directory');
 } catch (error) {
     console.error('Error copying files:', error);
     process.exit(1);

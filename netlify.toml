@@ -30,13 +30,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Copy files from public to .next during build
-[[plugins]]
-  package = "netlify-plugin-copy-files"
-  [plugins.inputs]
-    source = "public"
-    destination = ".next"
-
 [build.processing]
   skip_processing = false
 
