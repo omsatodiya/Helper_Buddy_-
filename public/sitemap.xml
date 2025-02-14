@@ -2,10 +2,22 @@
 <?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://dudhkela.netlify.app/</loc>
-    <lastmod>2025-02-14</lastmod>
+    <loc>https://dudhkela.netlify.app</loc>
+    <lastmod>2024-03-14</lastmod>
     <changefreq>daily</changefreq>
-    <priority>1</priority>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://dudhkela.netlify.app/admin/services</loc>
+    <lastmod>2024-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dudhkela.netlify.app/payment</loc>
+    <lastmod>2024-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://dudhkela.netlify.app/services</loc>

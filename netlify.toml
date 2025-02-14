@@ -14,6 +14,7 @@
     Content-Type = "application/xml"
     X-Robots-Tag = "all"
     Cache-Control = "public, max-age=3600"
+    Access-Control-Allow-Origin = "*"
 
 [[headers]]
   for = "/robots.txt"
@@ -43,6 +44,6 @@
 
 [[redirects]]
   from = "/sitemap.xml"
-  to = "/api/sitemap"
+  to = "/.netlify/functions/next/api/sitemap"
   status = 200
   force = true 
