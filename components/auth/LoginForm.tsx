@@ -358,6 +358,26 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
+      if (needsProfile) {
+        // Validate required fields
+        if (!userData.firstName || !userData.lastName || !userData.mobile || 
+            !userData.address || !userData.pincode || !userData.gender) {
+          setError("Please fill in all required fields");
+          setLoading(false);
+          return;
+        }
+
+        if (!auth.currentUser) {
+          setError("Authentication error. Please try again.");
+          setLoading(false);
+          return;
+        }
+
+        await saveUserProfile(auth.currentUser.uid);
+        router.push("/");
+        return;
+      }
+
       // Check if account is locked
       const locked = await checkLockout(loginData.email);
       if (locked) {
@@ -366,7 +386,7 @@ export default function LoginForm() {
         return;
       }
 
-      // Attempt login
+      // Rest of the existing login logic
       const userCredential = await signInWithEmailAndPassword(
         auth,
         loginData.email,
@@ -389,13 +409,17 @@ export default function LoginForm() {
         router.push("/");
       }
     } catch (err: any) {
-      // Record failed login attempt
-      const { isLocked, remainingTime } = await recordLoginAttempt(loginData.email, false);
-      
-      if (isLocked) {
-        setError(`Too many failed attempts. Account locked for ${formatLockoutTime(remainingTime!)}`);
+      if (needsProfile) {
+        setError(err.message || "Failed to save profile");
       } else {
-        setError(err.message || "Failed to log in");
+        // Record failed login attempt
+        const { isLocked, remainingTime } = await recordLoginAttempt(loginData.email, false);
+        
+        if (isLocked) {
+          setError(`Too many failed attempts. Account locked for ${formatLockoutTime(remainingTime!)}`);
+        } else {
+          setError(err.message || "Failed to log in");
+        }
       }
     } finally {
       setLoading(false);

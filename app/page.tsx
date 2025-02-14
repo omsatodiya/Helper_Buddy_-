@@ -214,7 +214,7 @@ export default function Home() {
             )}
           </div> */}
         {/* </div> */}
-        {/* <LandingPage /> */}
+        <LandingPage />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
           <div className="mb-12">
