@@ -13,7 +13,6 @@ import {
 import { useState } from "react";
 
 const navigationItems = [
-  { name: "Analytics", path: "/admin/analytics", icon: TrendingUp },
   { name: "Users", path: "/admin/users", icon: Users },
   { name: "Payments", path: "/admin/payments", icon: DollarSign },
   { name: "Referrals", path: "/admin/referrals", icon: ShoppingCart },
@@ -50,6 +49,17 @@ export function AdminHeader() {
                   onClick={() => router.push("/")}
                 >
                   Back to Home
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
+                  onClick={() => {
+                    router.push("/admin/analytics");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  View Analytics
                 </Button>
               </div>
             </SheetHeader>
