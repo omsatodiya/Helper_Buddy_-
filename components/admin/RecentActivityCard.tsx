@@ -11,6 +11,7 @@ interface Activity {
   action: string;
   timestamp: string;
 }
+console.log("Heylo");
 
 interface RecentActivityCardProps {
   activities: Activity[];
