@@ -57,6 +57,7 @@ const InputField = memo(function InputField({
   onChange,
   disabled = false,
   readOnly = false,
+  placeholder,
 }: {
   name: keyof FormData;
   label: string;
@@ -65,6 +66,7 @@ const InputField = memo(function InputField({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   disabled?: boolean;
   readOnly?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -79,6 +81,7 @@ const InputField = memo(function InputField({
         onChange={onChange}
         disabled={disabled}
         readOnly={readOnly}
+        placeholder={placeholder}
         required
         className="h-10"
       />
@@ -128,6 +131,23 @@ export default function SignupForm() {
 
   const handleChange = useCallback(async (name: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'pincode' && value.length === 6) {
+      try {
+        const data = await getCityFromPincode(value);
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            city: data.city,
+            state: data.state
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching city data:', error);
+        setError('Invalid pincode');
+      }
+    }
   }, []);
 
   const handleGoogleSignIn = async () => {
@@ -212,6 +232,7 @@ export default function SignupForm() {
         role: "user",
         coins: 1000,
         referralCode: generateReferralCode(),
+        timesBeenReferred: 0,
         createdAt: new Date().toISOString()
       };
 
@@ -339,7 +360,12 @@ export default function SignupForm() {
                     name="pincode"
                     label="Pincode"
                     value={formData.pincode}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 6 && /^\d*$/.test(e.target.value)) {
+                        handleChange(e.target.name as keyof FormData, e.target.value);
+                      }
+                    }}
+                    placeholder="Enter 6-digit pincode"
                   />
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm font-medium">
@@ -358,6 +384,17 @@ export default function SignupForm() {
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm text-muted-foreground">City (Auto-filled)</Label>
+                    <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{formData.city}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm text-muted-foreground">State (Auto-filled)</Label>
+                    <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{formData.state}</p>
                   </div>
                 </div>
               </div>
@@ -452,25 +489,15 @@ export default function SignupForm() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InputField 
-                    name="city" 
-                    label="City"
-                    value={formData.city}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                  />
-                  <InputField 
-                    name="state" 
-                    label="State"
-                    value={formData.state}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField 
                     name="pincode" 
                     label="Pincode"
                     value={formData.pincode}
-                    onChange={(e) => handleChange(e.target.name as keyof FormData, e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 6 && /^\d*$/.test(e.target.value)) {
+                        handleChange(e.target.name as keyof FormData, e.target.value);
+                      }
+                    }}
+                    placeholder="Enter 6-digit pincode"
                   />
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm font-medium">
@@ -489,6 +516,17 @@ export default function SignupForm() {
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm text-muted-foreground">City (Auto-filled)</Label>
+                    <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{formData.city}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm text-muted-foreground">State (Auto-filled)</Label>
+                    <p className="h-10 px-3 py-2 rounded-md border bg-muted/50 text-base">{formData.state}</p>
                   </div>
                 </div>
               </div>
