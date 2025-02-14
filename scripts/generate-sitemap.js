@@ -51,13 +51,15 @@ ${pages.map(page => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
+// Ensure directories exist and write sitemap to both locations
 const publicDir = path.join(process.cwd(), 'public');
+const nextDir = path.join(process.cwd(), '.next');
 
-// Ensure public directory exists
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir, { recursive: true });
-}
+[publicDir, nextDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(dir, 'sitemap.xml'), sitemap);
+});
 
-// Write sitemap
-fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemap);
-console.log('Sitemap generated successfully!'); 
+console.log('Sitemap generated successfully in both public and .next directories!'); 
