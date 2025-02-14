@@ -62,8 +62,20 @@ try {
   const sitemapPath = path.join(publicDir, 'sitemap.xml');
   fs.writeFileSync(sitemapPath, sitemap);
 
-  console.log(`Sitemap generated successfully at ${sitemapPath}`);
+  // Generate robots.txt
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/static/
+
+# Sitemap
+Sitemap: ${domain}/sitemap.xml`;
+
+  const robotsPath = path.join(publicDir, 'robots.txt');
+  fs.writeFileSync(robotsPath, robotsTxt);
+
+  console.log(`Sitemap and robots.txt generated successfully in ${publicDir}`);
 } catch (error) {
-  console.error('Error generating sitemap:', error);
+  console.error('Error generating files:', error);
   process.exit(1);
 } 
