@@ -124,79 +124,11 @@ const ProfileFields = memo(function ProfileFields({
   userData,
   onChange,
   onGenderChange,
-  setLoading,
 }: {
   userData: UserData;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenderChange: (value: string) => void;
-  setLoading: (loading: boolean) => void;
 }) {
-  const handlePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const pincode = e.target.value;
-    
-    // Always update the pincode
-    onChange(e);
-
-    if (pincode.length === 6 && isValidPincode(pincode)) {
-      try {
-        // Show loading state
-        setLoading(true);
-
-        const locationData = await getCityFromPincode(pincode);
-        if (locationData) {
-          // Create synthetic events for city and state updates
-          const cityEvent = {
-            target: {
-              name: 'city',
-              value: locationData.city
-            }
-          } as React.ChangeEvent<HTMLInputElement>;
-
-          const stateEvent = {
-            target: {
-              name: 'state',
-              value: locationData.state
-            }
-          } as React.ChangeEvent<HTMLInputElement>;
-
-          // Update both city and state
-          onChange(cityEvent);
-          onChange(stateEvent);
-        }
-      } catch (error) {
-        console.error('Error fetching location:', error);
-        // Try to at least get the state from pincode prefix
-        const state = getStateFromPincodePrefix(pincode);
-        if (state) {
-          const stateEvent = {
-            target: {
-              name: 'state',
-              value: state
-            }
-          } as React.ChangeEvent<HTMLInputElement>;
-          onChange(stateEvent);
-        }
-        
-        toast({
-          title: "Warning",
-          description: "Could not fetch complete location details. Please fill in manually if needed.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Clear city and state when pincode is invalid
-      onChange({
-        target: { name: 'city', value: '' }
-      } as React.ChangeEvent<HTMLInputElement>);
-      
-      onChange({
-        target: { name: 'state', value: '' }
-      } as React.ChangeEvent<HTMLInputElement>);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,10 +163,29 @@ const ProfileFields = memo(function ProfileFields({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <InputField
+          name="city"
+          label="City"
+          value={userData.city}
+          onChange={onChange}
+        />
+        <InputField
+          name="state"
+          label="State"
+          value={userData.state}
+          onChange={onChange}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <InputField
           name="pincode"
           label="Pincode"
           value={userData.pincode}
-          onChange={handlePincodeChange}
+          onChange={(e) => {
+            if (e.target.value.length <= 6) {
+              onChange(e);
+            }
+          }}
         />
         <div className="space-y-2">
           <Label htmlFor="gender" className="text-sm font-medium">
@@ -243,9 +194,8 @@ const ProfileFields = memo(function ProfileFields({
           <Select
             value={userData.gender}
             onValueChange={onGenderChange}
-            required
           >
-            <SelectTrigger id="gender" className="h-11">
+            <SelectTrigger className="h-10">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
@@ -255,25 +205,6 @@ const ProfileFields = memo(function ProfileFields({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <InputField
-          name="city"
-          label="City"
-          value={userData.city}
-          onChange={onChange}
-          readOnly
-          disabled
-        />
-        <InputField
-          name="state"
-          label="State"
-          value={userData.state}
-          onChange={onChange}
-          readOnly
-          disabled
-        />
       </div>
     </div>
   );
@@ -585,7 +516,6 @@ export default function LoginForm() {
                   userData={userData}
                   onChange={handleUserDataChange}
                   onGenderChange={handleGenderChange}
-                  setLoading={setLoading}
                 />
 
                 <div className="space-y-2">
