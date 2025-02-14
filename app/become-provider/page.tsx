@@ -755,7 +755,7 @@ export default function BecomeProviderPage() {
         loading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}>
         {/* Updated Hero Section */}
-        <section className="relative min-h-screen bg-black dark:bg-white overflow-hidden">
+        <section className="relative min-h-screen bg-white dark:bg-black overflow-hidden">
           <HeroPattern />
           
           <div className="absolute inset-0 flex flex-col">
@@ -763,26 +763,26 @@ export default function BecomeProviderPage() {
             <div className="flex-1 flex items-start px-6 pt-32 pb-40"> {/* Changed items-center to items-start and increased padding */}
               <div className="w-full max-w-xl mx-auto">
                 {/* Status Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-sm mb-6">
                   <span className="flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-white dark:bg-black opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white dark:bg-black"></span>
+                    <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-black dark:bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-black dark:bg-white"></span>
                   </span>
-                  <span className="text-sm text-white/90 dark:text-black/90">
+                  <span className="text-sm text-black/90 dark:text-white/90">
                     Now accepting new providers
                   </span>
                 </div>
                 
                 {/* Main Heading */}
-                <h1 className="text-[32px] sm:text-4xl md:text-5xl font-bold mb-4 text-white dark:text-black leading-tight">
+                <h1 className="text-[32px] sm:text-4xl md:text-5xl font-bold mb-4 text-black dark:text-white leading-tight">
                   Turn Your Skills into{' '}
-                  <span className="text-white dark:text-black underline decoration-2 underline-offset-4">
+                  <span className="text-black dark:text-white underline decoration-2 underline-offset-4">
                     Success
                   </span>
                 </h1>
                 
                 {/* Description */}
-                <p className="text-base sm:text-lg text-white/80 dark:text-black/80 leading-relaxed mb-6">
+                <p className="text-base sm:text-lg text-black/80 dark:text-white/80 leading-relaxed mb-6">
                   Join our growing network of professional service providers and connect with clients looking for your expertise.
                 </p>
                 
@@ -791,7 +791,7 @@ export default function BecomeProviderPage() {
                   <Button
                     onClick={() => setShowForm(true)}
                     disabled={!applicationChecked || hasSubmitted}
-                    className="w-full h-14 bg-white hover:bg-white/90 text-black dark:bg-black dark:hover:bg-black/90 dark:text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full h-14 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {!applicationChecked ? (
                       <div className="flex items-center gap-2">
@@ -809,7 +809,7 @@ export default function BecomeProviderPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full h-14 border border-white/20 dark:border-black/20 bg-white/5 dark:bg-black/5 hover:bg-white/10 dark:hover:bg-black/10 text-white dark:text-black font-medium rounded-lg transition-all flex items-center justify-center"
+                    className="w-full h-14 border border-black/20 dark:border-white/20 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white font-medium rounded-lg transition-all flex items-center justify-center"
                     onClick={() => window.scrollTo({ top: document.getElementById('benefits')?.offsetTop, behavior: 'smooth' })}
                   >
                     Learn More
@@ -817,20 +817,20 @@ export default function BecomeProviderPage() {
                 </div>
 
                 {/* Stats Grid - fix spacing and layout */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-8 pt-6 border-t border-white/10 dark:border-black/10">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-8 pt-6 border-t border-black/10 dark:border-white/10">
                   <div className="flex flex-col">
-                    <div className="text-2xl sm:text-3xl font-bold text-white dark:text-black">
+                    <div className="text-2xl sm:text-3xl font-bold text-black dark:text-white">
                       500+
                     </div>
-                    <div className="text-sm text-white/60 dark:text-black/60 mt-1">
+                    <div className="text-sm text-black/60 dark:text-white/60 mt-1">
                       Active Providers
                     </div>
                   </div>
                   <div className="flex flex-col">
-                    <div className="text-2xl sm:text-3xl font-bold text-white dark:text-black">
+                    <div className="text-2xl sm:text-3xl font-bold text-black dark:text-white">
                       10K+
                     </div>
-                    <div className="text-sm text-white/60 dark:text-black/60 mt-1">
+                    <div className="text-sm text-black/60 dark:text-white/60 mt-1">
                       Happy Customers
                     </div>
                   </div>
@@ -841,13 +841,13 @@ export default function BecomeProviderPage() {
         </section>
 
         {/* Benefits Section - increase top spacing */}
-        <section id="benefits" className="relative pt-24 pb-12 sm:py-16 md:py-24 bg-white dark:bg-black">
+        <section id="benefits" className="relative pt-24 pb-12 sm:py-16 md:py-24 bg-black dark:bg-white">
           <div className="container px-6 mx-auto">
             <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-black dark:text-white">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white dark:text-black">
                 Why Choose Us?
               </h2>
-              <p className="text-base text-black/60 dark:text-white/60">
+              <p className="text-base text-white/60 dark:text-black/60">
                 Join our platform and unlock a world of opportunities
               </p>
             </div>
@@ -855,16 +855,16 @@ export default function BecomeProviderPage() {
               {benefits.map((benefit, index) => (
                 <Card 
                   key={index}
-                  className="border border-black/10 dark:border-white/10 bg-white dark:bg-black"
+                  className="border border-white/10 dark:border-black/10 bg-black dark:bg-white"
                 >
                   <div className="p-6 sm:p-8">
-                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black dark:bg-white flex items-center justify-center mb-6">
-                      <benefit.icon className="h-6 w-6 sm:h-7 sm:w-7 text-white dark:text-black" />
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-white dark:bg-black flex items-center justify-center mb-6">
+                      <benefit.icon className="h-6 w-6 sm:h-7 sm:w-7 text-black dark:text-white" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black dark:text-white">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white dark:text-black">
                       {benefit.title}
                     </h3>
-                    <p className="text-sm sm:text-base text-black/60 dark:text-white/60 leading-relaxed">
+                    <p className="text-sm sm:text-base text-white/60 dark:text-black/60 leading-relaxed">
                       {benefit.description}
                     </p>
                   </div>
@@ -875,13 +875,18 @@ export default function BecomeProviderPage() {
         </section>
 
         {/* How It Works Section - make responsive */}
-        <section className="py-12 sm:py-16 md:py-24 bg-black dark:bg-white">
-          <div className="container px-6 mx-auto">
+        <section className="relative py-12 sm:py-16 md:py-24 bg-white dark:bg-zinc-900">
+          {/* Add decorative background pattern */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-[0.07]" />
+          </div>
+          
+          <div className="container relative px-6 mx-auto">
             <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white dark:text-black">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-black dark:text-white">
                 How It Works
               </h2>
-              <p className="text-base text-white/80 dark:text-black/80">
+              <p className="text-base text-black/80 dark:text-white/80">
                 Get started in just a few simple steps
               </p>
             </div>
@@ -908,17 +913,17 @@ export default function BecomeProviderPage() {
                   description: 'Accept bookings and start providing services'
                 }
               ].map((item, index) => (
-                <div key={index} className="relative">
+                <div key={index} className="relative group p-6 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
                   <div className="mb-4">
-                    <span className="text-2xl sm:text-3xl font-bold text-white/20 dark:text-black/20">
+                    <span className="text-3xl sm:text-4xl font-bold text-black/10 dark:text-white/10 group-hover:text-black/20 dark:group-hover:text-white/20 transition-colors">
                       {item.number}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white dark:text-black">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black dark:text-white">
                       {item.title}
                     </h3>
-                    <p className="text-sm sm:text-base text-white/80 dark:text-black/80">
+                    <p className="text-sm sm:text-base text-black/70 dark:text-white/70">
                       {item.description}
                     </p>
                   </div>
