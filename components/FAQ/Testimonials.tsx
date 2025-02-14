@@ -173,41 +173,12 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
             Read trusted reviews from our happy customers
           </p>
           
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline"
-                className="mb-8 hover:bg-foreground hover:text-background"
-                onMouseEnter={(e) => {
-                  gsap.to(e.currentTarget, {
-                    scale: 1.05,
-                    duration: 0.3
-                  });
-                }}
-                onMouseLeave={(e) => {
-                  gsap.to(e.currentTarget, {
-                    scale: 1,
-                    duration: 0.3
-                  });
-                }}
-              >
-                Write a Review
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background border-border">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">Write Your Review</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <p className="text-foreground/80">This is a demo component. In a real application, this would contain a form to submit reviews.</p>
-              </div>
-            </DialogContent>
-          </Dialog>
+          
         </div>
 
         <div 
           ref={carouselWrapperRef}
-          className="relative w-full overflow-hidden h-64"
+          className="relative w-screen  h-64"
         >
           <div 
             ref={carouselRef}
