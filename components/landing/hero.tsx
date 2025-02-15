@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useRouter } from "next/navigation";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -46,6 +47,7 @@ const PLACEHOLDER_TEXTS = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -180,15 +182,28 @@ export default function LandingPage() {
     };
   }, [isSearchFocused]);
 
+  const handleServiceClick = (service: any) => {
+    setIsSearchFocused(false);
+    // Pass both service ID and search query in URL
+    router.push(`/services?service=${service.id}&search=${encodeURIComponent(searchQuery)}`);
+  };
+
+  // Also update the trending searches click handler
+  const handleTrendingClick = (label: string) => {
+    setSearchQuery(label);
+    setIsSearchFocused(false);
+    router.push(`/services?search=${encodeURIComponent(label)}`);
+  };
+
   return (
-    <div ref={containerRef} className="bg-black dark:bg-black bg-white min-h-screen relative overflow-visible">
+    <div ref={containerRef} className="bg-white dark:bg-black min-h-screen relative overflow-visible">
       {/* Theme Toggle - Add this near the top of the content */}
       <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
       </div>
 
-      {/* Gradient overlay - Update with dark mode support */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black dark:via-black/50 dark:to-black via-gray-100/50 to-white pointer-events-none" />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-100/50 to-white dark:via-black/50 dark:to-black pointer-events-none" />
 
       {/* Main content */}
       <div className="relative  z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
@@ -248,10 +263,7 @@ export default function LandingPage() {
                           {TRENDING_SEARCHES.map((item) => (
                             <button
                               key={item.id}
-                              onClick={() => {
-                                setSearchQuery(item.label);
-                                setIsSearchFocused(false);
-                              }}
+                              onClick={() => handleTrendingClick(item.label)}
                               className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors whitespace-nowrap"
                             >
                               <span className="text-gray-800">{item.label}</span>
@@ -281,10 +293,7 @@ export default function LandingPage() {
                               .map((service) => (
                                 <button
                                   key={service.id}
-                                  onClick={() => {
-                                    setSearchQuery(service.name);
-                                    setIsSearchFocused(false);
-                                  }}
+                                  onClick={() => handleServiceClick(service)}
                                   className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
                                 >
                                   <img 
@@ -317,38 +326,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-
-        {/* Features Section */}
-        {/* <div ref={featuresRef} className="w-full mt-10 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Home & Office Cleaning",
-                description: "Expert cleaning tailored to your space, using eco-friendly products",
-                icon: "🏠"
-              },
-              {
-                title: "Appliance Repair & Maintenance",
-                description: "Quick, reliable appliance repairs and maintenance",
-                icon: "🔧"
-              },
-              {
-                title: "Plumbing & Electrical",
-                description: "Trusted plumbing and electrical services, with emergency response",
-                icon: "⚡"
-              }
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="feature-card p-6 rounded-lg border border-gray-200 dark:border-[#2C786C]/20 backdrop-blur-sm bg-white/30 dark:bg-black/30 opacity-0"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-[#EAEAEA] mb-2">{feature.title}</h3>
-                <p className="text-gray-700 dark:text-[#EAEAEA]/80">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div> */}
       </div>
     </div>
   );

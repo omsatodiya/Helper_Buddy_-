@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
+import { useSearchParams } from "next/navigation";
 
 interface ServiceOption {
   id: string;
@@ -68,6 +69,7 @@ function FilterCard({
 }: FilterCardProps) {
   const filterRef = useRef<HTMLDivElement>(null);
   const activeFiltersRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   const serviceOptions: ServiceOption[] = [
     {
@@ -152,6 +154,14 @@ function FilterCard({
       );
     }
   }, [selectedService, selectedPriceRanges, minReviewRating]);
+
+  useEffect(() => {
+    // Get search query from URL and update filter
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      onSearchChange(searchQuery);
+    }
+  }, [searchParams, onSearchChange]);
 
   return (
     <div
