@@ -83,14 +83,6 @@ const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEma
         </div>
       </div>
       <Button
-        onClick={handleCheckout}
-        disabled={!isAddressSelected}
-        className="w-full mt-6"
-        variant={isAddressSelected ? "default" : "secondary"}
-      >
-        Proceed to Checkout
-      </Button>
-      <Button
         className="w-full mt-6"
         disabled={!isAddressSelected || isSendingEmails}
         onClick={onNotifyProviders}

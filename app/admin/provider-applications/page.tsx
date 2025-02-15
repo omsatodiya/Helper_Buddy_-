@@ -8,7 +8,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
-import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import emailjs from '@emailjs/browser';
 import { usePathname } from 'next/navigation';
 
@@ -124,9 +124,9 @@ export default function ProviderApplicationsPage() {
     try {
       setIsLoading(true);
       const db = getFirestore();
-      
+
       if (status === 'approved') {
-        // Create provider data without duplicates
+        // Create provider data
         const providerData = {
           id: applicationId,
           name: applicationData.userName,
@@ -134,10 +134,6 @@ export default function ProviderApplicationsPage() {
           photo: applicationData.photo,
           services: applicationData.services,
           servicePincodes: applicationData.servicePincodes,
-          location: {
-            city: applicationData.servicePincodes[0]?.city || '',
-            state: applicationData.servicePincodes[0]?.state || ''
-          },
           status: 'active',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -145,48 +141,46 @@ export default function ProviderApplicationsPage() {
           approvalDate: new Date()
         };
 
-        // Update user document and create provider document
-        await Promise.all([
-          updateDoc(doc(db, 'users', applicationId), {
-            role: 'provider',
-            applicationStatus: 'approved',
-            ...providerData
-          }),
-          setDoc(doc(db, 'providers', applicationId), providerData)
-        ]);
+        // Update both collections in a batch
+        const batch = writeBatch(db);
+        
+        // Create provider document
+        batch.set(doc(db, 'providers', applicationId), providerData);
+        
+        // Update user document
+        batch.update(doc(db, 'users', applicationId), {
+          role: 'provider',
+          applicationStatus: 'approved',
+          approvalDate: new Date()
+        });
+        
+        // Update application status
+        batch.update(doc(db, 'provider-applications', applicationId), {
+          status: 'approved',
+          approvalDate: new Date()
+        });
 
-        if (applicationData) {
-          // Send approval email using EmailJS
-          try {
-            await emailjs.send(
-              process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-              process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
-              {
-                to_email: applicationData.email,
-                to_name: applicationData.userName,
-                from_name: "Dudh-Kela Support",
-                reply_to: "support@dudhkela.com",
-                subject: "Welcome to Dudh-Kela as a Service Provider!",
-                services: applicationData.services.join(', '),
-                service_areas: applicationData.servicePincodes.map((p: { pincode: string }) => p.pincode).join(', '),
-                application_date: new Date(applicationData.applicationDate).toLocaleDateString(),
-                approval_date: new Date().toLocaleDateString(),
-              },
-              process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
-            );
+        await batch.commit();
 
-            toast({
-              title: "Email Sent",
-              description: "Provider approval notification email sent successfully",
-            });
-          } catch (emailError) {
-            console.error('Error sending approval email:', emailError);
-            toast({
-              title: "Email Error",
-              description: "Failed to send approval notification email",
-              variant: "destructive",
-            });
-          }
+        // Send approval email
+        try {
+          await emailjs.send(
+            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+            process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
+            {
+              to_email: applicationData.email,
+              to_name: applicationData.userName,
+              from_name: "Dudh-Kela Support",
+              reply_to: "support@dudhkela.com",
+              subject: "Welcome to Dudh-Kela as a Service Provider!",
+              services: applicationData.services.join(', '),
+              service_areas: applicationData.servicePincodes.map((p: any) => p.pincode).join(', '),
+              application_date: new Date(applicationData.applicationDate).toLocaleDateString(),
+              approval_date: new Date().toLocaleDateString(),
+            }
+          );
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError);
         }
       } else {
         // For rejected applications
@@ -223,13 +217,14 @@ export default function ProviderApplicationsPage() {
         }
       }
 
-      // Refresh the applications list
+      // Refresh applications list
       fetchApplications();
       
       toast({
         title: `Application ${status}`,
         description: `Provider application has been ${status}`,
       });
+
     } catch (error) {
       console.error(`Error ${status} application:`, error);
       toast({
