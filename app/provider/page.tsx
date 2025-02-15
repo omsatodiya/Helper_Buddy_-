@@ -30,6 +30,7 @@ import {
   where,
   getDocs,
   onSnapshot,
+  setDoc,
 } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -56,65 +57,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
-
-const AVAILABLE_SERVICES = [
-  "Ceiling Fan Cleaning",
-  "Glass Shelf Installation",
-  "Exhaust Fan Cleaning",
-  "Gas Stove Cleaning",
-  "Kitchen Sink Cleaning",
-  "Fan Installation",
-  "Shower Filter Installation",
-  "Drawer Channel Replacement (One Set)",
-  "Microwave Cleaning",
-  "3 Ceiling Fan Cleaning",
-  "Fully Automatic Washing Machine Check Up (Top Load)",
-  "Window Hinge Installation (Upto 4)",
-  "Semi-Automatic Washing Machine Check Up",
-  "Fully Automatic Washing Machine Check Up (Front Load)",
-  "Cushions Cleaning",
-  "Switchbox Installation",
-  "Water Purifier Check Up",
-  "Single Door Refrigerator Check Up",
-  "Water Purifier Uninstallation",
-  "Water Purifier Filter Check Up",
-  "Double Door Refrigerator Check Up (Inverter)",
-  "AC Repair",
-  "TV Installation",
-  "Ceiling Mounted Hanger Installation",
-  "Water Purifier Installation",
-  "Dining Table & Chairs Cleaning",
-  "Utensil Removal and Placing Back",
-  "Washing Machine Installation",
-  "Balcony Cleaning",
-  "Washing Machine Uninstallation",
-  "Double Door Refrigerator Check Up (Non-Inverter)",
-  "Classic Bathroom Cleaning",
-  "Geyser Installation",
-  "Carpet Cleaning",
-  "Intense Bathroom Cleaning",
-  "Power Saver AC Service",
-  "AC Uninstallation",
-  "Side By Side Door Refrigerator Check Up",
-  "Lite AC Service",
-  "Fridge Cleaning",
-  "Classic Cleaning (2 Bathrooms)",
-  "Anti-Rust Deep Clean AC Service",
-  "Chimney Cleaning",
-  "Trolley & Shelves Cleaning",
-  "Intense Cleaning (2 Bathrooms)",
-  "Overhead Tank Cleaning (Open Placed)",
-  "AC Installation",
-  "Classic Cleaning (3 Bathrooms)",
-  "Intense Cleaning (3 Bathroom)",
-  "Normal Kitchen Cleaning",
-  "Underground Tank Cleaning",
-  "Toilet Pot Blockage Removal",
-  "AC Gas Leak Fix and Refill",
-  "Complete Kitchen Cleaning",
-  "Sofa and Cushions Cleaning",
-  "Other", // Added Other option
-];
 
 interface ProviderData {
   photo: string;
@@ -143,6 +85,12 @@ interface ServiceRequest {
   completedAt?: Date;
 }
 
+interface AvailableService {
+  id: string;
+  name: string;
+  category: string;
+}
+
 export default function ProviderDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -160,6 +108,7 @@ export default function ProviderDashboard() {
   const [acceptedRequests, setAcceptedRequests] = useState<ServiceRequest[]>(
     []
   );
+  const [availableServices, setAvailableServices] = useState<AvailableService[]>([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -196,6 +145,33 @@ export default function ProviderDashboard() {
 
     return () => unsubscribe();
   }, [router, toast]);
+
+  useEffect(() => {
+    const fetchAvailableServices = async () => {
+      try {
+        const db = getFirestore();
+        const servicesSnapshot = await getDocs(collection(db, "services"));
+        const servicesData = servicesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          category: doc.data().category
+        }));
+        
+        // Sort services by name
+        servicesData.sort((a, b) => a.name.localeCompare(b.name));
+        setAvailableServices(servicesData);
+      } catch (error) {
+        console.error("Error fetching available services:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load available services",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchAvailableServices();
+  }, [toast]);
 
   const handlePincodeAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -256,12 +232,12 @@ export default function ProviderDashboard() {
     }
   };
 
-  const handleServiceToggle = (service: string) => {
+  const handleServiceToggle = (serviceId: string) => {
     setProviderData((prev) => ({
       ...prev,
-      services: prev.services.includes(service)
-        ? prev.services.filter((s) => s !== service)
-        : [...prev.services, service],
+      services: prev.services.includes(serviceId)
+        ? prev.services.filter((s) => s !== serviceId)
+        : [...prev.services, serviceId],
     }));
   };
 
@@ -304,19 +280,38 @@ export default function ProviderDashboard() {
     setIsSaving(true);
     try {
       const db = getFirestore();
+      const user = auth.currentUser;
+      if (!user) throw new Error("No authenticated user");
 
-      await updateDoc(doc(db, "provider-applications", auth.currentUser!.uid), {
+      // Update both provider-applications and providers collections
+      const updates = {
         servicePincodes: providerData.servicePincodes,
         services: providerData.services,
         updatedAt: new Date(),
-      });
+      };
+
+      // Update provider application
+      await updateDoc(doc(db, "provider-applications", user.uid), updates);
+
+      // Update or create provider document
+      const providerRef = doc(db, "providers", user.uid);
+      const providerDoc = await getDoc(providerRef);
+
+      if (providerDoc.exists()) {
+        await updateDoc(providerRef, updates);
+      } else {
+        await setDoc(providerRef, {
+          ...updates,
+          createdAt: new Date(),
+          userId: user.uid,
+          status: "active",
+        });
+      }
 
       toast({
         title: "Changes saved",
         description: "Your provider profile has been updated successfully.",
       });
-
-      router.push("/");
     } catch (error) {
       console.error("Error saving changes:", error);
       toast({
@@ -505,6 +500,11 @@ export default function ProviderDashboard() {
     });
   }, [auth.currentUser]);
 
+  const getServiceName = (serviceId: string) => {
+    const service = availableServices.find(s => s.id === serviceId);
+    return service?.name || serviceId;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
@@ -521,7 +521,7 @@ export default function ProviderDashboard() {
         <div className="container mx-auto px-4 py-8">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="p-6 border border-black/10 dark:border-white/10">
+            <Card className="p-6 border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white transition-colors">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
                   <Calendar className="w-6 h-6" />
@@ -534,7 +534,7 @@ export default function ProviderDashboard() {
                 </div>
               </div>
             </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
+            <Card className="p-6 border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white transition-colors">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
                   <Users className="w-6 h-6" />
@@ -547,7 +547,7 @@ export default function ProviderDashboard() {
                 </div>
               </div>
             </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
+            <Card className="p-6 border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white transition-colors">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
                   <Star className="w-6 h-6" />
@@ -560,7 +560,7 @@ export default function ProviderDashboard() {
                 </div>
               </div>
             </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
+            <Card className="p-6 border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white transition-colors">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
                   <Shield className="w-6 h-6" />
@@ -733,8 +733,8 @@ export default function ProviderDashboard() {
 
           {/* Main Content */}
           <Card className="border border-black/10 dark:border-white/10">
-            <div className="p-6 border-b border-black/10 dark:border-white/10">
-              <h3 className="text-lg font-semibold">Provider Profile</h3>
+            <div className="p-6 border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
+              <h3 className="text-xl font-semibold">Provider Profile</h3>
               <p className="text-sm text-black/60 dark:text-white/60 mt-1">
                 Manage your services and service areas
               </p>
@@ -743,24 +743,36 @@ export default function ProviderDashboard() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Service Areas Column */}
-                <div>
-                  <Label className="text-sm mb-2 block">Service Areas</Label>
-                  <Input
-                    value={pincodeInput}
-                    onChange={(e) => setPincodeInput(e.target.value)}
-                    onKeyDown={handlePincodeAdd}
-                    placeholder="Enter pincode"
-                    maxLength={6}
-                    disabled={isValidatingPincode}
-                    className="w-48 mb-4"
-                  />
-                  <div className="flex flex-wrap gap-2">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium">Service Areas</Label>
+                    <span className="text-xs text-black/60 dark:text-white/60">
+                      {providerData.servicePincodes.length} areas
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      value={pincodeInput}
+                      onChange={(e) => setPincodeInput(e.target.value)}
+                      onKeyDown={handlePincodeAdd}
+                      placeholder="Enter pincode and press Enter"
+                      maxLength={6}
+                      disabled={isValidatingPincode}
+                      className="w-full border-black/20 dark:border-white/20 focus:border-black dark:focus:border-white"
+                    />
+                    {isValidatingPincode && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 min-h-[100px] max-h-[300px] overflow-y-auto p-4 bg-black/5 dark:bg-white/5 rounded-lg">
                     {providerData.servicePincodes.map(({ pincode, city }) => (
                       <div
                         key={pincode}
-                        className="px-3 py-1 bg-black/5 dark:bg-white/5 rounded-full text-sm flex items-center gap-2"
+                        className="group px-3 py-1.5 bg-white dark:bg-black rounded-lg text-sm flex items-center gap-2 border border-black/10 dark:border-white/10 hover:border-black dark:hover:border-white transition-colors"
                       >
-                        <MapPin className="w-4 h-4" />
+                        <MapPin className="w-3.5 h-3.5" />
                         <span>{pincode}</span>
                         {city && (
                           <span className="text-black/60 dark:text-white/60">
@@ -776,9 +788,9 @@ export default function ProviderDashboard() {
                               ),
                             }))
                           }
-                          className="hover:text-black dark:hover:text-white ml-1"
+                          className="opacity-0 group-hover:opacity-100 hover:text-black dark:hover:text-white transition-all ml-1"
                         >
-                          ×
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -786,26 +798,29 @@ export default function ProviderDashboard() {
                 </div>
 
                 {/* Selected Services Column */}
-                <div>
-                  <Label className="text-sm mb-2 block">
-                    Selected Services ({providerData.services.length})
-                  </Label>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium">Selected Services</Label>
+                    <span className="text-xs text-black/60 dark:text-white/60">
+                      {providerData.services.length} selected
+                    </span>
+                  </div>
                   <div className="h-[400px] overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-4">
                     {providerData.services.length === 0 ? (
-                      <p className="text-sm text-black/60 dark:text-white/60">
+                      <p className="text-sm text-black/60 dark:text-white/60 text-center">
                         No services selected yet
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {providerData.services.map((service) => (
+                        {providerData.services.map((serviceId) => (
                           <div
-                            key={service}
-                            className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-black"
+                            key={serviceId}
+                            className="group flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-black border border-transparent hover:border-black dark:hover:border-white transition-colors"
                           >
-                            <span className="text-sm">{service}</span>
+                            <span className="text-sm">{getServiceName(serviceId)}</span>
                             <button
-                              onClick={() => handleServiceToggle(service)}
-                              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
+                              onClick={() => handleServiceToggle(serviceId)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-all"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -817,27 +832,36 @@ export default function ProviderDashboard() {
                 </div>
 
                 {/* Available Services Column */}
-                <div>
-                  <Label className="text-sm mb-2 block">
-                    Available Services
-                  </Label>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium">Available Services</Label>
+                    <span className="text-xs text-black/60 dark:text-white/60">
+                      {availableServices.length} available
+                    </span>
+                  </div>
                   <div className="h-[400px] overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-4">
                     <div className="space-y-2">
-                      {AVAILABLE_SERVICES.map((service) => (
+                      {availableServices.map((service) => (
                         <div
-                          key={service}
-                          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          key={service.id}
+                          className="flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white dark:hover:bg-black transition-colors cursor-pointer"
+                          onClick={() => handleServiceToggle(service.id)}
                         >
                           <Checkbox
-                            id={service}
-                            checked={providerData.services.includes(service)}
-                            onCheckedChange={() => handleServiceToggle(service)}
+                            id={service.id}
+                            checked={providerData.services.includes(service.id)}
+                            className="border-black/20 dark:border-white/20"
                           />
                           <label
-                            htmlFor={service}
+                            htmlFor={service.id}
                             className="text-sm flex-1 cursor-pointer"
                           >
-                            {service}
+                            <span className="font-medium">{service.name}</span>
+                            {service.category && (
+                              <span className="text-xs text-black/60 dark:text-white/60 ml-2 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                                {service.category}
+                              </span>
+                            )}
                           </label>
                         </div>
                       ))}
@@ -849,9 +873,16 @@ export default function ProviderDashboard() {
               <Button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="w-full mt-8 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
+                className="w-full mt-8 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black h-12 text-base font-medium transition-colors"
               >
-                {isSaving ? "Saving Changes..." : "Save Changes"}
+                {isSaving ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Saving Changes...</span>
+                  </div>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </div>
           </Card>
@@ -861,17 +892,22 @@ export default function ProviderDashboard() {
       <Footer />
 
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-black border border-black/10 dark:border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle>Save Changes</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to save these changes? This action cannot be
-              undone.
+              Are you sure you want to save these changes? This will update your provider profile
+              and service availability.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmedSave}>
+            <AlertDialogCancel className="border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmedSave}
+              className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
+            >
               Save Changes
             </AlertDialogAction>
           </AlertDialogFooter>
