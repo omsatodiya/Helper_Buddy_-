@@ -5,6 +5,9 @@ import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Service } from "@/types/service";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -49,6 +52,7 @@ const PLACEHOLDER_TEXTS = [
 export default function LandingPage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -60,6 +64,24 @@ export default function LandingPage() {
   const currentTextIndex = useRef(0);
   const currentCharIndex = useRef(0);
   const isDeleting = useRef(false);
+
+  // Fetch services from Firebase
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const servicesSnapshot = await getDocs(collection(db, "services"));
+        const servicesData = servicesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Service));
+        setServices(servicesData);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   // Initial page load animations
   useEffect(() => {
@@ -151,9 +173,10 @@ export default function LandingPage() {
   };
 
   // Filter services based on search query
-  const filteredServices = ALL_SERVICES.filter(service => 
+  const filteredServices = services.filter(service => 
     service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    service.category.toLowerCase().includes(searchQuery.toLowerCase())
+    service.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Close dropdown when clicking outside
@@ -182,9 +205,8 @@ export default function LandingPage() {
     };
   }, [isSearchFocused]);
 
-  const handleServiceClick = (service: any) => {
+  const handleServiceClick = (service: Service) => {
     setIsSearchFocused(false);
-    // Pass both service ID and search query in URL
     router.push(`/services?service=${service.id}&search=${encodeURIComponent(searchQuery)}`);
   };
 
@@ -297,7 +319,7 @@ export default function LandingPage() {
                                   className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
                                 >
                                   <img 
-                                    src={service.image} 
+                                    src={service.imageUrl || service.images?.[0]?.url || "/placeholder.jpg"} 
                                     alt={service.name}
                                     className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
                                   />
@@ -310,7 +332,7 @@ export default function LandingPage() {
                                     </p>
                                   </div>
                                   <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
-                                    {service.price}
+                                    ₹{service.price}
                                   </span>
                                 </button>
                               ))}
