@@ -8,8 +8,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
-import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc } from "firebase/firestore";
+import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import emailjs from '@emailjs/browser';
+import { usePathname } from 'next/navigation';
 
 // Initialize EmailJS with your public key
 emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
@@ -23,14 +24,45 @@ interface ProviderApplication {
   servicePincodes: { pincode: string }[];
   applicationDate: string;
   status: string;
+  cloudinaryData?: {
+    public_id: string;
+    secure_url: string;
+  };
 }
 
 const ITEMS_PER_PAGE = 10;
+
+// Add this helper function for Cloudinary deletion
+const deleteFromCloudinary = async (publicId: string) => {
+  try {
+    const response = await fetch('/api/cloudinary/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ publicId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete image from Cloudinary');
+    }
+  } catch (error) {
+    console.error('Error deleting from Cloudinary:', error);
+    throw error;
+  }
+};
+
+// Add this helper function to construct Cloudinary URL
+const getCloudinaryUrl = (path: string) => {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${path}`;
+};
 
 export default function ProviderApplicationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [applications, setApplications] = useState<ProviderApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -45,10 +77,16 @@ export default function ProviderApplicationsPage() {
         querySnapshot.forEach((doc) => {
           apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
         });
-        
+
+        // No need to upload images - they're already in Cloudinary
         setApplications(apps);
       } catch (error) {
         console.error('Error fetching applications:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch applications",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -56,6 +94,27 @@ export default function ProviderApplicationsPage() {
 
     fetchApplications();
   }, []);
+
+  useEffect(() => {
+    // Add structured data for the page
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Provider Applications Management',
+      description: 'Manage and review service provider applications',
+      url: `https://dudhkela.com${pathname}`,
+    };
+
+    // Add structured data to the page
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [pathname]);
 
   const handleApplicationReview = async (
     applicationId: string,
@@ -82,7 +141,7 @@ export default function ProviderApplicationsPage() {
         reviewedBy: currentUser.uid
       });
 
-      // Update user role if approved
+      // Update user document based on status
       if (status === 'approved') {
         await updateDoc(doc(db, 'users', applicationId), {
           role: 'provider',
@@ -128,9 +187,15 @@ export default function ProviderApplicationsPage() {
           }
         }
       } else {
+        // For rejected applications, immediately allow reapplication
         await updateDoc(doc(db, 'users', applicationId), {
-          applicationStatus: 'rejected'
+          applicationStatus: 'rejected',
+          canReapply: true,
+          rejectionDate: new Date()
         });
+
+        // Delete the application document to allow for reapplication
+        await deleteDoc(doc(db, 'provider-applications', applicationId));
       }
 
       toast({
@@ -170,6 +235,15 @@ export default function ProviderApplicationsPage() {
 
   const paginatedApplications = getPaginatedData(applications, currentPage);
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -192,11 +266,27 @@ export default function ProviderApplicationsPage() {
               <div key={application.userId} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-start gap-4">
                   {/* Provider Image */}
-                  <img 
-                    src={`https://res.cloudinary.com/service_providers/image/upload/${application.photo}`}
-                    alt={application.userName}
-                    className="w-16 h-16 rounded-full object-cover border border-black/10 dark:border-white/10"
-                  />
+                  {application.photo ? (
+                    <img 
+                      src={getCloudinaryUrl(application.photo)}
+                      alt={application.userName}
+                      className="w-16 h-16 rounded-full object-cover border border-black/10 dark:border-white/10"
+                      onError={(e) => {
+                        e.currentTarget.src = '';
+                        e.currentTarget.classList.add('initial-avatar');
+                        e.currentTarget.insertAdjacentHTML(
+                          'beforeend',
+                          `<div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-lg">
+                            ${getInitials(application.userName)}
+                          </div>`
+                        );
+                      }}
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-lg">
+                      {getInitials(application.userName)}
+                    </div>
+                  )}
                   
                   {/* Provider Details */}
                   <div className="flex-1 min-w-0">

@@ -1,31 +1,20 @@
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dudhkela.netlify.app'),
+  metadataBase: new URL('https://dudhkela.com'),
   title: {
-    default: 'Helper Buddy - Professional Home Services & Maintenance',
-    template: '%s | Helper Buddy'
+    default: 'Dudh-Kela | Online Home Services',
+    template: '%s | Dudh-Kela'
   },
-  description: 'Book trusted home service professionals for cleaning, repairs, maintenance and more. Get verified experts for all your household needs with guaranteed satisfaction.',
-  keywords: [
-    'home services',
-    'house cleaning',
-    'appliance repair',
-    'plumbing services',
-    'electrical work',
-    'handyman services',
-    'AC repair',
-    'home maintenance',
-    'professional cleaners',
-    'local service providers'
-  ],
-  authors: [{ name: 'Helper Buddy' }],
-  creator: 'Helper Buddy',
-  publisher: 'Helper Buddy',
+  description: 'Best Home Services in your area. Find and book verified service professionals for all your home maintenance needs. Quality service guaranteed with real-time booking and support.',
+  keywords: ['home services', 'home maintenance', 'professional services', 'verified professionals', 'Dudh-Kela'],
+  authors: [{ name: 'Dudh-Kela Team' }],
+  creator: 'Dudh-Kela',
+  publisher: 'Dudh-Kela',
   formatDetection: {
     email: false,
     address: false,
@@ -39,8 +28,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    siteName: 'Helper Buddy',
-    title: 'Helper Buddy - Your Trusted Partner for Professional Home Services',
+    siteName: 'Dudh-Kela',
+    title: 'Dudh-Kela - Your Trusted Partner for Professional Home Services',
     description: 'Find and book verified service professionals for all your home maintenance needs. Quality service guaranteed with real-time booking and support.',
     url: 'https://dudhkela.netlify.app',
     locale: 'en_US',
@@ -49,16 +38,16 @@ export const metadata: Metadata = {
         url: '/images/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Helper Buddy - Professional Home Services',
+        alt: 'Dudh-Kela - Professional Home Services',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Helper Buddy - Professional Home Services',
+    title: 'Dudh-Kela - Professional Home Services',
     description: 'Book trusted home service professionals for all your household needs',
-    site: '@helperbuddy',
-    creator: '@helperbuddy',
+    site: '@dudhkela',
+    creator: '@dudhkela',
     images: ['/images/twitter-image.jpg'],
   },
   robots: {

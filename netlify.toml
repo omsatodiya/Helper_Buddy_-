@@ -12,7 +12,6 @@
   for = "/sitemap.xml"
   [headers.values]
     Content-Type = "application/xml"
-    X-Robots-Tag = "all"
     Cache-Control = "public, max-age=3600"
 
 [[headers]]
@@ -29,6 +28,7 @@
 # Ensure static files from public directory are copied to the publish directory
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
+  NEXT_PRIVATE_TARGET = "server"
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
   NETLIFY_NEXT_PLUGIN_SKIP = "true"
@@ -42,7 +42,6 @@
 # Remove redirects as we're serving directly from public directory 
 
 [[redirects]]
-  from = "/sitemap.xml"
-  to = "/.netlify/functions/next_api_sitemap_xml"
-  status = 200
-  force = true 
+  from = "/*"
+  to = "/.netlify/functions/next/:splat"
+  status = 200 
