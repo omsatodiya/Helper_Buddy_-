@@ -2,12 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
+@layer base {
+  * {
     margin: 0;
     padding: 0;
-    ::-webkit-scrollbar {
-        display: none;
-    }
+  }
+  
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }
 
 @font-face {
@@ -105,9 +113,6 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
 }
 
 @keyframes shake {
@@ -197,21 +202,21 @@
   }
 }
 
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #2C786C #f3f4f6;
+/* Add these styles for the carousel */
+.carousel-item {
+  transition: transform 0.3s ease;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+.carousel-item:hover {
+  transform: translateY(-4px);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  border-radius: 3px;
+/* Optional: Add custom scrollbar styles */
+.carousel-content::-webkit-scrollbar {
+  display: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #2C786C;
-  border-radius: 3px;
+.carousel-content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
