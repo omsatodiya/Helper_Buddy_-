@@ -28,6 +28,15 @@ const ALL_SERVICES = [
   { id: 8, name: "Electrical Repair", category: "Electrical", price: "from ₹299", image: "https://picsum.photos/200/300" },
 ];
 
+// Update the placeholder texts to only include the varying part
+const PLACEHOLDER_TEXTS = [
+  "services...",
+  "AC service...",
+  "cleaning services...",
+  "plumbing work...",
+  "electrical repairs..."
+];
+
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +46,10 @@ export default function LandingPage() {
   const subHeadingsRef = useRef<HTMLDivElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
+  const [placeholderText, setPlaceholderText] = useState(PLACEHOLDER_TEXTS[0]);
+  const currentTextIndex = useRef(0);
+  const currentCharIndex = useRef(0);
+  const isDeleting = useRef(false);
 
   // Initial page load animations
   useEffect(() => {
@@ -78,6 +91,42 @@ export default function LandingPage() {
         "-=0.4"
       );
     }
+  }, []);
+
+  // Add this useEffect for the typewriter animation
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+
+    const typeWriter = () => {
+      const currentText = PLACEHOLDER_TEXTS[currentTextIndex.current];
+      
+      if (isDeleting.current) {
+        setPlaceholderText(currentText.substring(0, currentCharIndex.current - 1));
+        currentCharIndex.current -= 1;
+
+        if (currentCharIndex.current === 0) {
+          isDeleting.current = false;
+          currentTextIndex.current = (currentTextIndex.current + 1) % PLACEHOLDER_TEXTS.length;
+        }
+      } else {
+        setPlaceholderText(currentText.substring(0, currentCharIndex.current + 1));
+        currentCharIndex.current += 1;
+
+        if (currentCharIndex.current === currentText.length) {
+          isDeleting.current = true;
+          timeout = setTimeout(typeWriter, 2000); // Pause at the end of typing
+          return;
+        }
+      }
+
+      // Adjust typing speed
+      const speed = isDeleting.current ? 50 : 100;
+      timeout = setTimeout(typeWriter, speed);
+    };
+
+    timeout = setTimeout(typeWriter, 1000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   // Handle search focus and scroll
@@ -162,7 +211,7 @@ export default function LandingPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={handleSearchFocus}
-                placeholder="Search for services..."
+                placeholder={`Search for ${placeholderText}`}
                 className="w-full px-6 py-4 bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-[#2C786C]/30 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:border-[#2C786C] transition-colors text-xl"
               />
 

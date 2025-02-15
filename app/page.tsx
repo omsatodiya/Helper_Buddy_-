@@ -23,8 +23,7 @@ import {
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
 import ScrollVelocity from "@/components/ui/scroll-velocity";
-import { ServiceCarousel } from '@/components/landing/ServiceCarousel';
-import { mockAcServices, mockCleaningServices } from '@/components/landing/data/mockServices';
+
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -35,8 +34,7 @@ export default function Home() {
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [acServices, setAcServices] = useState(mockAcServices);
-  const [cleaningServices, setCleaningServices] = useState(mockCleaningServices);
+
 
   useEffect(() => {
     const handleStart = () => {
@@ -148,17 +146,6 @@ export default function Home() {
             <ServiceFilters />
           </div>
 
-          {/* AC & Appliances Services */}
-          <ServiceCarousel
-            title="AC & Appliances"
-            services={mockAcServices}
-          />
-
-          {/* Cleaning Services */}
-          <ServiceCarousel
-            title="Cleaning Services"
-            services={mockCleaningServices}
-          />
 
           {/* Testimonials */}
           <Testimonials />
