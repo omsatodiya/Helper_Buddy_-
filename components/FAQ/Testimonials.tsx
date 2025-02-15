@@ -173,12 +173,12 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
             Read trusted reviews from our happy customers
           </p>
           
-          
+        
         </div>
 
         <div 
           ref={carouselWrapperRef}
-          className="relative w-screen  h-64"
+          className="relative w-full overflow-hidden h-64"
         >
           <div 
             ref={carouselRef}
