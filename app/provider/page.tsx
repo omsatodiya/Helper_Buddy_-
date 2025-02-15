@@ -1,27 +1,49 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Shield, MapPin, Upload, ArrowLeft, Users, Calendar, Star, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { auth } from '@/lib/firebase';
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import {
+  Shield,
+  MapPin,
+  Upload,
+  ArrowLeft,
+  Users,
+  Calendar,
+  Star,
+  Settings,
+  LogOut,
+  ChevronDown,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { auth } from "@/lib/firebase";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  onSnapshot,
+} from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { getCityFromPincode } from "@/lib/utils/pincode";
-import Link from 'next/link';
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOut } from 'firebase/auth';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import { signOut } from "firebase/auth";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,19 +54,66 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import emailjs from '@emailjs/browser';
+import emailjs from "@emailjs/browser";
+import { Badge } from "@/components/ui/badge";
 
 const AVAILABLE_SERVICES = [
-  "Hair Cutting",
-  "Hair Styling",
-  "Hair Coloring",
-  "Facial",
-  "Makeup",
-  "Manicure",
-  "Pedicure",
-  "Waxing",
-  "Threading",
-  "Massage",
+  "Ceiling Fan Cleaning",
+  "Glass Shelf Installation",
+  "Exhaust Fan Cleaning",
+  "Gas Stove Cleaning",
+  "Kitchen Sink Cleaning",
+  "Fan Installation",
+  "Shower Filter Installation",
+  "Drawer Channel Replacement (One Set)",
+  "Microwave Cleaning",
+  "3 Ceiling Fan Cleaning",
+  "Fully Automatic Washing Machine Check Up (Top Load)",
+  "Window Hinge Installation (Upto 4)",
+  "Semi-Automatic Washing Machine Check Up",
+  "Fully Automatic Washing Machine Check Up (Front Load)",
+  "Cushions Cleaning",
+  "Switchbox Installation",
+  "Water Purifier Check Up",
+  "Single Door Refrigerator Check Up",
+  "Water Purifier Uninstallation",
+  "Water Purifier Filter Check Up",
+  "Double Door Refrigerator Check Up (Inverter)",
+  "AC Repair",
+  "TV Installation",
+  "Ceiling Mounted Hanger Installation",
+  "Water Purifier Installation",
+  "Dining Table & Chairs Cleaning",
+  "Utensil Removal and Placing Back",
+  "Washing Machine Installation",
+  "Balcony Cleaning",
+  "Washing Machine Uninstallation",
+  "Double Door Refrigerator Check Up (Non-Inverter)",
+  "Classic Bathroom Cleaning",
+  "Geyser Installation",
+  "Carpet Cleaning",
+  "Intense Bathroom Cleaning",
+  "Power Saver AC Service",
+  "AC Uninstallation",
+  "Side By Side Door Refrigerator Check Up",
+  "Lite AC Service",
+  "Fridge Cleaning",
+  "Classic Cleaning (2 Bathrooms)",
+  "Anti-Rust Deep Clean AC Service",
+  "Chimney Cleaning",
+  "Trolley & Shelves Cleaning",
+  "Intense Cleaning (2 Bathrooms)",
+  "Overhead Tank Cleaning (Open Placed)",
+  "AC Installation",
+  "Classic Cleaning (3 Bathrooms)",
+  "Intense Cleaning (3 Bathroom)",
+  "Normal Kitchen Cleaning",
+  "Underground Tank Cleaning",
+  "Toilet Pot Blockage Removal",
+  "AC Gas Leak Fix and Refill",
+  "Complete Kitchen Cleaning",
+  "Sofa and Cushions Cleaning",
+  "Other", // Added Other option
 ];
 
 interface ProviderData {
@@ -69,46 +138,52 @@ interface ServiceRequest {
     quantity: number;
     price: number;
   }[];
-  status: 'pending' | 'accepted' | 'rejected';
+  status: "pending" | "accepted" | "rejected" | "completed";
   createdAt: Date;
+  completedAt?: Date;
 }
 
 export default function ProviderDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [providerData, setProviderData] = useState<ProviderData>({
-    photo: '',
+    photo: "",
     servicePincodes: [],
-    services: []
+    services: [],
   });
-  const [pincodeInput, setPincodeInput] = useState('');
+  const [pincodeInput, setPincodeInput] = useState("");
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [acceptedRequests, setAcceptedRequests] = useState<ServiceRequest[]>(
+    []
+  );
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
 
       try {
         const db = getFirestore();
-        const providerDoc = await getDoc(doc(db, 'provider-applications', user.uid));
-        
+        const providerDoc = await getDoc(
+          doc(db, "provider-applications", user.uid)
+        );
+
         if (providerDoc.exists()) {
           const data = providerDoc.data();
           setProviderData({
-            photo: data.photo || '',
+            photo: data.photo || "",
             servicePincodes: data.servicePincodes || [],
-            services: data.services || []
+            services: data.services || [],
           });
         }
       } catch (error) {
-        console.error('Error fetching provider data:', error);
+        console.error("Error fetching provider data:", error);
         toast({
           title: "Error",
           description: "Failed to load provider data",
@@ -123,10 +198,10 @@ export default function ProviderDashboard() {
   }, [router, toast]);
 
   const handlePincodeAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       const pincode = pincodeInput.trim();
-      
+
       if (!pincode || !/^\d{6}$/.test(pincode)) {
         toast({
           title: "Invalid Pincode",
@@ -136,7 +211,7 @@ export default function ProviderDashboard() {
         return;
       }
 
-      if (providerData.servicePincodes.some(p => p.pincode === pincode)) {
+      if (providerData.servicePincodes.some((p) => p.pincode === pincode)) {
         toast({
           title: "Duplicate Pincode",
           description: "This pincode has already been added",
@@ -157,15 +232,18 @@ export default function ProviderDashboard() {
           return;
         }
 
-        setProviderData(prev => ({
+        setProviderData((prev) => ({
           ...prev,
-          servicePincodes: [...prev.servicePincodes, {
-            pincode,
-            city: data.city,
-            state: data.state
-          }]
+          servicePincodes: [
+            ...prev.servicePincodes,
+            {
+              pincode,
+              city: data.city,
+              state: data.state,
+            },
+          ],
         }));
-        setPincodeInput('');
+        setPincodeInput("");
       } catch (error) {
         toast({
           title: "Error",
@@ -179,11 +257,11 @@ export default function ProviderDashboard() {
   };
 
   const handleServiceToggle = (service: string) => {
-    setProviderData(prev => ({
+    setProviderData((prev) => ({
       ...prev,
       services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
+        ? prev.services.filter((s) => s !== service)
+        : [...prev.services, service],
     }));
   };
 
@@ -195,14 +273,15 @@ export default function ProviderDashboard() {
         description: "Please log in to save changes.",
         variant: "destructive",
       });
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
     if (providerData.servicePincodes.length === 0) {
       toast({
         title: "Service area required",
-        description: "Please add at least one pincode where you can provide services",
+        description:
+          "Please add at least one pincode where you can provide services",
         variant: "destructive",
       });
       return;
@@ -225,11 +304,11 @@ export default function ProviderDashboard() {
     setIsSaving(true);
     try {
       const db = getFirestore();
-      
-      await updateDoc(doc(db, 'provider-applications', auth.currentUser!.uid), {
+
+      await updateDoc(doc(db, "provider-applications", auth.currentUser!.uid), {
         servicePincodes: providerData.servicePincodes,
         services: providerData.services,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       toast({
@@ -237,9 +316,9 @@ export default function ProviderDashboard() {
         description: "Your provider profile has been updated successfully.",
       });
 
-      router.push('/');
+      router.push("/");
     } catch (error) {
-      console.error('Error saving changes:', error);
+      console.error("Error saving changes:", error);
       toast({
         title: "Error",
         description: "Failed to save changes. Please try again.",
@@ -253,45 +332,40 @@ export default function ProviderDashboard() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      router.push('/auth/login');
+      router.push("/auth/login");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
+  const handleRequestAction = async (
+    requestId: string,
+    action: "accept" | "reject"
+  ) => {
     try {
       const db = getFirestore();
-      await updateDoc(doc(db, 'serviceRequests', requestId), {
-        status: action === 'accept' ? 'accepted' : 'rejected',
-        updatedAt: new Date()
+      const request = serviceRequests.find((r) => r.id === requestId);
+
+      if (!request) {
+        throw new Error("Request not found");
+      }
+
+      const statusMap = {
+        accept: "accepted",
+        reject: "rejected",
+      } as const;
+
+      await updateDoc(doc(db, "serviceRequests", requestId), {
+        status: statusMap[action],
+        providerName: auth.currentUser?.displayName || "Service Provider",
+        providerId: auth.currentUser?.uid,
+        updatedAt: new Date(),
       });
 
-      await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_REQUEST_NOTIFICATION_ID!,
-        {
-          to_email: serviceRequests.find(r => r.id === requestId)?.customerEmail,
-          customer_name: serviceRequests.find(r => r.id === requestId)?.customerName,
-          provider_name: auth.currentUser?.displayName,
-          status: action === 'accept' ? 'accepted' : 'rejected',
-          service_details: serviceRequests.find(r => r.id === requestId)?.items
-            .map(item => `${item.name} (Quantity: ${item.quantity})`)
-            .join('\n')
-        }
-      );
-
-      setServiceRequests(prev => 
-        prev.map(request => 
-          request.id === requestId 
-            ? { ...request, status: action === 'accept' ? 'accepted' : 'rejected' }
-            : request
-        )
-      );
-
       toast({
-        title: `Request ${action === 'accept' ? 'Accepted' : 'Rejected'}`,
-        description: `You have ${action === 'accept' ? 'accepted' : 'rejected'} the service request.`,
+        title: action === "accept" ? "Request Accepted" : "Request Rejected",
+        description: `You have ${action}ed the service request`,
+        variant: action === "accept" ? "default" : "destructive",
       });
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
@@ -303,34 +377,91 @@ export default function ProviderDashboard() {
     }
   };
 
+  const handleServiceCompletion = async (requestId: string) => {
+    try {
+      const db = getFirestore();
+      await updateDoc(doc(db, "serviceRequests", requestId), {
+        status: "completed",
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      toast({
+        title: "Service Marked as Completed",
+        description: "The service request has been marked as completed.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error marking service as completed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark service as completed. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) return;
+    if (!auth.currentUser) return;
 
-      try {
-        const db = getFirestore();
-        const requestsRef = collection(db, 'serviceRequests');
-        const q = query(
-          requestsRef,
-          where('providerId', '==', user.uid),
-          where('status', '==', 'pending')
-        );
-        
-        const snapshot = await getDocs(q);
-        const requests: ServiceRequest[] = [];
-        
-        snapshot.forEach(doc => {
-          requests.push({ id: doc.id, ...doc.data() } as ServiceRequest);
-        });
-        
+    const db = getFirestore();
+    const providerDoc = doc(db, "providers", auth.currentUser.uid);
+
+    getDoc(providerDoc).then((doc) => {
+      const providerPincodes =
+        doc.data()?.servicePincodes?.map((p: any) => p.pincode) || [];
+      const requestsRef = collection(db, "serviceRequests");
+
+      // Create queries for both pending and accepted requests
+      const pendingQuery = query(
+        requestsRef,
+        where("status", "==", "pending"),
+        where("customerPincode", "in", providerPincodes)
+      );
+
+      const acceptedQuery = query(
+        requestsRef,
+        where("status", "==", "accepted"),
+        where("providerId", "==", auth.currentUser!.uid)
+      );
+
+      // Set up listeners for both queries
+      const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
+        const requests: ServiceRequest[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          customerName: doc.data().customerName,
+          customerEmail: doc.data().customerEmail,
+          customerAddress: doc.data().customerAddress,
+          customerPincode: doc.data().customerPincode,
+          customerCity: doc.data().customerCity,
+          items: doc.data().items,
+          status: doc.data().status,
+          createdAt: doc.data().createdAt.toDate(),
+        }));
         setServiceRequests(requests);
-      } catch (error) {
-        console.error('Error fetching service requests:', error);
-      }
-    });
+      });
 
-    return () => unsubscribe();
-  }, []);
+      const unsubscribeAccepted = onSnapshot(acceptedQuery, (snapshot) => {
+        const requests: ServiceRequest[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          customerName: doc.data().customerName,
+          customerEmail: doc.data().customerEmail,
+          customerAddress: doc.data().customerAddress,
+          customerPincode: doc.data().customerPincode,
+          customerCity: doc.data().customerCity,
+          items: doc.data().items,
+          status: doc.data().status,
+          createdAt: doc.data().createdAt.toDate(),
+        }));
+        setAcceptedRequests(requests);
+      });
+
+      return () => {
+        unsubscribePending();
+        unsubscribeAccepted();
+      };
+    });
+  }, [auth.currentUser]);
 
   if (isLoading) {
     return (
@@ -354,7 +485,9 @@ export default function ProviderDashboard() {
                   <Calendar className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">Today's Bookings</p>
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    Today's Bookings
+                  </p>
                   <p className="text-2xl font-semibold">0</p>
                 </div>
               </div>
@@ -365,7 +498,9 @@ export default function ProviderDashboard() {
                   <Users className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">Total Customers</p>
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    Total Customers
+                  </p>
                   <p className="text-2xl font-semibold">0</p>
                 </div>
               </div>
@@ -376,7 +511,9 @@ export default function ProviderDashboard() {
                   <Star className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">Average Rating</p>
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    Average Rating
+                  </p>
                   <p className="text-2xl font-semibold">0.0</p>
                 </div>
               </div>
@@ -387,15 +524,19 @@ export default function ProviderDashboard() {
                   <Shield className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">Service Areas</p>
-                  <p className="text-2xl font-semibold">{providerData.servicePincodes.length}</p>
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    Service Areas
+                  </p>
+                  <p className="text-2xl font-semibold">
+                    {providerData.servicePincodes.length}
+                  </p>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Service Requests */}
-          <Card className="border border-black/10 dark:border-white/10 mt-8">
+          <Card className="border border-black/10 dark:border-white/10 my-8">
             <div className="p-6 border-b border-black/10 dark:border-white/10">
               <h3 className="text-lg font-semibold">Service Requests</h3>
               <p className="text-sm text-black/60 dark:text-white/60 mt-1">
@@ -411,28 +552,35 @@ export default function ProviderDashboard() {
               ) : (
                 <div className="space-y-4">
                   {serviceRequests.map((request) => (
-                    <div 
+                    <div
                       key={request.id}
                       className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h4 className="font-medium">{request.customerName}</h4>
+                          <h4 className="font-medium">
+                            {request.customerName}
+                          </h4>
                           <p className="text-sm text-black/60 dark:text-white/60">
-                            {request.customerAddress}, {request.customerCity} - {request.customerPincode}
+                            {request.customerAddress}, {request.customerCity} -{" "}
+                            {request.customerPincode}
                           </p>
                         </div>
                         <div className="flex gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleRequestAction(request.id, 'reject')}
+                            onClick={() =>
+                              handleRequestAction(request.id, "reject")
+                            }
                           >
                             Reject
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => handleRequestAction(request.id, 'accept')}
+                            onClick={() =>
+                              handleRequestAction(request.id, "accept")
+                            }
                           >
                             Accept
                           </Button>
@@ -440,15 +588,99 @@ export default function ProviderDashboard() {
                       </div>
                       <div className="space-y-1">
                         {request.items.map((item, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span>{item.name} × {item.quantity}</span>
+                          <div
+                            key={index}
+                            className="flex justify-between text-sm"
+                          >
+                            <span>
+                              {item.name} × {item.quantity}
+                            </span>
                             <span>₹{item.price * item.quantity}</span>
                           </div>
                         ))}
                         <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
                           <span>Total</span>
-                          <span>₹{request.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</span>
+                          <span>
+                            ₹
+                            {request.items.reduce(
+                              (sum, item) => sum + item.price * item.quantity,
+                              0
+                            )}
+                          </span>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Accepted Requests */}
+          <Card className="border border-black/10 dark:border-white/10 my-8">
+            <div className="p-6 border-b border-black/10 dark:border-white/10">
+              <h3 className="text-lg font-semibold">Accepted Requests</h3>
+              <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+                View and manage your accepted service requests
+              </p>
+            </div>
+
+            <div className="p-6">
+              {acceptedRequests.length === 0 ? (
+                <p className="text-center text-black/60 dark:text-white/60">
+                  No accepted service requests
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {acceptedRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-medium">
+                            {request.customerName}
+                          </h4>
+                          <p className="text-sm text-black/60 dark:text-white/60">
+                            {request.customerAddress}, {request.customerCity} -{" "}
+                            {request.customerPincode}
+                          </p>
+                        </div>
+                        <Badge className="bg-blue-500/10 text-blue-500">
+                          Accepted
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        {request.items.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between text-sm"
+                          >
+                            <span>
+                              {item.name} × {item.quantity}
+                            </span>
+                            <span>₹{item.price * item.quantity}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                          <span>Total</span>
+                          <span>
+                            ₹
+                            {request.items.reduce(
+                              (sum, item) => sum + item.price * item.quantity,
+                              0
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <Button
+                          onClick={() => handleServiceCompletion(request.id)}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600"
+                        >
+                          Mark Service as Completed
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -467,19 +699,20 @@ export default function ProviderDashboard() {
             </div>
 
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Service Areas */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Service Areas Column */}
                 <div>
                   <Label className="text-sm mb-2 block">Service Areas</Label>
                   <Input
                     value={pincodeInput}
                     onChange={(e) => setPincodeInput(e.target.value)}
                     onKeyDown={handlePincodeAdd}
-                    placeholder="Enter pincode and press Enter"
+                    placeholder="Enter pincode"
                     maxLength={6}
                     disabled={isValidatingPincode}
+                    className="w-48 mb-4"
                   />
-                  <div className="flex flex-wrap gap-2 mt-4">
+                  <div className="flex flex-wrap gap-2">
                     {providerData.servicePincodes.map(({ pincode, city }) => (
                       <div
                         key={pincode}
@@ -487,12 +720,20 @@ export default function ProviderDashboard() {
                       >
                         <MapPin className="w-4 h-4" />
                         <span>{pincode}</span>
-                        {city && <span className="text-black/60 dark:text-white/60">({city})</span>}
+                        {city && (
+                          <span className="text-black/60 dark:text-white/60">
+                            ({city})
+                          </span>
+                        )}
                         <button
-                          onClick={() => setProviderData(prev => ({
-                            ...prev,
-                            servicePincodes: prev.servicePincodes.filter(p => p.pincode !== pincode)
-                          }))}
+                          onClick={() =>
+                            setProviderData((prev) => ({
+                              ...prev,
+                              servicePincodes: prev.servicePincodes.filter(
+                                (p) => p.pincode !== pincode
+                              ),
+                            }))
+                          }
                           className="hover:text-black dark:hover:text-white ml-1"
                         >
                           ×
@@ -502,22 +743,63 @@ export default function ProviderDashboard() {
                   </div>
                 </div>
 
-                {/* Services */}
+                {/* Selected Services Column */}
                 <div>
-                  <Label className="text-sm mb-2 block">Your Services</Label>
-                  <div className="space-y-2">
-                    {AVAILABLE_SERVICES.map((service) => (
-                      <div key={service} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={service}
-                          checked={providerData.services.includes(service)}
-                          onCheckedChange={() => handleServiceToggle(service)}
-                        />
-                        <label htmlFor={service} className="text-sm">
-                          {service}
-                        </label>
+                  <Label className="text-sm mb-2 block">
+                    Selected Services ({providerData.services.length})
+                  </Label>
+                  <div className="h-[400px] overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-4">
+                    {providerData.services.length === 0 ? (
+                      <p className="text-sm text-black/60 dark:text-white/60">
+                        No services selected yet
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {providerData.services.map((service) => (
+                          <div
+                            key={service}
+                            className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-black"
+                          >
+                            <span className="text-sm">{service}</span>
+                            <button
+                              onClick={() => handleServiceToggle(service)}
+                              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+                  </div>
+                </div>
+
+                {/* Available Services Column */}
+                <div>
+                  <Label className="text-sm mb-2 block">
+                    Available Services
+                  </Label>
+                  <div className="h-[400px] overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-4">
+                    <div className="space-y-2">
+                      {AVAILABLE_SERVICES.map((service) => (
+                        <div
+                          key={service}
+                          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        >
+                          <Checkbox
+                            id={service}
+                            checked={providerData.services.includes(service)}
+                            onCheckedChange={() => handleServiceToggle(service)}
+                          />
+                          <label
+                            htmlFor={service}
+                            className="text-sm flex-1 cursor-pointer"
+                          >
+                            {service}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -527,7 +809,7 @@ export default function ProviderDashboard() {
                 disabled={isSaving}
                 className="w-full mt-8 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
               >
-                {isSaving ? 'Saving Changes...' : 'Save Changes'}
+                {isSaving ? "Saving Changes..." : "Save Changes"}
               </Button>
             </div>
           </Card>
@@ -541,7 +823,8 @@ export default function ProviderDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Save Changes</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to save these changes? This action cannot be undone.
+              Are you sure you want to save these changes? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -554,4 +837,4 @@ export default function ProviderDashboard() {
       </AlertDialog>
     </div>
   );
-} 
+}

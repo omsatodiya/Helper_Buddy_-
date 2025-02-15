@@ -18,9 +18,18 @@ import {
 } from "@/lib/firebase/cart";
 import { getAddresses } from "@/lib/firebase/address";
 import { CartItem } from "@/types/cart";
-import { sendProviderNotifications } from '@/lib/email';
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { sendProviderNotifications } from "@/lib/email";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 interface Address {
   id: string;
@@ -70,6 +79,7 @@ export default function CartPage() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const router = useRouter();
 
   // Fetch cart items
   const fetchCartItems = async () => {
@@ -261,10 +271,10 @@ export default function CartPage() {
 
     try {
       setIsSendingEmails(true);
-      
-      const providersRef = collection(db, 'providers');
+
+      const providersRef = collection(db, "providers");
       const providersSnapshot = await getDocs(providersRef);
-      
+
       // Find all providers with matching pincode
       const providers: ServiceProvider[] = [];
       providersSnapshot.forEach((doc) => {
@@ -272,7 +282,7 @@ export default function CartPage() {
         const hasMatchingPincode = data.servicePincodes?.some(
           (p: any) => p.pincode === selectedAddress.pincode
         );
-        
+
         if (hasMatchingPincode) {
           providers.push({ id: doc.id, ...data } as ServiceProvider);
         }
@@ -281,56 +291,175 @@ export default function CartPage() {
       if (providers.length === 0) {
         toast({
           title: "No Providers Found",
-          description: "Currently there are no service providers in your pincode area.",
+          description:
+            "Currently there are no service providers in your pincode area.",
           variant: "destructive",
         });
         return;
       }
 
       // Create service requests for each provider
-      await Promise.all(providers.map(async (provider) => {
-        // Create service request document
-        const requestRef = doc(collection(db, 'serviceRequests'));
-        await setDoc(requestRef, {
-          id: requestRef.id,
-          providerId: provider.id,
-          customerName: user.displayName,
-          customerEmail: user.email,
-          customerAddress: selectedAddress.address,
-          customerPincode: selectedAddress.pincode,
-          customerCity: selectedAddress.city,
-          items: cartItems,
-          status: 'pending',
-          createdAt: new Date(),
-        });
+      await Promise.all(
+        providers.map(async (provider) => {
+          // Create service request document
+          const requestRef = doc(collection(db, "serviceRequests"));
+          await setDoc(requestRef, {
+            id: requestRef.id,
+            providerId: provider.id,
+            customerName: user.displayName,
+            customerEmail: user.email,
+            customerAddress: selectedAddress.address,
+            customerPincode: selectedAddress.pincode,
+            customerCity: selectedAddress.city,
+            items: cartItems,
+            status: "pending",
+            createdAt: new Date(),
+          });
 
-        // Send email notification
-        return sendProviderNotifications({
-          providerEmail: provider.email,
-          providerName: provider.name,
-          customerName: user.displayName || 'Customer',
-          customerEmail: user.email || '',
-          customerAddress: selectedAddress.address,
-          customerPincode: selectedAddress.pincode,
-          customerCity: selectedAddress.city,
-          items: cartItems.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
-          }))
-        });
-      }));
+          // Send email notification
+          return sendProviderNotifications({
+            providerEmail: provider.email,
+            providerName: provider.name,
+            customerName: user.displayName || "Customer",
+            customerEmail: user.email || "",
+            customerAddress: selectedAddress.address,
+            customerPincode: selectedAddress.pincode,
+            customerCity: selectedAddress.city,
+            items: cartItems.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          });
+        })
+      );
 
       toast({
         title: "Success",
         description: `Notified ${providers.length} service providers in your area.`,
       });
-
     } catch (error) {
-      console.error('Error notifying providers:', error);
+      console.error("Error notifying providers:", error);
       toast({
         title: "Error",
         description: "Failed to notify service providers. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmails(false);
+    }
+  };
+
+  const handleFindProvider = async () => {
+    if (!user || !selectedAddress) {
+      toast({
+        title: "Error",
+        description: "Please select a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSendingEmails(true);
+
+      // Find providers with matching pincode
+      const providersRef = collection(db, "providers");
+      const providersSnapshot = await getDocs(providersRef);
+      const providers: ServiceProvider[] = [];
+
+      providersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const hasMatchingPincode = data.servicePincodes?.some(
+          (p: any) => p.pincode === selectedAddress.pincode
+        );
+        if (hasMatchingPincode) {
+          providers.push({ id: doc.id, ...data } as ServiceProvider);
+        }
+      });
+
+      // Calculate total amount
+      const totalAmount = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      // Create main service request
+      const orderRef = doc(collection(db, "serviceRequests"));
+      const orderData = {
+        id: orderRef.id,
+        customerName: user.displayName || "Anonymous",
+        customerEmail: user.email,
+        customerAddress: selectedAddress.address,
+        customerPincode: selectedAddress.pincode,
+        customerCity: selectedAddress.city,
+        items: cartItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        status: "pending",
+        totalAmount,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        availableProviders: providers.map((p) => p.id),
+      };
+
+      // Save main request
+      await setDoc(orderRef, orderData);
+
+      // Create requests for providers
+      if (providers.length > 0) {
+        await Promise.all(
+          providers.map(async (provider) => {
+            const providerRequestRef = doc(
+              collection(db, "providers", provider.id, "serviceRequests")
+            );
+
+            await setDoc(providerRequestRef, {
+              ...orderData,
+              id: providerRequestRef.id,
+              mainRequestId: orderRef.id,
+              providerStatus: "pending",
+            });
+
+            // Send notification
+            await sendProviderNotifications({
+              providerEmail: provider.email,
+              providerName: provider.name,
+              customerName: user.displayName || "Customer",
+              customerEmail: user.email || "",
+              customerAddress: selectedAddress.address,
+              customerPincode: selectedAddress.pincode,
+              customerCity: selectedAddress.city,
+              items: cartItems,
+            });
+          })
+        );
+      } else {
+        toast({
+          title: "No Providers Found",
+          description:
+            "Currently there are no service providers in your pincode area.",
+          variant: "destructive",
+        });
+      }
+
+      // Clear cart
+      const cartRef = doc(db, "carts", user.uid);
+      await deleteDoc(cartRef);
+
+      toast({
+        title: "Success",
+        description: "Your service request has been submitted successfully",
+      });
+
+      router.push("/services/orders");
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit service request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -518,7 +647,7 @@ export default function CartPage() {
                 <CartSummary
                   items={cartItems}
                   isAddressSelected={!!selectedAddress}
-                  onNotifyProviders={handleNotifyProviders}
+                  onNotifyProviders={handleFindProvider}
                   isSendingEmails={isSendingEmails}
                 />
               </div>

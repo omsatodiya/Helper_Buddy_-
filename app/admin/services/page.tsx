@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
-import { getFirestore, getDocs, collection } from "firebase/firestore";
+import {
+  getFirestore,
+  getDocs,
+  collection,
+  getDoc,
+  doc,
+} from "firebase/firestore";
 import { Service, SimpleService } from "@/types/service";
+import { X } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,6 +23,7 @@ export default function ServicesPage() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [services, setServices] = useState<SimpleService[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,13 +41,16 @@ export default function ServicesPage() {
             name: data.name,
             description: data.description,
             price: data.price,
-            imageUrl: data.imageUrl || data.images?.[0]?.url || "/placeholder-service.jpg",
+            imageUrl:
+              data.imageUrl ||
+              data.images?.[0]?.url ||
+              "/placeholder-service.jpg",
             details: data.details || "",
             category: data.category || "uncategorized",
             rating: data.rating || 0,
             totalReviews: (data.reviews || []).length,
             createdAt: data.createdAt || new Date().toISOString(),
-            updatedAt: data.updatedAt || new Date().toISOString()
+            updatedAt: data.updatedAt || new Date().toISOString(),
           };
           return simpleService;
         });
@@ -60,37 +71,54 @@ export default function ServicesPage() {
     return data.slice(startIndex, endIndex);
   };
 
-  const paginatedServices = getPaginatedData(services, currentPage);
+  // Filter services based on search query
+  const filteredServices = useMemo(() => {
+    return services.filter(
+      (service) =>
+        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [services, searchQuery]);
 
-  const handleServiceDeleted = async () => {
-    setIsLoading(true);
+  // Use filtered services for pagination
+  const paginatedServices = getPaginatedData(filteredServices, currentPage);
+
+  const handleServiceClick = async (service: SimpleService) => {
     try {
       const db = getFirestore();
-      const servicesSnapshot = await getDocs(collection(db, "services"));
-      const servicesData = servicesSnapshot.docs.map((doc) => {
-        const data = doc.data() as Service;
-        const simpleService: SimpleService = {
-          id: doc.id,
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          imageUrl: data.imageUrl || data.images?.[0]?.url || "/placeholder-service.jpg",
-          details: data.details || "",
-          category: data.category || "uncategorized",
-          rating: data.rating || 0,
-          totalReviews: (data.reviews || []).length,
-          createdAt: data.createdAt || new Date().toISOString(),
-          updatedAt: data.updatedAt || new Date().toISOString()
+      const serviceDoc = await getDoc(doc(db, "services", service.id));
+
+      if (serviceDoc.exists()) {
+        const serviceData = serviceDoc.data();
+        const fullService: Service = {
+          id: service.id,
+          name: serviceData.name,
+          description: serviceData.description,
+          price: serviceData.price,
+          details: serviceData.details || "",
+          category: serviceData.category || "uncategorized",
+          rating: serviceData.rating || 0,
+          reviews: serviceData.reviews || [],
+          images: serviceData.images || [
+            {
+              url: service.imageUrl || "/placeholder-service.jpg",
+              alt: service.name,
+              isPrimary: true,
+            },
+          ],
+          provider: serviceData.provider || null,
+          features: serviceData.features || [],
+          faqs: serviceData.faqs || [],
+          createdAt: serviceData.createdAt,
+          updatedAt: serviceData.updatedAt,
+          serviceTime: serviceData.serviceTime || null,
         };
-        return simpleService;
-      });
-      setServices(servicesData);
+
+        setSelectedService(fullService);
+        setIsServiceModalOpen(true);
+      }
     } catch (error) {
-      console.error("Error fetching services:", error);
-    } finally {
-      setIsLoading(false);
-      setIsServiceModalOpen(false);
-      setSelectedService(null);
+      console.error("Error fetching service details:", error);
     }
   };
 
@@ -104,13 +132,43 @@ export default function ServicesPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Services Management
         </h2>
-        <Button
-          onClick={() => router.push("/services/add")}
-          className="w-full sm:w-auto bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-        >
-          Add New Service
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 px-4 py-1 rounded-md border border-gray-300 dark:border-gray-600 
+                       bg-white dark:bg-black text-gray-900 dark:text-white 
+                       focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button
+            onClick={() => router.push("/services/add")}
+            className="w-full sm:w-auto bg-black hover:bg-black/90 text-white 
+                     dark:bg-white dark:hover:bg-white/90 dark:text-black"
+          >
+            Add New Service
+          </Button>
+        </div>
       </div>
+
+      {/* Show "No results found" message when search yields no results */}
+      {filteredServices.length === 0 && searchQuery && (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          No services found matching "{searchQuery}"
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
         {paginatedServices.map((service) => (
           <ServiceCard
@@ -122,22 +180,23 @@ export default function ServicesPage() {
             rating={service.rating}
             totalRatings={service.totalReviews}
             imageUrl={service.imageUrl}
+            onClick={() => handleServiceClick(service)}
             onAddToCart={() => {}}
             onBuyNow={() => {}}
-            onClick={() => {
-              setSelectedService(service);
-              setIsServiceModalOpen(true);
-            }}
           />
         ))}
       </div>
+
+      {/* Update pagination to use filtered services length */}
       <Pagination
         currentPage={currentPage}
-        totalPages={Math.max(1, Math.ceil(services.length / ITEMS_PER_PAGE))}
+        totalPages={Math.max(
+          1,
+          Math.ceil(filteredServices.length / ITEMS_PER_PAGE)
+        )}
         onPageChange={setCurrentPage}
       />
 
-      {/* Service Modal */}
       {selectedService && (
         <ServiceModal
           isOpen={isServiceModalOpen}
@@ -147,39 +206,28 @@ export default function ServicesPage() {
           }}
           service={selectedService}
           isAdminView={true}
-          onServiceDeleted={handleServiceDeleted}
+          onServiceDeleted={async () => {
+            // Refresh services list after deletion
+            const db = getFirestore();
+            const servicesSnapshot = await getDocs(collection(db, "services"));
+            const servicesData = servicesSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as SimpleService[];
+            setServices(servicesData);
+          }}
           onServiceUpdated={async (updatedService) => {
-            setIsLoading(true);
-            try {
-              const db = getFirestore();
-              const servicesSnapshot = await getDocs(collection(db, "services"));
-              const servicesData = servicesSnapshot.docs.map((doc) => {
-                const data = doc.data() as Service;
-                const simpleService: SimpleService = {
-                  id: doc.id,
-                  name: data.name,
-                  description: data.description,
-                  price: data.price,
-                  imageUrl: data.imageUrl || data.images?.[0]?.url || "/placeholder-service.jpg",
-                  details: data.details || "",
-                  category: data.category || "uncategorized",
-                  rating: data.rating || 0,
-                  totalReviews: (data.reviews || []).length,
-                  createdAt: data.createdAt || new Date().toISOString(),
-                  updatedAt: data.updatedAt || new Date().toISOString()
-                };
-                return simpleService;
-              });
-              setServices(servicesData);
-            } catch (error) {
-              console.error("Error fetching services:", error);
-            } finally {
-              setIsLoading(false);
-              setSelectedService(updatedService);
-            }
+            // Refresh services list after update
+            const db = getFirestore();
+            const servicesSnapshot = await getDocs(collection(db, "services"));
+            const servicesData = servicesSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as SimpleService[];
+            setServices(servicesData);
           }}
         />
       )}
     </div>
   );
-} 
+}

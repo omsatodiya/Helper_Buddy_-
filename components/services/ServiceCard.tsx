@@ -52,6 +52,8 @@ const ServiceCard = memo(
     const { toast } = useToast();
     const [quantity, setQuantity] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [localRating, setLocalRating] = useState(rating);
+    const [localTotalRatings, setLocalTotalRatings] = useState(totalRatings);
 
     console.log("ServiceCard received imageUrl:", imageUrl);
 
@@ -79,6 +81,29 @@ const ServiceCard = memo(
 
       return () => unsubscribe();
     }, [user, id]);
+
+    // Calculate average rating
+    const calculateAverageRating = (reviews: any[] = []) => {
+      if (reviews.length === 0) return 0;
+      const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+      return Number((sum / reviews.length).toFixed(1));
+    };
+
+    // Listen for service updates
+    useEffect(() => {
+      const serviceRef = doc(db, "services", id);
+      const unsubscribe = onSnapshot(serviceRef, (doc) => {
+        if (doc.exists()) {
+          const serviceData = doc.data();
+          const reviews = serviceData.reviews || [];
+          const avgRating = calculateAverageRating(reviews);
+          setLocalRating(avgRating);
+          setLocalTotalRatings(reviews.length);
+        }
+      });
+
+      return () => unsubscribe();
+    }, [id]);
 
     const handleAddToCart = useCallback(
       async (e: React.MouseEvent) => {
@@ -229,6 +254,35 @@ const ServiceCard = memo(
       handleUpdateQuantity(newQuantity);
     };
 
+    // Update the rating display section
+    const renderRating = () => (
+      <div className="flex items-center">
+        {localRating > 0 ? (
+          <>
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${
+                    star <= Math.round(localRating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-300 dark:text-gray-600"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+              {localRating.toFixed(1)} ({localTotalRatings})
+            </span>
+          </>
+        ) : (
+          <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+            No reviews yet
+          </span>
+        )}
+      </div>
+    );
+
     return (
       <div
         className={`bg-white dark:bg-black border border-gray-200 dark:border-white/20 rounded-lg overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-300 ${
@@ -263,31 +317,7 @@ const ServiceCard = memo(
               <span className="text-2xl font-bold text-primary dark:text-primary/90">
                 {formatPrice(price)}
               </span>
-              <div className="flex items-center">
-                {rating > 0 ? (
-                  <>
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-4 h-4 ${
-                            star <= rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300 dark:text-gray-600"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                      ({totalRatings})
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    No reviews yet
-                  </span>
-                )}
-              </div>
+              {renderRating()}
             </div>
 
             <div className="flex flex-col gap-2">

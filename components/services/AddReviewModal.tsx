@@ -18,19 +18,15 @@ import { format } from "date-fns";
 interface AddReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (newReview: { rating: number; comment: string }) => Promise<void>;
   serviceId: string;
-  onReviewAdded: (review: ServiceReview) => void;
-  userName?: string;
-  userEmail?: string;
 }
 
 const AddReviewModal = ({
   isOpen,
   onClose,
+  onSubmit,
   serviceId,
-  onReviewAdded,
-  userName,
-  userEmail,
 }: AddReviewModalProps) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -53,8 +49,8 @@ const AddReviewModal = ({
         id: Date.now().toString(),
         rating: rating as 1 | 2 | 3 | 4 | 5,
         comment,
-        userName: userName || "Anonymous",
-        userEmail: userEmail || "anonymous@example.com",
+        userName: "Anonymous",
+        userEmail: "anonymous@example.com",
         date: new Date().toISOString(),
         helpful: 0,
         serviceDetails: "",
@@ -73,7 +69,7 @@ const AddReviewModal = ({
       });
 
       // Notify parent components
-      onReviewAdded(review);
+      onSubmit({ rating, comment });
       onClose();
       setComment("");
       setRating(0);

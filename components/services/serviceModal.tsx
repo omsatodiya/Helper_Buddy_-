@@ -104,7 +104,17 @@ interface ServiceModalProps {
   isInCart?: boolean;
   quantity?: number;
   onQuantityChange?: (newQuantity: number) => void;
-  serviceStatus?: ServiceStatus;
+  serviceStatus?: {
+    isCompleted: boolean;
+    orderId?: string;
+    isReviewed?: boolean;
+  };
+  isReviewMode?: boolean;
+  orderStatus?: {
+    isCompleted: boolean;
+    orderId?: string;
+    isReviewed?: boolean;
+  };
 }
 
 const ServiceModal = ({
@@ -119,6 +129,8 @@ const ServiceModal = ({
   quantity = 1,
   onQuantityChange,
   serviceStatus,
+  isReviewMode = false,
+  orderStatus,
 }: ServiceModalProps) => {
   const [selectedImage, setSelectedImage] = useState(
     service.images?.[0]?.url || "/placeholder-image.jpg"
@@ -141,6 +153,16 @@ const ServiceModal = ({
   useEffect(() => {
     setLocalService(service);
   }, [service]);
+
+  useEffect(() => {
+    if (isReviewMode) {
+      const reviewsSection = document.getElementById("reviews-section");
+      if (reviewsSection) {
+        reviewsSection.scrollIntoView({ behavior: "smooth" });
+        setIsReviewModalOpen(true);
+      }
+    }
+  }, [isReviewMode]);
 
   // Auto-slide effect
   useEffect(() => {
@@ -231,80 +253,79 @@ const ServiceModal = ({
       toast({
         title: "Authentication Required",
         description: "Please sign in to write a review",
-        action: (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              window.location.href = `/auth/signin?redirect=${window.location.pathname}`;
-            }}
-          >
-            Sign In
-          </Button>
-        ),
-      });
-      return;
-    }
-
-    if (!serviceStatus?.isCompleted) {
-      toast({
-        title: "Service not completed",
-        description: "You can only review services after they are completed",
         variant: "destructive",
       });
       return;
     }
-
     setIsReviewModalOpen(true);
   };
 
-  const handleReviewAdded = async (newReview: ServiceReview) => {
+  const handleReviewAdded = async (newReview: {
+    rating: number;
+    comment: string;
+  }) => {
     try {
-      if (!user) {
-        throw new Error("Must be logged in to add review");
+      if (!user || !serviceStatus?.orderId) {
+        throw new Error(
+          "Must be logged in and have a valid order to add review"
+        );
       }
 
-      // Create review with user data
-      const reviewWithUserData = {
+      const reviewData = {
         ...newReview,
-        userName: user.displayName || "User", // Fallback if no display name
-        userEmail: user.email || "",
+        userName: user.displayName || "Anonymous",
+        userEmail: user.email,
         date: new Date().toISOString(),
-        id: crypto.randomUUID(), // Generate unique ID
+        id: crypto.randomUUID(),
+        orderId: serviceStatus.orderId,
+        helpful: 0,
       };
 
-      // Calculate new rating
-      const allReviews = [...(localService.reviews || []), reviewWithUserData];
-      const totalRating = allReviews.reduce(
-        (sum, review) => sum + review.rating,
-        0
-      );
-      const newRating = totalRating / allReviews.length;
+      // Update service with new review
+      const serviceRef = doc(db, "services", service.id);
+      await updateDoc(serviceRef, {
+        reviews: arrayUnion(reviewData),
+        totalReviews: (service.totalReviews || 0) + 1,
+        rating: calculateNewRating(
+          service.rating || 0,
+          service.totalReviews || 0,
+          newReview.rating
+        ),
+      });
 
-      // Update local state
-      const updatedService = {
-        ...localService,
-        reviews: allReviews,
-        rating: newRating,
-        totalReviews: allReviews.length,
-      };
-      setLocalService(updatedService as Service);
-      onReviewAdded?.(updatedService as Service);
+      // Mark order as reviewed
+      if (serviceStatus.orderId) {
+        const orderRef = doc(db, "serviceRequests", serviceStatus.orderId);
+        await updateDoc(orderRef, {
+          isReviewed: true,
+        });
+      }
 
       toast({
-        title: "Review added successfully",
+        title: "Review Added",
+        description: "Thank you for your review!",
         variant: "default",
       });
 
       setIsReviewModalOpen(false);
+      onClose();
     } catch (error) {
+      console.error("Error adding review:", error);
       toast({
-        title: "Error adding review",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        title: "Error",
+        description: "Failed to add review. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const calculateNewRating = (
+    currentRating: number,
+    totalReviews: number,
+    newRating: number
+  ) => {
+    const totalRating = currentRating * totalReviews;
+    return (totalRating + newRating) / (totalReviews + 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -822,20 +843,16 @@ const ServiceModal = ({
               </Button>
             </div>
 
-            {/* Add Review Button */}
-            <div className="mb-6">
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={handleReviewClick}
-                disabled={!serviceStatus?.isCompleted}
-              >
-                {!user
-                  ? "Sign in to Review"
-                  : !serviceStatus?.isCompleted
-                  ? "Complete service to review"
-                  : "Write a Review"}
-              </Button>
+            {/* Add this after the price section */}
+            <div className="mt-4 space-y-4">
+              {orderStatus?.isCompleted && !orderStatus?.isReviewed && (
+                <Button
+                  onClick={handleReviewClick}
+                  className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 mb-4"
+                >
+                  Write a Review
+                </Button>
+              )}
             </div>
 
             {/* Add this JSX where you want to show the rating distribution */}
@@ -965,16 +982,6 @@ const ServiceModal = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Review Modal */}
-      <AddReviewModal
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        serviceId={service.id}
-        onReviewAdded={handleReviewAdded}
-        userName={user?.displayName || ""}
-        userEmail={user?.email || ""}
-      />
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>

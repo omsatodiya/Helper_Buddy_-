@@ -17,6 +17,7 @@ import {
   where,
   setDoc,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
@@ -460,35 +461,35 @@ function ServicesContent() {
     setIsModalOpen(false);
   };
 
-  const handleReviewAdded = (updatedService: Service) => {
-    // Update services list
-    setServices((prevServices) =>
-      prevServices.map((s) =>
-        s.id === updatedService.id
-          ? {
-              ...s,
-              rating: updatedService.rating ?? 0,
-              totalReviews: updatedService.reviews?.length ?? 0,
-            }
-          : s
-      )
-    );
+  const handleReviewAdded = async (updatedService: Service) => {
+    try {
+      // Update the service with the new review
+      const serviceRef = doc(db, "services", updatedService.id);
 
-    // Update filtered services list
-    setFilteredServices((prevFiltered) =>
-      prevFiltered.map((s) =>
-        s.id === updatedService.id
-          ? {
-              ...s,
-              rating: updatedService.rating ?? 0,
-              totalReviews: updatedService.reviews?.length ?? 0,
-            }
-          : s
-      )
-    );
+      // Mark the order as reviewed
+      if (orderStatus?.orderId) {
+        const orderRef = doc(db, "serviceRequests", orderStatus.orderId);
+        await updateDoc(orderRef, {
+          isReviewed: true,
+          updatedAt: new Date(),
+        });
+      }
 
-    // Update selected service
-    setSelectedService(updatedService);
+      // Refresh the services list
+      await fetchServices();
+
+      toast({
+        title: "Success",
+        description: "Your review has been added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding review:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add review. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleServiceUpdated = (updatedService: Service) => {
@@ -540,6 +541,52 @@ function ServicesContent() {
   const handleSortChange = (option: string) => {
     setSortOption(option);
   };
+
+  // Add this effect to handle search params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchTerm = searchParams.get("search");
+
+    if (searchTerm) {
+      setSearchQuery(searchTerm);
+
+      const matchingService = services.find(
+        (service) => service.name.toLowerCase() === searchTerm.toLowerCase()
+      );
+
+      if (matchingService) {
+        // Get order status from URL params
+        const orderId = searchParams.get("orderId");
+        const isCompleted = searchParams.get("isCompleted") === "true";
+        const isReviewed = searchParams.get("isReviewed") === "true";
+
+        handleServiceClick(matchingService);
+
+        const serviceCard = document.querySelector(
+          `[data-service-name="${matchingService.name}"]`
+        );
+        if (serviceCard) {
+          setTimeout(() => {
+            serviceCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 500);
+        }
+
+        // Store order status for the modal
+        setOrderStatus({
+          isCompleted,
+          orderId,
+          isReviewed,
+        });
+      }
+    }
+  }, [services]);
+
+  // Add state for order status
+  const [orderStatus, setOrderStatus] = useState<{
+    isCompleted: boolean;
+    orderId?: string;
+    isReviewed?: boolean;
+  } | null>(null);
 
   if (loading) {
     return (
@@ -744,6 +791,8 @@ function ServicesContent() {
           onServiceDeleted={handleServiceDeleted}
           onReviewAdded={handleReviewAdded}
           onServiceUpdated={handleServiceUpdated}
+          isReviewMode={!!searchParams.get("search")}
+          orderStatus={orderStatus}
         />
       )}
 
@@ -833,6 +882,7 @@ function ServicesContent() {
                 {filteredServices.map((service) => (
                   <ServiceCard
                     key={service.id}
+                    data-service-name={service.name}
                     id={service.id}
                     title={service.name}
                     price={service.price}

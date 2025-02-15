@@ -1,16 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Shield, Star, Award, CheckCircle2, ArrowRight, Upload, MapPin, List } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { auth } from '@/lib/firebase';
-import { getFirestore, doc, updateDoc, setDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import {
+  Shield,
+  Star,
+  Award,
+  CheckCircle2,
+  ArrowRight,
+  Upload,
+  MapPin,
+  List,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { auth } from "@/lib/firebase";
+import {
+  getFirestore,
+  doc,
+  updateDoc,
+  setDoc,
+  getDoc,
+  writeBatch,
+} from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +58,7 @@ interface ProviderApplication {
     state?: string;
   }>;
   services: string[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   applicationDate: Date;
   reviewDate?: Date;
   reviewedBy?: string;
@@ -50,20 +66,65 @@ interface ProviderApplication {
 }
 
 const AVAILABLE_SERVICES = [
-  "Hair Cutting",
-  "Hair Styling",
-  "Hair Coloring",
-  "Facial",
-  "Makeup",
-  "Manicure",
-  "Pedicure",
-  "Waxing",
-  "Threading",
-  "Massage",
-  // Add more services as needed
+  "Ceiling Fan Cleaning",
+  "Glass Shelf Installation",
+  "Exhaust Fan Cleaning",
+  "Gas Stove Cleaning",
+  "Kitchen Sink Cleaning",
+  "Fan Installation",
+  "Shower Filter Installation",
+  "Drawer Channel Replacement (One Set)",
+  "Microwave Cleaning",
+  "3 Ceiling Fan Cleaning",
+  "Fully Automatic Washing Machine Check Up (Top Load)",
+  "Window Hinge Installation (Upto 4)",
+  "Semi-Automatic Washing Machine Check Up",
+  "Fully Automatic Washing Machine Check Up (Front Load)",
+  "Cushions Cleaning",
+  "Switchbox Installation",
+  "Water Purifier Check Up",
+  "Single Door Refrigerator Check Up",
+  "Water Purifier Uninstallation",
+  "Water Purifier Filter Check Up",
+  "Double Door Refrigerator Check Up (Inverter)",
+  "AC Repair",
+  "TV Installation",
+  "Ceiling Mounted Hanger Installation",
+  "Water Purifier Installation",
+  "Dining Table & Chairs Cleaning",
+  "Utensil Removal and Placing Back",
+  "Washing Machine Installation",
+  "Balcony Cleaning",
+  "Washing Machine Uninstallation",
+  "Double Door Refrigerator Check Up (Non-Inverter)",
+  "Classic Bathroom Cleaning",
+  "Geyser Installation",
+  "Carpet Cleaning",
+  "Intense Bathroom Cleaning",
+  "Power Saver AC Service",
+  "AC Uninstallation",
+  "Side By Side Door Refrigerator Check Up",
+  "Lite AC Service",
+  "Fridge Cleaning",
+  "Classic Cleaning (2 Bathrooms)",
+  "Anti-Rust Deep Clean AC Service",
+  "Chimney Cleaning",
+  "Trolley & Shelves Cleaning",
+  "Intense Cleaning (2 Bathrooms)",
+  "Overhead Tank Cleaning (Open Placed)",
+  "AC Installation",
+  "Classic Cleaning (3 Bathrooms)",
+  "Intense Cleaning (3 Bathroom)",
+  "Normal Kitchen Cleaning",
+  "Underground Tank Cleaning",
+  "Toilet Pot Blockage Removal",
+  "AC Gas Leak Fix and Refill",
+  "Complete Kitchen Cleaning",
+  "Sofa and Cushions Cleaning",
+  "Other", // Added Other option
 ];
 
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png'];
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
 
 // Add these helper functions at the top with other constants
@@ -72,7 +133,9 @@ const validatePhotoSize = (file: File): { valid: boolean; error?: string } => {
   if (sizeMB > 2) {
     return {
       valid: false,
-      error: `Image size (${sizeMB.toFixed(1)} MB) is too large. Please upload an image under 2 MB.`
+      error: `Image size (${sizeMB.toFixed(
+        1
+      )} MB) is too large. Please upload an image under 2 MB.`,
     };
   }
   return { valid: true };
@@ -80,29 +143,32 @@ const validatePhotoSize = (file: File): { valid: boolean; error?: string } => {
 
 const validatePhotoType = (file: File): { valid: boolean; error?: string } => {
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    const fileType = file.type.split('/')[1].toUpperCase();
+    const fileType = file.type.split("/")[1].toUpperCase();
     return {
       valid: false,
-      error: `${fileType} files are not supported. Please upload a JPG or PNG image.`
+      error: `${fileType} files are not supported. Please upload a JPG or PNG image.`,
     };
   }
   return { valid: true };
 };
 
 // Add this new function to validate image dimensions
-const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string }> => {
+const validateImageDimensions = (
+  file: File
+): Promise<{ valid: boolean; error?: string }> => {
   return new Promise((resolve) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-    
+
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       const aspectRatio = img.width / img.height;
-      
-      if (Math.abs(aspectRatio - 1) > 0.1) { // Allow small deviation from perfect square
+
+      if (Math.abs(aspectRatio - 1) > 0.1) {
+        // Allow small deviation from perfect square
         resolve({
           valid: false,
-          error: 'Please upload a square (1:1) image'
+          error: "Please upload a square (1:1) image",
         });
       } else {
         resolve({ valid: true });
@@ -113,7 +179,7 @@ const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: 
       URL.revokeObjectURL(objectUrl);
       resolve({
         valid: false,
-        error: 'Failed to load image. Please try another file.'
+        error: "Failed to load image. Please try another file.",
       });
     };
 
@@ -157,7 +223,7 @@ const ProviderForm = ({
   previewUrl: string | null;
   hasSubmitted: boolean;
 }) => (
-  <Dialog 
+  <Dialog
     open={showForm && !hasSubmitted}
     onOpenChange={(open) => {
       if (!open || hasSubmitted) setShowForm(false);
@@ -171,7 +237,8 @@ const ProviderForm = ({
             Application Submitted
           </h2>
           <p className="text-black/60 dark:text-white/60 mb-6">
-            Your application is currently under review. We'll notify you once it's processed.
+            Your application is currently under review. We'll notify you once
+            it's processed.
           </p>
           <Button
             onClick={() => setShowForm(false)}
@@ -187,10 +254,11 @@ const ProviderForm = ({
               Provider Application
             </DialogTitle>
             <p className="text-sm text-black/60 dark:text-white/60 mt-1">
-              Complete the form below to join our network of professional service providers.
+              Complete the form below to join our network of professional
+              service providers.
             </p>
           </DialogHeader>
-          
+
           <div className="flex-1 flex flex-col md:grid md:grid-cols-2 gap-6 min-h-0 overflow-y-auto">
             {/* Left Column */}
             <div className="flex flex-col gap-4">
@@ -208,7 +276,7 @@ const ProviderForm = ({
                   </ul>
                 </div>
                 <div className="relative group">
-                  <label 
+                  <label
                     htmlFor="photo-upload"
                     className="block w-32 md:w-40 aspect-square mx-auto cursor-pointer"
                   >
@@ -220,10 +288,16 @@ const ProviderForm = ({
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <p className="text-white text-sm">Click to change photo</p>
+                          <p className="text-white text-sm">
+                            Click to change photo
+                          </p>
                         </div>
                         <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                          {((formData.photo?.size ?? 0) / (1024 * 1024)).toFixed(1)} MB
+                          {(
+                            (formData.photo?.size ?? 0) /
+                            (1024 * 1024)
+                          ).toFixed(1)}{" "}
+                          MB
                         </div>
                       </div>
                     ) : (
@@ -280,12 +354,20 @@ const ProviderForm = ({
                           >
                             <MapPin className="w-3 h-3 md:w-4 md:h-4" />
                             <span>{pincode}</span>
-                            {city && <span className="text-black/60 dark:text-white/60 hidden sm:inline">({city})</span>}
+                            {city && (
+                              <span className="text-black/60 dark:text-white/60 hidden sm:inline">
+                                ({city})
+                              </span>
+                            )}
                             <button
-                              onClick={() => setFormData(prev => ({
-                                ...prev,
-                                pincodes: prev.pincodes.filter(p => p.pincode !== pincode)
-                              }))}
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  pincodes: prev.pincodes.filter(
+                                    (p) => p.pincode !== pincode
+                                  ),
+                                }))
+                              }
                               className="hover:text-red-500 transition-colors ml-1"
                             >
                               ×
@@ -302,18 +384,21 @@ const ProviderForm = ({
             {/* Right Column - adjust service selection grid */}
             <div className="flex flex-col gap-4">
               <div className="space-y-2 flex-1">
-                <Label className="text-base font-medium">Services Offered</Label>
+                <Label className="text-base font-medium">
+                  Services Offered
+                </Label>
                 <p className="text-sm text-black/60 dark:text-white/60">
                   Select the services you can provide
                 </p>
                 <div className="grid grid-cols-1 gap-1.5 md:gap-2 mt-2 h-[240px] md:h-[280px] overflow-y-auto p-2 bg-black/5 dark:bg-white/5 rounded-lg">
                   {AVAILABLE_SERVICES.map((service) => (
-                    <label 
+                    <label
                       key={service}
                       className={`flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg cursor-pointer transition-all text-sm md:text-base
-                        ${formData.services.includes(service) 
-                          ? 'bg-black dark:bg-white text-white dark:text-black' 
-                          : 'bg-white dark:bg-black hover:bg-black/5 dark:hover:bg-white/5'
+                        ${
+                          formData.services.includes(service)
+                            ? "bg-black dark:bg-white text-white dark:text-black"
+                            : "bg-white dark:bg-black hover:bg-black/5 dark:hover:bg-white/5"
                         }`}
                     >
                       <Checkbox
@@ -331,22 +416,31 @@ const ProviderForm = ({
 
           <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 flex-shrink-0">
             <div className="flex items-start gap-2 mb-4">
-              <Checkbox 
-                id="terms" 
+              <Checkbox
+                id="terms"
                 checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setTermsAccepted(checked as boolean)
+                }
               />
-              <label 
-                htmlFor="terms" 
+              <label
+                htmlFor="terms"
                 className="text-xs md:text-sm text-black/60 dark:text-white/60 cursor-pointer"
               >
-                I agree to the terms and conditions and confirm that all provided information is accurate
+                I agree to the terms and conditions and confirm that all
+                provided information is accurate
               </label>
             </div>
 
             <Button
               onClick={handleBecomeProvider}
-              disabled={isSubmitting || formData.services.length === 0 || formData.pincodes.length === 0 || !formData.photo || !termsAccepted}
+              disabled={
+                isSubmitting ||
+                formData.services.length === 0 ||
+                formData.pincodes.length === 0 ||
+                !formData.photo ||
+                !termsAccepted
+              }
               className="w-full h-10 md:h-12 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black font-medium text-sm md:text-base"
             >
               {isSubmitting ? (
@@ -355,7 +449,7 @@ const ProviderForm = ({
                   Submitting Application...
                 </div>
               ) : (
-                'Submit Application'
+                "Submit Application"
               )}
             </Button>
           </div>
@@ -384,7 +478,7 @@ export default function BecomeProviderPage() {
     pincodes: [],
     services: [],
   });
-  const [pincodeInput, setPincodeInput] = useState('');
+  const [pincodeInput, setPincodeInput] = useState("");
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -395,7 +489,7 @@ export default function BecomeProviderPage() {
   // Update the effect to handle auth state properly
   useEffect(() => {
     let isSubscribed = true;
-    
+
     const checkApplicationStatus = async (user: any) => {
       try {
         if (!user) {
@@ -408,18 +502,21 @@ export default function BecomeProviderPage() {
 
         const db = getFirestore();
         const [applicationDoc, userDoc] = await Promise.all([
-          getDoc(doc(db, 'provider-applications', user.uid)),
-          getDoc(doc(db, 'users', user.uid))
+          getDoc(doc(db, "provider-applications", user.uid)),
+          getDoc(doc(db, "users", user.uid)),
         ]);
 
         if (isSubscribed) {
           // Allow reapplication if previous application was rejected
           if (applicationDoc.exists()) {
             const applicationData = applicationDoc.data();
-            if (applicationData.status === 'rejected' && userDoc.data()?.canReapply) {
+            if (
+              applicationData.status === "rejected" &&
+              userDoc.data()?.canReapply
+            ) {
               setApplicationChecked(true);
               setHasSubmitted(false);
-            } else if (applicationData.status === 'pending') {
+            } else if (applicationData.status === "pending") {
               setApplicationChecked(true);
               setHasSubmitted(true);
             }
@@ -429,7 +526,7 @@ export default function BecomeProviderPage() {
           }
         }
       } catch (error) {
-        console.error('Error checking application status:', error);
+        console.error("Error checking application status:", error);
         if (isSubscribed) {
           setApplicationChecked(true);
           setHasSubmitted(false);
@@ -438,9 +535,9 @@ export default function BecomeProviderPage() {
     };
 
     // Hide footer during loading
-    const footer = document.querySelector('footer');
+    const footer = document.querySelector("footer");
     if (footer) {
-      footer.style.display = 'none';
+      footer.style.display = "none";
     }
 
     // Set up auth state listener
@@ -450,20 +547,20 @@ export default function BecomeProviderPage() {
     return () => {
       isSubscribed = false;
       unsubscribe();
-      const footer = document.querySelector('footer');
+      const footer = document.querySelector("footer");
       if (footer) {
-        footer.style.display = 'block';
+        footer.style.display = "block";
       }
     };
   }, []);
 
   // Update footer visibility based on loading state
   useEffect(() => {
-    const footer = document.querySelector('footer');
+    const footer = document.querySelector("footer");
     if (footer) {
       if (!loading) {
         setTimeout(() => {
-          footer.style.display = 'block';
+          footer.style.display = "block";
         }, 300);
       }
     }
@@ -497,7 +594,9 @@ export default function BecomeProviderPage() {
       if (fileSize > 2) {
         toast({
           title: "File Too Large",
-          description: `Your image is ${fileSize.toFixed(1)} MB. Please upload an image smaller than 2 MB.`,
+          description: `Your image is ${fileSize.toFixed(
+            1
+          )} MB. Please upload an image smaller than 2 MB.`,
           variant: "destructive",
         });
         return;
@@ -508,9 +607,9 @@ export default function BecomeProviderPage() {
       setPreviewUrl(newPreviewUrl);
 
       // If all validations pass, update the form data
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        photo: file
+        photo: file,
       }));
     } catch (error) {
       toast({
@@ -522,10 +621,10 @@ export default function BecomeProviderPage() {
   };
 
   const handlePincodeAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       const pincode = pincodeInput.trim();
-      
+
       if (!pincode || !/^\d{6}$/.test(pincode)) {
         toast({
           title: "Invalid Pincode",
@@ -535,7 +634,7 @@ export default function BecomeProviderPage() {
         return;
       }
 
-      if (formData.pincodes.some(p => p.pincode === pincode)) {
+      if (formData.pincodes.some((p) => p.pincode === pincode)) {
         toast({
           title: "Duplicate Pincode",
           description: "This pincode has already been added",
@@ -556,15 +655,18 @@ export default function BecomeProviderPage() {
           return;
         }
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          pincodes: [...prev.pincodes, {
-            pincode,
-            city: data.city,
-            state: data.state
-          }]
+          pincodes: [
+            ...prev.pincodes,
+            {
+              pincode,
+              city: data.city,
+              state: data.state,
+            },
+          ],
         }));
-        setPincodeInput('');
+        setPincodeInput("");
       } catch (error) {
         toast({
           title: "Error",
@@ -578,11 +680,11 @@ export default function BecomeProviderPage() {
   };
 
   const handleServiceToggle = (service: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
+        ? prev.services.filter((s) => s !== service)
+        : [...prev.services, service],
     }));
   };
 
@@ -594,7 +696,7 @@ export default function BecomeProviderPage() {
         description: "Please log in to become a provider.",
         variant: "destructive",
       });
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
@@ -604,33 +706,34 @@ export default function BecomeProviderPage() {
       const db = getFirestore();
 
       // Check if this is a reapplication
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const isReapplying = userDoc.exists() && userDoc.data()?.applicationStatus === 'rejected';
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const isReapplying =
+        userDoc.exists() && userDoc.data()?.applicationStatus === "rejected";
 
       // Upload photo to Cloudinary
       if (!formData.photo) {
-        throw new Error('Photo is required');
+        throw new Error("Photo is required");
       }
 
       const formDataForUpload = new FormData();
-      formDataForUpload.append('file', formData.photo);
-      formDataForUpload.append('upload_preset', 'service_providers');
-      formDataForUpload.append('folder', 'provider-photos');
+      formDataForUpload.append("file", formData.photo);
+      formDataForUpload.append("upload_preset", "service_providers");
+      formDataForUpload.append("folder", "provider-photos");
 
       // Sanitize email for use as filename (replace @ and . with underscores)
-      const sanitizedEmail = user.email?.replace(/[@.]/g, '_') || user.uid;
-      formDataForUpload.append('public_id', sanitizedEmail);
+      const sanitizedEmail = user.email?.replace(/[@.]/g, "_") || user.uid;
+      formDataForUpload.append("public_id", sanitizedEmail);
 
       const uploadResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
         {
-          method: 'POST',
-          body: formDataForUpload
+          method: "POST",
+          body: formDataForUpload,
         }
       );
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image');
+        throw new Error("Failed to upload image");
       }
 
       const uploadData = await uploadResponse.json();
@@ -639,43 +742,45 @@ export default function BecomeProviderPage() {
       // Create application document
       const applicationData = {
         userId: user.uid,
-        userName: user.displayName || '',
-        email: user.email || '',
+        userName: user.displayName || "",
+        email: user.email || "",
         photo: `provider-photos/${sanitizedEmail}`,
         servicePincodes: formData.pincodes,
         services: formData.services,
-        status: 'pending',
+        status: "pending",
         applicationDate: new Date(),
         lastUpdated: new Date(),
-        isReapplication: isReapplying
+        isReapplication: isReapplying,
       };
 
       // Update both documents
       const batch = writeBatch(db);
-      
-      batch.set(doc(db, 'provider-applications', user.uid), applicationData);
-      batch.update(doc(db, 'users', user.uid), {
+
+      batch.set(doc(db, "provider-applications", user.uid), applicationData);
+      batch.update(doc(db, "users", user.uid), {
         hasProviderApplication: true,
-        applicationStatus: 'pending',
+        applicationStatus: "pending",
         applicationDate: new Date(),
         lastUpdated: new Date(),
-        canReapply: false // Reset reapplication flag
+        canReapply: false, // Reset reapplication flag
       });
 
       await batch.commit();
 
       setHasSubmitted(true);
       toast({
-        title: isReapplying ? "Reapplication submitted!" : "Application submitted!",
+        title: isReapplying
+          ? "Reapplication submitted!"
+          : "Application submitted!",
         description: "We'll review your application and get back to you soon.",
       });
       setShowForm(false);
-
     } catch (error) {
-      console.error('Error submitting application:', error);
+      console.error("Error submitting application:", error);
       toast({
         title: "Submission failed",
-        description: "There was an error submitting your application. Please try again.",
+        description:
+          "There was an error submitting your application. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -687,33 +792,40 @@ export default function BecomeProviderPage() {
     {
       icon: Shield,
       title: "Verified Provider Status",
-      description: "Join our network of trusted professionals and build credibility with a verified provider badge."
+      description:
+        "Join our network of trusted professionals and build credibility with a verified provider badge.",
     },
     {
       icon: Star,
       title: "Increased Visibility",
-      description: "Get featured in our provider directory and reach more potential clients."
+      description:
+        "Get featured in our provider directory and reach more potential clients.",
     },
     {
       icon: Award,
       title: "Professional Tools",
-      description: "Access exclusive tools and features to manage your services efficiently."
-    }
+      description:
+        "Access exclusive tools and features to manage your services efficiently.",
+    },
   ];
 
   return (
     <>
       {loading && <Preloader onLoadingComplete={() => setLoading(false)} />}
-      <main className={`min-h-screen bg-white dark:bg-black transition-opacity duration-300 ${
-        loading ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}>
+      <main
+        className={`min-h-screen bg-white dark:bg-black transition-opacity duration-300 ${
+          loading ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
         {/* Updated Hero Section */}
         <section className="relative min-h-screen bg-white dark:bg-black overflow-hidden">
           <HeroPattern />
-          
+
           <div className="absolute inset-0 flex flex-col">
             {/* Content Container */}
-            <div className="flex-1 flex items-start px-6 pt-32 pb-40"> {/* Changed items-center to items-start and increased padding */}
+            <div className="flex-1 flex items-start px-6 pt-32 pb-40">
+              {" "}
+              {/* Changed items-center to items-start and increased padding */}
               <div className="w-full max-w-xl mx-auto">
                 {/* Status Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-sm mb-6">
@@ -725,22 +837,25 @@ export default function BecomeProviderPage() {
                     Now accepting new providers
                   </span>
                 </div>
-                
+
                 {/* Main Heading */}
                 <h1 className="text-[32px] sm:text-4xl md:text-5xl font-bold mb-4 text-black dark:text-white leading-tight">
-                  Turn Your Skills into{' '}
+                  Turn Your Skills into{" "}
                   <span className="text-black dark:text-white underline decoration-2 underline-offset-4">
                     Success
                   </span>
                 </h1>
-                
+
                 {/* Description */}
                 <p className="text-base sm:text-lg text-black/80 dark:text-white/80 leading-relaxed mb-6">
-                  Join our growing network of professional service providers and connect with clients looking for your expertise.
+                  Join our growing network of professional service providers and
+                  connect with clients looking for your expertise.
                 </p>
-                
+
                 {/* Buttons */}
-                <div className="flex flex-col gap-3 mb-8"> {/* Reduced bottom margin */}
+                <div className="flex flex-col gap-3 mb-8">
+                  {" "}
+                  {/* Reduced bottom margin */}
                   <Button
                     onClick={() => setShowForm(true)}
                     disabled={!applicationChecked || hasSubmitted}
@@ -752,7 +867,7 @@ export default function BecomeProviderPage() {
                         <span>Checking status...</span>
                       </div>
                     ) : hasSubmitted ? (
-                      'Application Pending'
+                      "Application Pending"
                     ) : (
                       <>
                         <span>Apply Now</span>
@@ -763,7 +878,12 @@ export default function BecomeProviderPage() {
                   <Button
                     variant="outline"
                     className="w-full h-14 border border-black/20 dark:border-white/20 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white font-medium rounded-lg transition-all flex items-center justify-center"
-                    onClick={() => window.scrollTo({ top: document.getElementById('benefits')?.offsetTop, behavior: 'smooth' })}
+                    onClick={() =>
+                      window.scrollTo({
+                        top: document.getElementById("benefits")?.offsetTop,
+                        behavior: "smooth",
+                      })
+                    }
                   >
                     Learn More
                   </Button>
@@ -794,7 +914,10 @@ export default function BecomeProviderPage() {
         </section>
 
         {/* Benefits Section - increase top spacing */}
-        <section id="benefits" className="relative pt-24 pb-12 sm:py-16 md:py-24 bg-black dark:bg-white">
+        <section
+          id="benefits"
+          className="relative pt-24 pb-12 sm:py-16 md:py-24 bg-black dark:bg-white"
+        >
           <div className="container px-6 mx-auto">
             <div className="text-center max-w-3xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white dark:text-black">
@@ -806,7 +929,7 @@ export default function BecomeProviderPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {benefits.map((benefit, index) => (
-                <Card 
+                <Card
                   key={index}
                   className="border border-white/10 dark:border-black/10 bg-black dark:bg-white"
                 >
@@ -833,7 +956,7 @@ export default function BecomeProviderPage() {
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-[0.07]" />
           </div>
-          
+
           <div className="container relative px-6 mx-auto">
             <div className="text-center max-w-3xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-black dark:text-white">
@@ -846,27 +969,31 @@ export default function BecomeProviderPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
               {[
                 {
-                  number: '01',
-                  title: 'Create Profile',
-                  description: 'Fill out your professional details'
+                  number: "01",
+                  title: "Create Profile",
+                  description: "Fill out your professional details",
                 },
                 {
-                  number: '02',
-                  title: 'Set Services',
-                  description: 'Define your service areas and the services you offer'
+                  number: "02",
+                  title: "Set Services",
+                  description:
+                    "Define your service areas and the services you offer",
                 },
                 {
-                  number: '03',
-                  title: 'Get Verified',
-                  description: 'Our team reviews and verifies your application'
+                  number: "03",
+                  title: "Get Verified",
+                  description: "Our team reviews and verifies your application",
                 },
                 {
-                  number: '04',
-                  title: 'Start Earning',
-                  description: 'Accept bookings and start providing services'
-                }
+                  number: "04",
+                  title: "Start Earning",
+                  description: "Accept bookings and start providing services",
+                },
               ].map((item, index) => (
-                <div key={index} className="relative group p-6 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
+                <div
+                  key={index}
+                  className="relative group p-6 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                >
                   <div className="mb-4">
                     <span className="text-3xl sm:text-4xl font-bold text-black/10 dark:text-white/10 group-hover:text-black/20 dark:group-hover:text-white/20 transition-colors">
                       {item.number}
@@ -907,4 +1034,4 @@ export default function BecomeProviderPage() {
       </main>
     </>
   );
-} 
+}
