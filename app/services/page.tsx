@@ -17,7 +17,6 @@ import {
   where,
   setDoc,
   onSnapshot,
-  updateDoc,
 } from "firebase/firestore";
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
@@ -190,8 +189,8 @@ function ServicesContent() {
           totalReviews: service.reviews?.length ?? 0,
           category: service.category ?? "",
           imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
-          createdAt: service.createdAt || new Date().toISOString(),
-          updatedAt: service.updatedAt || new Date().toISOString(),
+          createdAt: service.createdAt.toString() || new Date().toISOString(),
+          updatedAt: service.updatedAt.toString() || new Date().toISOString(),
         })
       );
 
@@ -461,35 +460,32 @@ function ServicesContent() {
     setIsModalOpen(false);
   };
 
-  const handleReviewAdded = async (updatedService: Service) => {
-    try {
-      // Update the service with the new review
-      const serviceRef = doc(db, "services", updatedService.id);
+  const handleReviewAdded = (review: ServiceReview) => {
+    // Update services list with new review data
+    setServices((prevServices) =>
+      prevServices.map((s) =>
+        s.id === review.id
+          ? {
+              ...s,
+              rating: review.rating,
+              totalReviews: s.totalReviews + 1,
+            }
+          : s
+      )
+    );
 
-      // Mark the order as reviewed
-      if (orderStatus?.orderId) {
-        const orderRef = doc(db, "serviceRequests", orderStatus.orderId);
-        await updateDoc(orderRef, {
-          isReviewed: true,
-          updatedAt: new Date(),
-        });
-      }
-
-      // Refresh the services list
-      await fetchServices();
-
-      toast({
-        title: "Success",
-        description: "Your review has been added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding review:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add review. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Update filtered services list
+    setFilteredServices((prevFiltered) =>
+      prevFiltered.map((s) =>
+        s.id === review.id
+          ? {
+              ...s,
+              rating: review.rating,
+              totalReviews: s.totalReviews + 1,
+            }
+          : s
+      )
+    );
   };
 
   const handleServiceUpdated = (updatedService: Service) => {
@@ -555,8 +551,8 @@ function ServicesContent() {
       );
 
       if (matchingService) {
-        // Get order status from URL params
-        const orderId = searchParams.get("orderId");
+        // Convert null to undefined for orderId
+        const orderId = searchParams.get("orderId") || undefined;
         const isCompleted = searchParams.get("isCompleted") === "true";
         const isReviewed = searchParams.get("isReviewed") === "true";
 
@@ -571,7 +567,7 @@ function ServicesContent() {
           }, 500);
         }
 
-        // Store order status for the modal
+        // Now orderId will be string | undefined, not string | null
         setOrderStatus({
           isCompleted,
           orderId,

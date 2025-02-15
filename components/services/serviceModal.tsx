@@ -67,6 +67,9 @@ interface ServiceReview {
     comment: string;
     date: string;
   };
+  userId: string;
+  createdAt: Date;
+  orderId: string;
 }
 
 interface ServiceImage {
@@ -99,7 +102,7 @@ interface ServiceModalProps {
   service: Service;
   isAdminView?: boolean;
   onServiceDeleted?: () => void;
-  onReviewAdded?: (updatedService: Service) => void;
+  onReviewAdded?: (review: ServiceReview) => void;
   onServiceUpdated?: (updatedService: Service) => void;
   isInCart?: boolean;
   quantity?: number;
@@ -265,7 +268,7 @@ const ServiceModal = ({
     comment: string;
   }) => {
     try {
-      if (!user || !serviceStatus?.orderId) {
+      if (!user || !orderStatus?.orderId) {
         throw new Error(
           "Must be logged in and have a valid order to add review"
         );
@@ -277,7 +280,7 @@ const ServiceModal = ({
         userEmail: user.email,
         date: new Date().toISOString(),
         id: crypto.randomUUID(),
-        orderId: serviceStatus.orderId,
+        orderId: orderStatus.orderId,
         helpful: 0,
       };
 
@@ -294,8 +297,8 @@ const ServiceModal = ({
       });
 
       // Mark order as reviewed
-      if (serviceStatus.orderId) {
-        const orderRef = doc(db, "serviceRequests", serviceStatus.orderId);
+      if (orderStatus.orderId) {
+        const orderRef = doc(db, "serviceRequests", orderStatus.orderId);
         await updateDoc(orderRef, {
           isReviewed: true,
         });
@@ -1064,6 +1067,14 @@ const ServiceModal = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Review Modal */}
+      <AddReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onSubmit={handleReviewAdded}
+        serviceId={service.id}
+      />
     </div>
   );
 };

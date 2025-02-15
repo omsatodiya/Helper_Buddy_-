@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const AVAILABLE_SERVICES = [
   "Ceiling Fan Cleaning",
@@ -118,6 +119,7 @@ const AVAILABLE_SERVICES = [
 
 interface ProviderData {
   photo: string;
+  name?: string;
   servicePincodes: Array<{
     pincode: string;
     city?: string;
@@ -138,9 +140,31 @@ interface ServiceRequest {
     quantity: number;
     price: number;
   }[];
+  isPaid?: boolean;
   status: "pending" | "accepted" | "rejected" | "completed";
   createdAt: Date;
   completedAt?: Date;
+}
+
+interface Order {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerAddress: string;
+  customerPincode: string;
+  customerCity: string;
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  status: "pending" | "accepted" | "rejected" | "completed" | "paid";
+  createdAt: Date;
+  updatedAt: Date;
+  paymentDate: Date;
+  paymentMethod: "cod" | "online";
+  providerName: string;
+  providerId: string;
 }
 
 export default function ProviderDashboard() {
@@ -160,6 +184,16 @@ export default function ProviderDashboard() {
   const [acceptedRequests, setAcceptedRequests] = useState<ServiceRequest[]>(
     []
   );
+  const [completedRequests, setCompletedRequests] = useState<ServiceRequest[]>(
+    []
+  );
+  const [statistics, setStatistics] = useState({
+    todaysBookings: 0,
+    totalCustomers: 0,
+    averageRating: 0,
+    serviceAreas: 0,
+  });
+  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -196,6 +230,102 @@ export default function ProviderDashboard() {
 
     return () => unsubscribe();
   }, [router, toast]);
+
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      if (!auth.currentUser) return;
+
+      // Get today's date at midnight for comparison
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Query for service requests
+      const db = getFirestore();
+      const requestsQuery = query(
+        collection(db, "serviceRequests"),
+        where("providerId", "==", auth.currentUser.uid)
+      );
+
+      const requestsSnapshot = await getDocs(requestsQuery);
+      const requests = requestsSnapshot.docs.map((doc) => doc.data());
+
+      // Calculate statistics
+      const todaysBookings = requests.filter(
+        (req) =>
+          new Date(req.createdAt).setHours(0, 0, 0, 0) === today.getTime()
+      ).length;
+
+      // Get unique customers
+      const uniqueCustomers = new Set(requests.map((req) => req.customerEmail))
+        .size;
+
+      // Calculate average rating from completed services with reviews
+      const completedWithReviews = requests.filter((req) => req.rating);
+      const averageRating =
+        completedWithReviews.length > 0
+          ? completedWithReviews.reduce((sum, req) => sum + req.rating, 0) /
+            completedWithReviews.length
+          : 0;
+
+      // Get service areas count from provider data
+      const serviceAreas = providerData.servicePincodes.length;
+
+      setStatistics({
+        todaysBookings,
+        totalCustomers: uniqueCustomers,
+        averageRating: Number(averageRating.toFixed(1)),
+        serviceAreas,
+      });
+    };
+
+    fetchStatistics();
+  }, [auth.currentUser, providerData.servicePincodes]);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const db = getFirestore();
+    const requestsRef = collection(db, "serviceRequests");
+
+    // Query for paid orders assigned to this provider
+    const paidQuery = query(
+      requestsRef,
+      where("providerId", "==", auth.currentUser.uid),
+      where("status", "==", "paid")
+    );
+
+    const unsubscribePaid = onSnapshot(paidQuery, (snapshot) => {
+      const paidOrdersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
+        paymentDate: doc.data().paymentDate?.toDate?.() || new Date(),
+        customerName: doc.data().customerName,
+        customerEmail: doc.data().customerEmail,
+        customerAddress: doc.data().customerAddress,
+        customerPincode: doc.data().customerPincode,
+        serviceType: doc.data().serviceType,
+        serviceDate: doc.data().serviceDate,
+        amount: doc.data().amount,
+        rating: doc.data().rating,
+        review: doc.data().review,
+        customerCity: doc.data().customerCity,
+        items: doc.data().items || [],
+        status: doc.data().status,
+        paymentMethod: doc.data().paymentMethod,
+        totalAmount: doc.data().totalAmount,
+        tax: doc.data().tax,
+        providerName: providerData?.name || "",
+        providerId: auth.currentUser?.uid || "",
+      }));
+      setPaidOrders(paidOrdersData);
+    });
+
+    return () => {
+      unsubscribePaid();
+    };
+  }, [auth.currentUser]);
 
   const handlePincodeAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -389,7 +519,6 @@ export default function ProviderDashboard() {
       toast({
         title: "Service Marked as Completed",
         description: "The service request has been marked as completed.",
-        variant: "default",
       });
     } catch (error) {
       console.error("Error marking service as completed:", error);
@@ -463,6 +592,47 @@ export default function ProviderDashboard() {
     });
   }, [auth.currentUser]);
 
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const db = getFirestore();
+    const providerDoc = doc(db, "providers", auth.currentUser.uid);
+
+    getDoc(providerDoc).then((doc) => {
+      const providerPincodes =
+        doc.data()?.servicePincodes?.map((p: any) => p.pincode) || [];
+      const requestsRef = collection(db, "serviceRequests");
+
+      // Create query for completed requests
+      const completedQuery = query(
+        requestsRef,
+        where("status", "==", "completed"),
+        where("customerPincode", "in", providerPincodes)
+      );
+
+      // Set up listener for completed requests
+      const unsubscribeCompleted = onSnapshot(completedQuery, (snapshot) => {
+        const requests: ServiceRequest[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          customerName: doc.data().customerName,
+          customerEmail: doc.data().customerEmail,
+          customerAddress: doc.data().customerAddress,
+          customerPincode: doc.data().customerPincode,
+          customerCity: doc.data().customerCity,
+          items: doc.data().items,
+          status: doc.data().status,
+          createdAt: doc.data().createdAt.toDate(),
+          completedAt: doc.data().completedAt?.toDate(),
+        }));
+        setCompletedRequests(requests);
+      });
+
+      return () => {
+        unsubscribeCompleted();
+      };
+    });
+  }, [auth.currentUser]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
@@ -477,77 +647,16 @@ export default function ProviderDashboard() {
 
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 py-8">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="p-6 border border-black/10 dark:border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
-                  <Calendar className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">
-                    Today's Bookings
-                  </p>
-                  <p className="text-2xl font-semibold">0</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">
-                    Total Customers
-                  </p>
-                  <p className="text-2xl font-semibold">0</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
-                  <Star className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">
-                    Average Rating
-                  </p>
-                  <p className="text-2xl font-semibold">0.0</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6 border border-black/10 dark:border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-black/60 dark:text-white/60">
-                    Service Areas
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {providerData.servicePincodes.length}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Service Requests */}
-          <Card className="border border-black/10 dark:border-white/10 my-8">
-            <div className="p-6 border-b border-black/10 dark:border-white/10">
-              <h3 className="text-lg font-semibold">Service Requests</h3>
-              <p className="text-sm text-black/60 dark:text-white/60 mt-1">
-                Manage incoming service requests from customers
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Service Requests Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+              <h2 className="text-xl font-semibold mb-2">Service Requests</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                Manage incoming service requests
               </p>
-            </div>
-
-            <div className="p-6">
               {serviceRequests.length === 0 ? (
-                <p className="text-center text-black/60 dark:text-white/60">
-                  No pending service requests
+                <p className="text-gray-500 dark:text-gray-400">
+                  No pending requests
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -614,80 +723,226 @@ export default function ProviderDashboard() {
                 </div>
               )}
             </div>
-          </Card>
 
-          {/* Accepted Requests */}
-          <Card className="border border-black/10 dark:border-white/10 my-8">
-            <div className="p-6 border-b border-black/10 dark:border-white/10">
-              <h3 className="text-lg font-semibold">Accepted Requests</h3>
-              <p className="text-sm text-black/60 dark:text-white/60 mt-1">
-                View and manage your accepted service requests
+            {/* Accepted Requests Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+              <h2 className="text-xl font-semibold mb-2">Accepted Requests</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                View and manage accepted requests (Not paid)
               </p>
-            </div>
-
-            <div className="p-6">
-              {acceptedRequests.length === 0 ? (
-                <p className="text-center text-black/60 dark:text-white/60">
-                  No accepted service requests
+              {acceptedRequests.filter(
+                (request) => !request.isPaid && request.status !== "completed"
+              ).length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400">
+                  No pending accepted requests
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {acceptedRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-medium">
-                            {request.customerName}
-                          </h4>
-                          <p className="text-sm text-black/60 dark:text-white/60">
-                            {request.customerAddress}, {request.customerCity} -{" "}
-                            {request.customerPincode}
-                          </p>
-                        </div>
-                        <Badge className="bg-blue-500/10 text-blue-500">
-                          Accepted
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        {request.items.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between text-sm"
-                          >
-                            <span>
-                              {item.name} × {item.quantity}
-                            </span>
-                            <span>₹{item.price * item.quantity}</span>
+                  {acceptedRequests
+                    .filter(
+                      (request) =>
+                        !request.isPaid && request.status !== "completed"
+                    )
+                    .map((request) => (
+                      <div
+                        key={request.id}
+                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-medium">
+                              {request.customerName}
+                            </h4>
+                            <p className="text-sm text-black/60 dark:text-white/60">
+                              {request.customerAddress}, {request.customerCity}
+                            </p>
                           </div>
-                        ))}
-                        <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
-                          <span>Total</span>
-                          <span>
-                            ₹
-                            {request.items.reduce(
-                              (sum, item) => sum + item.price * item.quantity,
-                              0
-                            )}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-500/10 text-blue-500">
+                              Accepted
+                            </Badge>
+                            <Button
+                              onClick={() =>
+                                handleServiceCompletion(request.id)
+                              }
+                              variant="outline"
+                              size="sm"
+                            >
+                              Mark Complete
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          {request.items.map((item, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between text-sm"
+                            >
+                              <span>
+                                {item.name} × {item.quantity}
+                              </span>
+                              <span>₹{item.price * item.quantity}</span>
+                            </div>
+                          ))}
+                          <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                            <span>Total</span>
+                            <span>
+                              ₹
+                              {request.items.reduce(
+                                (sum, item) => sum + item.price * item.quantity,
+                                0
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <Button
-                          onClick={() => handleServiceCompletion(request.id)}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600"
-                        >
-                          Mark Service as Completed
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
-          </Card>
+
+            {/* Paid But Not Completed Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+              <h2 className="text-xl font-semibold mb-2">
+                Paid Services (Pending)
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                Services paid but not completed
+              </p>
+              {paidOrders.filter((order) => order.status !== "completed")
+                .length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400">
+                  No pending paid services
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {paidOrders
+                    .filter((order) => order.status !== "completed")
+                    .map((order) => (
+                      <div
+                        key={order.id}
+                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-medium">
+                              {order.customerName}
+                            </h4>
+                            <p className="text-sm text-black/60 dark:text-white/60">
+                              {order.customerAddress}, {order.customerCity}
+                            </p>
+                            <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+                              Payment:{" "}
+                              {order.paymentMethod === "cod"
+                                ? "Cash on Delivery"
+                                : "Online"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-orange-500/10 text-orange-500">
+                              Paid (Pending)
+                            </Badge>
+                            <Button
+                              onClick={() => handleServiceCompletion(order.id)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              Mark Complete
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          {order.items.map((item, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between text-sm"
+                            >
+                              <span>
+                                {item.name} × {item.quantity}
+                              </span>
+                              <span>₹{item.price * item.quantity}</span>
+                            </div>
+                          ))}
+                          <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                            <span>Total</span>
+                            <span>
+                              ₹
+                              {order.items.reduce(
+                                (sum, item) => sum + item.price * item.quantity,
+                                0
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Full-width Completed Services Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8">
+            <h2 className="text-xl font-semibold mb-2">Completed Services</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+              View completed service history
+            </p>
+            {completedRequests.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">
+                No completed services
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {completedRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="font-medium">{request.customerName}</h4>
+                        <p className="text-sm text-black/60 dark:text-white/60">
+                          {request.customerAddress}, {request.customerCity}
+                        </p>
+                        <p className="text-sm text-green-600 mt-1">
+                          Completed on{" "}
+                          {request.completedAt
+                            ? format(new Date(request.completedAt), "PPP")
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <Badge className="bg-green-500/10 text-green-500">
+                        Completed
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      {request.items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between text-sm"
+                        >
+                          <span>
+                            {item.name} × {item.quantity}
+                          </span>
+                          <span>₹{item.price * item.quantity}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                        <span>Total</span>
+                        <span>
+                          ₹
+                          {request.items.reduce(
+                            (sum, item) => sum + item.price * item.quantity,
+                            0
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Main Content */}
           <Card className="border border-black/10 dark:border-white/10">

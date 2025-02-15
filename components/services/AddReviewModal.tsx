@@ -45,31 +45,8 @@ const AddReviewModal = ({
 
     setIsSubmitting(true);
     try {
-      const review: ServiceReview = {
-        id: Date.now().toString(),
-        rating: rating as 1 | 2 | 3 | 4 | 5,
-        comment,
-        userName: "Anonymous",
-        userEmail: "anonymous@example.com",
-        date: new Date().toISOString(),
-        helpful: 0,
-        serviceDetails: "",
-        isEdited: false,
-      };
-
-      // Update Firestore
-      const serviceRef = doc(db, "services", serviceId);
-      const serviceDoc = await getDoc(serviceRef);
-      const currentTotalReviews = serviceDoc.data()?.totalReviews || 0;
-
-      await updateDoc(serviceRef, {
-        reviews: arrayUnion(review),
-        totalReviews: increment(1),
-        rating: increment(rating / (currentTotalReviews + 1)),
-      });
-
-      // Notify parent components
-      onSubmit({ rating, comment });
+      // Just notify parent component
+      await onSubmit({ rating, comment });
       onClose();
       setComment("");
       setRating(0);

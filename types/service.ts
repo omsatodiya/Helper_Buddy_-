@@ -18,19 +18,22 @@ export interface ServiceProvider {
 }
 
 export interface ServiceReview {
-  serviceDetails: string;
-  isEdited: any;
   id: string;
-  rating: 1 | 2 | 3 | 4 | 5;
+  rating: number;
   comment: string;
   userName: string;
   userEmail: string;
   date: string;
   helpful: number;
+  editedAt?: string;
+  isEdited?: boolean;
   reply?: {
     comment: string;
     date: string;
   };
+  orderId: string;
+  userId: string;
+  createdAt: Date;
 }
 
 export interface ServiceImage {
@@ -96,8 +99,8 @@ export interface Service {
     createdAt: string;
     updatedAt: string;
   };
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   maxQuantity?: number;
   availableQuantity?: number;
   servicePincodes?: { pincode: string }[];

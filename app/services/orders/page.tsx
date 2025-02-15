@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearch } from "@/contexts/SearchContext";
+import { formatDate } from "@/lib/utils/date";
 
 interface OrderItem {
   name: string;
@@ -47,17 +48,14 @@ interface Order {
   providerName?: string;
   serviceId?: string;
   isReviewed?: boolean;
+  availableProviders: string[];
+  providerResponses?: {
+    [providerId: string]: {
+      status: "pending" | "accepted" | "rejected";
+      updatedAt: Date;
+    };
+  };
 }
-
-export const formatDate = (date: Date) => {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -141,7 +139,50 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusBadge = (status: Order["status"]) => {
+  const getOrderStatus = (order: Order): Order["status"] => {
+    if (["cancelled", "paid", "completed"].includes(order.status)) {
+      return order.status;
+    }
+
+    if (!order.providerResponses) {
+      return "pending";
+    }
+
+    const responses = Object.values(order.providerResponses);
+    const totalProviders = order.availableProviders?.length || 0;
+    const rejectionCount = responses.filter(
+      (r) => r.status === "rejected"
+    ).length;
+    const acceptedCount = responses.filter(
+      (r) => r.status === "accepted"
+    ).length;
+
+    if (acceptedCount > 0) {
+      return "accepted";
+    }
+
+    if (rejectionCount === totalProviders && totalProviders > 0) {
+      return "rejected";
+    }
+
+    return "pending";
+  };
+
+  const getStatusBadge = (order: Order) => {
+    // If there's a provider response with "accepted" status, show as accepted
+    if (order.providerResponses) {
+      const responses = Object.values(order.providerResponses);
+      const hasAccepted = responses.some((r) => r.status === "accepted");
+      if (hasAccepted) {
+        return (
+          <Badge className="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full">
+            Accepted
+          </Badge>
+        );
+      }
+    }
+
+    // Otherwise use the order's status
     const statusConfig = {
       pending: { class: "bg-yellow-500/10 text-yellow-500", label: "Pending" },
       accepted: { class: "bg-blue-500/10 text-blue-500", label: "Accepted" },
@@ -155,8 +196,10 @@ export default function OrdersPage() {
     };
 
     return (
-      <Badge className={`${statusConfig[status].class} px-3 py-1 rounded-full`}>
-        {statusConfig[status].label}
+      <Badge
+        className={`${statusConfig[order.status].class} px-3 py-1 rounded-full`}
+      >
+        {statusConfig[order.status].label}
       </Badge>
     );
   };
@@ -206,7 +249,7 @@ export default function OrdersPage() {
                               </p>
                             )}
                           </div>
-                          {getStatusBadge(order.status)}
+                          {getStatusBadge(order)}
                         </div>
 
                         <div className="space-y-3 mb-6">

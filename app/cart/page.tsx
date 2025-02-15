@@ -283,7 +283,12 @@ export default function CartPage() {
           (p: any) => p.pincode === selectedAddress.pincode
         );
 
-        if (hasMatchingPincode) {
+        // Check if provider offers all requested services
+        const hasMatchingServices = cartItems.every((cartItem) =>
+          data.services?.includes(cartItem.name)
+        );
+
+        if (hasMatchingPincode && hasMatchingServices) {
           providers.push({ id: doc.id, ...data } as ServiceProvider);
         }
       });
