@@ -179,19 +179,10 @@ export default function CartPage() {
           city: "Mumbai",
           state: "Maharashtra",
         });
-
-        toast({
-          title: "Location Found",
-          description: "Your address has been automatically set",
-        });
       }
     } catch (error) {
       console.error("Error fetching address details:", error);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to get address details from your location",
-      //   variant: "destructive",
-      // });
+      setLocationError("Failed to get address details from your location");
     } finally {
       setIsLoadingLocation(false);
     }
@@ -205,15 +196,19 @@ export default function CartPage() {
           const { latitude, longitude } = position.coords;
           setUserLocation({ latitude, longitude });
           await fetchAddressFromCoordinates(latitude, longitude);
+          toast({
+            title: "Location Found",
+            description: "Your address has been automatically set",
+          });
         },
         (error) => {
           console.error("Error getting location:", error);
-          // toast({
-          //   title: "Location Error",
-          //   description:
-          //     "Failed to get your location. Please enter address manually.",
-          //   variant: "destructive",
-          // });
+          setLocationError("Failed to get your location. Please enter address manually.");
+          toast({
+            title: "Location Error",
+            description: "Failed to get your location. Please enter address manually.",
+            variant: "destructive",
+          });
         }
       );
     }

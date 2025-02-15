@@ -41,7 +41,6 @@ const AddServiceForm = ({
     ],
     provider: {
       id: `provider-${Date.now()}`,
-      name: "",
       email: "provider@example.com",
       phone: "+1234567890",
       rating: 0,
@@ -212,7 +211,6 @@ const AddServiceForm = ({
         images: finalImages,
         provider: {
           ...formData.provider,
-          name: formData.provider.name.trim(),
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -240,7 +238,6 @@ const AddServiceForm = ({
         images: [{ url: "", alt: "", isPrimary: true }],
         provider: {
           id: `provider-${Date.now()}`,
-          name: "",
           email: "provider@example.com",
           phone: "+1234567890",
           rating: 0,
@@ -266,6 +263,46 @@ const AddServiceForm = ({
       setLoading(false);
     }
   };
+
+  // Replace the category select element with updated categories
+  const serviceCategories = [
+    { id: 'Cleaning', name: 'Cleaning & Maintenance' },
+    { id: 'Plumbing', name: 'Plumbing' },
+    { id: 'Carpentry', name: 'Carpentry' },
+    { id: 'Electrical', name: 'Electrical' },
+    { id: 'AC', name: 'AC Repair & Services' },
+    { id: 'Chimney', name: 'Chimney Repair' },
+    { id: 'Water Purifier', name: 'Water Purifier Repair' },
+    { id: 'Microwave', name: 'Microwave Repair' },
+    { id: 'Refrigerator', name: 'Refrigerator Repair' },
+    { id: 'TV', name: 'TV Repair' },
+    { id: 'Washing Machine', name: 'Washing Machine Repair' },
+    { id: 'Geyser', name: 'Geyser Repair' },
+    { id: 'Painting', name: 'Painting & Decoration' },
+    { id: 'Carpets', name: 'Carpets & Flooring' },
+    { id: 'Furniture', name: 'Furniture Repair & Assembly' },
+    { id: 'Home Appliances', name: 'Home Appliances Repair' },
+    { id: 'Fans', name: 'Fans Repair' },
+    { id: 'Fan Cleaning', name: 'Fan Cleaning' },
+    { id: 'Home Cleaning', name: 'Home Cleaning' },
+    { id: 'Home Security', name: 'Home Security' },
+    { id: 'Home Maintenance', name: 'Home Maintenance' },
+    { id: 'Home Repair', name: 'Home Repair' },
+    { id: 'Home Renovation', name: 'Home Renovation' },
+    { id: 'Landscaping', name: 'Landscaping & Gardening' },
+    { id: 'Moving', name: 'Moving & Transportation' },
+    { id: 'Tutoring', name: 'Tutoring & Education' },
+    { id: 'Wellness', name: 'Health & Wellness' },
+    { id: 'Events', name: 'Events & Entertainment' },
+    { id: 'Technology', name: 'Technology & IT' },
+    { id: 'Pets', name: 'Pet Services' },
+    { id: 'Beauty', name: 'Beauty & Personal Care' },
+    { id: 'Automotive', name: 'Automotive' },
+    { id: 'Legal', name: 'Legal Services' },
+    { id: 'Financial', name: 'Financial Services' },
+    { id: 'Creative', name: 'Creative & Design' },
+    { id: 'Other', name: 'Other Services' }
+  ];
 
   return (
     <form onSubmit={handleSubmit} ref={formRef} className="space-y-8">
@@ -336,40 +373,12 @@ const AddServiceForm = ({
             className="w-full rounded-md border border-black/10 dark:border-white/10 p-2 bg-white dark:bg-black text-black dark:text-white"
           >
             <option value="">Select category</option>
-            <option value="electrician">Electrician</option>
-            <option value="plumber">Plumber</option>
-            <option value="carpenter">Carpenter</option>
-            <option value="bathroom_kitchen_cleaning">
-              Bathroom & Kitchen Cleaning
-            </option>
-            <option value="sofa_carpet_cleaning">Sofa & Carpet Cleaning</option>
-            <option value="ac_repair">AC Repair & Services</option>
-            <option value="chimney_repair">Chimney Repair</option>
-            <option value="water_purifier_repair">Water Purifier Repair</option>
-            <option value="microwave_repair">Microwave Repair</option>
-            <option value="refrigerator_repair">Refrigerator Repair</option>
+            {serviceCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
           </select>
-        </div>
-
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-black dark:text-white">
-            Service Provider Name
-          </label>
-          <Input
-            value={formData.provider.name}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                provider: {
-                  ...formData.provider,
-                  name: e.target.value,
-                },
-              })
-            }
-            required
-            placeholder="Enter service provider name"
-            className="bg-white dark:bg-black border-black/10 dark:border-white/10"
-          />
         </div>
 
         {/* Details */}
