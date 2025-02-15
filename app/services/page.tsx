@@ -542,7 +542,17 @@ function ServicesContent() {
     setSortOption(option);
   };
 
-  // Add this effect to handle search params
+  // Update the OrderStatus type definition
+  type OrderStatus = {
+    isCompleted: boolean;
+    orderId?: string;
+    isReviewed?: boolean;
+  } | undefined;  // Change from null to undefined
+
+  // Update the state declaration
+  const [orderStatus, setOrderStatus] = useState<OrderStatus>(undefined);
+
+  // When setting the order status, update it like this:
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const searchTerm = searchParams.get("search");
@@ -555,7 +565,6 @@ function ServicesContent() {
       );
 
       if (matchingService) {
-        // Get order status from URL params
         const orderId = searchParams.get("orderId");
         const isCompleted = searchParams.get("isCompleted") === "true";
         const isReviewed = searchParams.get("isReviewed") === "true";
@@ -571,22 +580,17 @@ function ServicesContent() {
           }, 500);
         }
 
-        // Store order status for the modal
-        setOrderStatus({
-          isCompleted,
-          orderId,
-          isReviewed,
-        });
+        // Update order status with proper typing
+        if (orderId) {
+          setOrderStatus({
+            isCompleted,
+            orderId,
+            isReviewed: isReviewed || false,
+          });
+        }
       }
     }
   }, [services]);
-
-  // Add state for order status
-  const [orderStatus, setOrderStatus] = useState<{
-    isCompleted: boolean;
-    orderId?: string;
-    isReviewed?: boolean;
-  } | null>(null);
 
   if (loading) {
     return (
@@ -792,7 +796,11 @@ function ServicesContent() {
           onReviewAdded={handleReviewAdded}
           onServiceUpdated={handleServiceUpdated}
           isReviewMode={!!searchParams.get("search")}
-          orderStatus={orderStatus}
+          orderStatus={orderStatus as {
+            isCompleted: boolean;
+            orderId?: string;
+            isReviewed?: boolean;
+          } | undefined}
         />
       )}
 

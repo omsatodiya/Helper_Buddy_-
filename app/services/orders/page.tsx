@@ -42,14 +42,14 @@ interface Order {
     | "paid"
     | "cancelled";
   totalAmount: number;
-  createdAt: any; // Firebase Timestamp
-  updatedAt: any; // Firebase Timestamp
+  createdAt: Date;
+  updatedAt: Date;
   providerName?: string;
   serviceId?: string;
   isReviewed?: boolean;
 }
 
-export const formatDate = (date: Date) => {
+const formatDate = (date: Date) => {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
