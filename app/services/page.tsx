@@ -7,7 +7,6 @@ import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import { Filter, X, Search } from "lucide-react";
 import Header from "@/components/layout/Header";
-import Preloader from "@/components/ui/preloader";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -36,7 +35,6 @@ import {
 import { Input } from "@/components/ui/input";
 import gsap from "gsap";
 import React from "react";
-import { useLoadingStore } from "@/store/loading-store";
 
 type ServiceCategory =
   | "electrician"
@@ -119,11 +117,11 @@ const sortOptions = [
 // Create a separate component for the content that uses useSearchParams
 function ServicesContent() {
   const searchParams = useSearchParams();
-  const category = searchParams?.get("category");
+  const category = searchParams.get("category");
 
-  const [isLoading, setIsLoading] = useState(true);
   const [services, setServices] = useState<SimpleService[]>([]);
   const [filteredServices, setFilteredServices] = useState<SimpleService[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -158,9 +156,10 @@ function ServicesContent() {
     }
   }, [isCartVisible]);
 
+  // Extract fetchServices function outside useEffect
   async function fetchServices() {
     try {
-      setIsLoading(true);
+      setLoading(true);
       let servicesQuery;
 
       if (category) {
@@ -192,19 +191,20 @@ function ServicesContent() {
           imageUrl: service.images?.[0]?.url || "/placeholder-image.jpg",
           createdAt: service.createdAt || new Date().toISOString(),
           updatedAt: service.updatedAt || new Date().toISOString(),
-          servicePincodes: service.servicePincodes || []
         })
       );
 
       setServices(transformedServices);
       setFilteredServices(transformedServices);
     } catch (err: any) {
+      console.error("Error fetching services:", err);
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
+  // Use fetchServices in useEffect
   useEffect(() => {
     fetchServices();
   }, [category]);
@@ -541,7 +541,7 @@ function ServicesContent() {
     setSortOption(option);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <>
         <Header />
@@ -761,7 +761,6 @@ function ServicesContent() {
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard
-              className="bg-white dark:bg-black text-black dark:text-white border-black/10 dark:border-white/10"
               selectedService={selectedService ? selectedService.id : null}
               selectedPriceRanges={selectedPriceRanges}
               minReviewRating={minReviewRating}
@@ -803,7 +802,7 @@ function ServicesContent() {
           {/* Services Grid */}
           <div
             className={`flex-[3] my-5 py-4 px-4 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-black w-full transition-[margin] duration-500 ease-out ${
-              isCartVisible ? "mr-[300px]" : ""
+              isCartVisible ? "lg:mr-[300px]" : ""
             }`}
           >
             {/* Active Filters Summary - Mobile Only */}
@@ -860,44 +859,15 @@ function ServicesContent() {
 
 // Main page component
 export default function ServicesPage() {
-  const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  const setIsLoading = useLoadingStore((state) => state.setIsLoading);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsLoading(true);
-
-    const timer = setTimeout(() => {
-      setLoading(false);
-      setIsLoading(false);
-    }, 2500);
-
-    return () => {
-      clearTimeout(timer);
-      setIsLoading(false);
-    };
-  }, [setIsLoading]);
-
-  // Don't render anything until mounted
-  if (!mounted) {
-    return <Preloader onLoadingComplete={() => {}} />;
-  }
-
   return (
-    <>
-      {loading ? (
-        <Preloader 
-          onLoadingComplete={() => {
-            setLoading(false);
-            setIsLoading(false);
-          }} 
-        />
-      ) : (
-        <main>
-          <ServicesContent />
-        </main>
-      )}
-    </>
+    <Suspense
+      fallback={
+        <div className="min-h-screen p-4 flex items-center justify-center">
+          <div className="animate-pulse text-lg">Loading services...</div>
+        </div>
+      }
+    >
+      <ServicesContent />
+    </Suspense>
   );
 }
