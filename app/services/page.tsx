@@ -802,7 +802,7 @@ function ServicesContent() {
           </h1>
         </div>
 
-        <div className="flex flex-col md:flex-row md:gap-14">
+        <div className="flex flex md:flex-row md:gap-14">
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard
