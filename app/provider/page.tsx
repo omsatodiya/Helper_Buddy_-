@@ -362,6 +362,48 @@ export default function ProviderDashboard() {
         updatedAt: new Date(),
       });
 
+      // Send email notification to customer when request is accepted
+      if (action === "accept") {
+        try {
+          // Format service details with simple text formatting
+          const formattedServiceDetails = request.items.map(item => 
+            `${item.name}
+            Quantity: ${item.quantity}
+            Price: ₹${item.price} per unit
+            Subtotal: ₹${item.price * item.quantity}
+            ----------------------------------------`
+          ).join('\n\n');
+
+          await emailjs.send(
+            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_REQUEST_ACCEPTED_TEMPLATE_ID!,
+            {
+              to_email: request.customerEmail,
+              to_name: request.customerName,
+              provider_name: auth.currentUser?.displayName || "Service Provider",
+              service_details: formattedServiceDetails,
+              total_amount: request.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+              from_name: "DudhKela Support",
+              reply_to: request.customerEmail
+            },
+            process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
+          );
+
+          toast({
+            title: "Request Accepted",
+            description: "Customer has been notified via email",
+            variant: "default",
+          });
+        } catch (emailError) {
+          console.error('Error sending acceptance email:', emailError);
+          toast({
+            title: "Request Accepted",
+            description: "Request accepted but failed to send email notification",
+            variant: "default",
+          });
+        }
+      }
+
       toast({
         title: action === "accept" ? "Request Accepted" : "Request Rejected",
         description: `You have ${action}ed the service request`,

@@ -18,7 +18,6 @@ import {
 } from "@/lib/firebase/cart";
 import { getAddresses } from "@/lib/firebase/address";
 import { CartItem } from "@/types/cart";
-import { sendProviderNotifications } from "@/lib/email";
 import {
   collection,
   query,
@@ -78,8 +77,8 @@ export default function CartPage() {
     useState<LocationDetails | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [isSendingEmails, setIsSendingEmails] = useState(false);
   const router = useRouter();
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
 
   // Fetch cart items
   const fetchCartItems = async () => {
@@ -266,90 +265,6 @@ export default function CartPage() {
     }
   };
 
-  const handleNotifyProviders = async () => {
-    if (!selectedAddress || !user) return;
-
-    try {
-      setIsSendingEmails(true);
-
-      const providersRef = collection(db, "providers");
-      const providersSnapshot = await getDocs(providersRef);
-
-      // Find all providers with matching pincode
-      const providers: ServiceProvider[] = [];
-      providersSnapshot.forEach((doc) => {
-        const data = doc.data();
-        const hasMatchingPincode = data.servicePincodes?.some(
-          (p: any) => p.pincode === selectedAddress.pincode
-        );
-
-        if (hasMatchingPincode) {
-          providers.push({ id: doc.id, ...data } as ServiceProvider);
-        }
-      });
-
-      if (providers.length === 0) {
-        toast({
-          title: "No Providers Found",
-          description:
-            "Currently there are no service providers in your pincode area.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create service requests for each provider
-      await Promise.all(
-        providers.map(async (provider) => {
-          // Create service request document
-          const requestRef = doc(collection(db, "serviceRequests"));
-          await setDoc(requestRef, {
-            id: requestRef.id,
-            providerId: provider.id,
-            customerName: user.displayName,
-            customerEmail: user.email,
-            customerAddress: selectedAddress.address,
-            customerPincode: selectedAddress.pincode,
-            customerCity: selectedAddress.city,
-            items: cartItems,
-            status: "pending",
-            createdAt: new Date(),
-          });
-
-          // Send email notification
-          return sendProviderNotifications({
-            providerEmail: provider.email,
-            providerName: provider.name,
-            customerName: user.displayName || "Customer",
-            customerEmail: user.email || "",
-            customerAddress: selectedAddress.address,
-            customerPincode: selectedAddress.pincode,
-            customerCity: selectedAddress.city,
-            items: cartItems.map((item) => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-          });
-        })
-      );
-
-      toast({
-        title: "Success",
-        description: `Notified ${providers.length} service providers in your area.`,
-      });
-    } catch (error) {
-      console.error("Error notifying providers:", error);
-      toast({
-        title: "Error",
-        description: "Failed to notify service providers. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingEmails(false);
-    }
-  };
-
   const handleFindProvider = async () => {
     if (!user || !selectedAddress) {
       toast({
@@ -361,8 +276,6 @@ export default function CartPage() {
     }
 
     try {
-      setIsSendingEmails(true);
-
       // Find providers with matching pincode
       const providersRef = collection(db, "providers");
       const providersSnapshot = await getDocs(providersRef);
@@ -405,11 +318,12 @@ export default function CartPage() {
         availableProviders: providers.map((p) => p.id),
       };
 
-      // Save main request
-      await setDoc(orderRef, orderData);
-
       // Create requests for providers
       if (providers.length > 0) {
+        // First, create the main service request
+        await setDoc(orderRef, orderData);
+
+        // Then create individual provider requests
         await Promise.all(
           providers.map(async (provider) => {
             const providerRequestRef = doc(
@@ -422,20 +336,19 @@ export default function CartPage() {
               mainRequestId: orderRef.id,
               providerStatus: "pending",
             });
-
-            // Send notification
-            await sendProviderNotifications({
-              providerEmail: provider.email,
-              providerName: provider.name,
-              customerName: user.displayName || "Customer",
-              customerEmail: user.email || "",
-              customerAddress: selectedAddress.address,
-              customerPincode: selectedAddress.pincode,
-              customerCity: selectedAddress.city,
-              items: cartItems,
-            });
           })
         );
+
+        // Clear cart
+        const cartRef = doc(db, "carts", user.uid);
+        await deleteDoc(cartRef);
+
+        toast({
+          title: "Success",
+          description: "Your service request has been submitted successfully",
+        });
+
+        router.push("/services/orders");
       } else {
         toast({
           title: "No Providers Found",
@@ -444,17 +357,6 @@ export default function CartPage() {
           variant: "destructive",
         });
       }
-
-      // Clear cart
-      const cartRef = doc(db, "carts", user.uid);
-      await deleteDoc(cartRef);
-
-      toast({
-        title: "Success",
-        description: "Your service request has been submitted successfully",
-      });
-
-      router.push("/services/orders");
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
@@ -462,8 +364,6 @@ export default function CartPage() {
         description: "Failed to submit service request. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSendingEmails(false);
     }
   };
 

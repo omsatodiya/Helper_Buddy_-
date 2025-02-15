@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .cursorrules
+
+# website guide
+website-guide.txt

@@ -18,7 +18,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearch } from "@/contexts/SearchContext";
+import { useSearch } from "@/context/SearchContext";
 
 interface OrderItem {
   name: string;
