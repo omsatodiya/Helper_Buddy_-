@@ -19,7 +19,12 @@ interface CartSummaryProps {
   isSendingEmails: boolean;
 }
 
-const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEmails }: CartSummaryProps) => {
+const CartSummary = ({
+  items,
+  isAddressSelected,
+  onNotifyProviders,
+  isSendingEmails,
+}: CartSummaryProps) => {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -83,14 +88,6 @@ const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEma
         </div>
       </div>
       <Button
-        onClick={handleCheckout}
-        disabled={!isAddressSelected}
-        className="w-full mt-6"
-        variant={isAddressSelected ? "default" : "secondary"}
-      >
-        Proceed to Checkout
-      </Button>
-      <Button
         className="w-full mt-6"
         disabled={!isAddressSelected || isSendingEmails}
         onClick={onNotifyProviders}
@@ -101,7 +98,7 @@ const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEma
             Notifying Providers...
           </div>
         ) : (
-          'Find Service Providers'
+          "Find Service Providers"
         )}
       </Button>
       {!isAddressSelected && (

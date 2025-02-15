@@ -26,6 +26,14 @@ const ALL_SERVICES = [
   { id: 6, name: "Pipe Fitting", category: "Plumbing", price: "from ₹299", image: "https://picsum.photos/200/300" },
   { id: 7, name: "Electrician", category: "Electrical", price: "from ₹199", image: "https://picsum.photos/200/300" },
   { id: 8, name: "Electrical Repair", category: "Electrical", price: "from ₹299", image: "https://picsum.photos/200/300" },
+  { id: 9, name: "AC care", category: "Appliances", price: "from ₹399", image: "https://picsum.photos/200/300" },
+  { id: 10, name: "AC Repair", category: "Appliances", price: "from ₹499", image: "https://picsum.photos/200/300" },
+  { id: 11, name: "Home Cleaning", category: "Cleaning", price: "from ₹299", image: "https://picsum.photos/200/300" },
+  { id: 12, name: "Deep Cleaning", category: "Cleaning", price: "from ₹999", image: "https://picsum.photos/200/300" },
+  { id: 13, name: "Plumbing Work", category: "Plumbing", price: "from ₹199", image: "https://picsum.photos/200/300" },
+  { id: 14, name: "Pipe Fitting", category: "Plumbing", price: "from ₹299", image: "https://picsum.photos/200/300" },
+  { id: 15, name: "Electrician", category: "Electrical", price: "from ₹199", image: "https://picsum.photos/200/300" },
+  { id: 16, name: "Electrical Repair", category: "Electrical", price: "from ₹299", image: "https://picsum.photos/200/300" },
 ];
 
 // Update the placeholder texts to only include the varying part
@@ -173,7 +181,7 @@ export default function LandingPage() {
   }, [isSearchFocused]);
 
   return (
-    <div ref={containerRef} className="bg-black dark:bg-black bg-white min-h-screen relative overflow-hidden">
+    <div ref={containerRef} className="bg-black dark:bg-black bg-white min-h-screen relative overflow-visible">
       {/* Theme Toggle - Add this near the top of the content */}
       <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
@@ -217,12 +225,12 @@ export default function LandingPage() {
 
               {/* Dropdown Content */}
               {isSearchFocused && (
-                <div className="dropdown-content absolute w-full mt-6 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden z-50">
-                  <div className="p-4">
+                <div className="dropdown-content absolute w-full mt-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg z-[100]">
+                  <div className="p-4 max-w-full">
                     {searchQuery === '' ? (
                       <>
                         <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-gray-700 font-semibold flex items-center gap-2">
+                          <h3 className="text-gray-700 font-semibold flex items-center gap-2 truncate">
                             Trending Searches
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
@@ -236,7 +244,7 @@ export default function LandingPage() {
                             </svg>
                           </h3>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 max-w-full">
                           {TRENDING_SEARCHES.map((item) => (
                             <button
                               key={item.id}
@@ -244,7 +252,7 @@ export default function LandingPage() {
                                 setSearchQuery(item.label);
                                 setIsSearchFocused(false);
                               }}
-                              className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors"
+                              className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors whitespace-nowrap"
                             >
                               <span className="text-gray-800">{item.label}</span>
                               <span className="text-xs text-gray-500 group-hover:text-gray-700">
@@ -265,34 +273,38 @@ export default function LandingPage() {
                           <h3 className="text-gray-700 font-semibold">Search Results</h3>
                         </div>
                         {filteredServices.length > 0 ? (
-                          <div className="space-y-2">
-                            {filteredServices.map((service) => (
-                              <button
-                                key={service.id}
-                                onClick={() => {
-                                  setSearchQuery(service.name);
-                                  setIsSearchFocused(false);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
-                              >
-                                <img 
-                                  src={service.image} 
-                                  alt={service.name}
-                                  className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
-                                />
-                                <div className="flex-1">
-                                  <p className="text-gray-800 font-medium group-hover:text-[#2C786C] transition-colors">
-                                    {service.name}
-                                  </p>
-                                  <p className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
-                                    {service.category}
-                                  </p>
-                                </div>
-                                <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
-                                  {service.price}
-                                </span>
-                              </button>
-                            ))}
+                          <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar overflow-x-hidden">
+                            {filteredServices
+                              .filter((service, index, self) => 
+                                index === self.findIndex((s) => s.name === service.name)
+                              )
+                              .map((service) => (
+                                <button
+                                  key={service.id}
+                                  onClick={() => {
+                                    setSearchQuery(service.name);
+                                    setIsSearchFocused(false);
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
+                                >
+                                  <img 
+                                    src={service.image} 
+                                    alt={service.name}
+                                    className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-gray-800 font-medium group-hover:text-[#2C786C] transition-colors">
+                                      {service.name}
+                                    </p>
+                                    <p className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
+                                      {service.category}
+                                    </p>
+                                  </div>
+                                  <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
+                                    {service.price}
+                                  </span>
+                                </button>
+                              ))}
                           </div>
                         ) : (
                           <p className="text-gray-500 text-center py-4">No services found</p>

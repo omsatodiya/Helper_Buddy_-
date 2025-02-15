@@ -8,7 +8,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
-import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { getFirestore, getDocs, collection, query, where, updateDoc, doc, getDoc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import emailjs from '@emailjs/browser';
 import { usePathname } from 'next/navigation';
 
@@ -64,34 +64,34 @@ export default function ProviderApplicationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
 
+  // Move fetchApplications outside useEffect
+  const fetchApplications = async () => {
+    try {
+      setIsLoading(true);
+      const db = getFirestore();
+      const applicationsRef = collection(db, 'provider-applications');
+      const q = query(applicationsRef, where('status', '==', 'pending'));
+      const querySnapshot = await getDocs(q);
+      
+      const apps: ProviderApplication[] = [];
+      querySnapshot.forEach((doc) => {
+        apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
+      });
+
+      setApplications(apps);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch applications",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setIsLoading(true);
-        const db = getFirestore();
-        const applicationsRef = collection(db, 'provider-applications');
-        const q = query(applicationsRef, where('status', '==', 'pending'));
-        const querySnapshot = await getDocs(q);
-        
-        const apps: ProviderApplication[] = [];
-        querySnapshot.forEach((doc) => {
-          apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
-        });
-
-        // No need to upload images - they're already in Cloudinary
-        setApplications(apps);
-      } catch (error) {
-        console.error('Error fetching applications:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch applications",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchApplications();
   }, []);
 
@@ -118,108 +118,118 @@ export default function ProviderApplicationsPage() {
 
   const handleApplicationReview = async (
     applicationId: string,
-    status: 'approved' | 'rejected'
+    status: 'approved' | 'rejected',
+    applicationData: any
   ) => {
     try {
       setIsLoading(true);
       const db = getFirestore();
-      const currentUser = auth.currentUser;
-      
-      if (!currentUser) {
-        toast({
-          title: "Authentication required",
-          description: "You must be logged in to review applications",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Update application status
-      await updateDoc(doc(db, 'provider-applications', applicationId), {
-        status,
-        reviewDate: new Date(),
-        reviewedBy: currentUser.uid
-      });
 
-      // Update user document based on status
       if (status === 'approved') {
-        await updateDoc(doc(db, 'users', applicationId), {
+        // Create provider data
+        const providerData = {
+          id: applicationId,
+          name: applicationData.userName,
+          email: applicationData.email,
+          photo: applicationData.photo,
+          services: applicationData.services,
+          servicePincodes: applicationData.servicePincodes,
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          applicationDate: applicationData.applicationDate,
+          approvalDate: new Date()
+        };
+
+        // Update both collections in a batch
+        const batch = writeBatch(db);
+        
+        // Create provider document
+        batch.set(doc(db, 'providers', applicationId), providerData);
+        
+        // Update user document
+        batch.update(doc(db, 'users', applicationId), {
           role: 'provider',
-          providerSince: new Date(),
-          applicationStatus: 'approved'
+          applicationStatus: 'approved',
+          approvalDate: new Date()
+        });
+        
+        // Update application status
+        batch.update(doc(db, 'provider-applications', applicationId), {
+          status: 'approved',
+          approvalDate: new Date()
         });
 
-        // Get the application data to send email
-        const applicationDoc = await getDoc(doc(db, 'provider-applications', applicationId));
-        const applicationData = applicationDoc.data();
+        await batch.commit();
 
-        if (applicationData) {
-          // Send approval email using EmailJS
-          try {
-            await emailjs.send(
-              process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-              process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
-              {
-                to_email: applicationData.email,
-                to_name: applicationData.userName,
-                from_name: "Dudh-Kela Support",
-                reply_to: "support@dudhkela.com",
-                subject: "Welcome to Dudh-Kela as a Service Provider!",
-                services: applicationData.services.join(', '),
-                service_areas: applicationData.servicePincodes.map((p: { pincode: string }) => p.pincode).join(', '),
-                application_date: new Date(applicationData.applicationDate).toLocaleDateString(),
-                approval_date: new Date().toLocaleDateString(),
-              },
-              process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
-            );
-
-            toast({
-              title: "Email Sent",
-              description: "Provider approval notification email sent successfully",
-            });
-          } catch (emailError) {
-            console.error('Error sending approval email:', emailError);
-            toast({
-              title: "Email Error",
-              description: "Failed to send approval notification email",
-              variant: "destructive",
-            });
-          }
+        // Send approval email
+        try {
+          await emailjs.send(
+            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+            process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
+            {
+              to_email: applicationData.email,
+              to_name: applicationData.userName,
+              from_name: "Dudh-Kela Support",
+              reply_to: "support@dudhkela.com",
+              subject: "Welcome to Dudh-Kela as a Service Provider!",
+              services: applicationData.services.join(', '),
+              service_areas: applicationData.servicePincodes.map((p: any) => p.pincode).join(', '),
+              application_date: new Date(applicationData.applicationDate).toLocaleDateString(),
+              approval_date: new Date().toLocaleDateString(),
+            }
+          );
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError);
         }
       } else {
-        // For rejected applications, immediately allow reapplication
-        await updateDoc(doc(db, 'users', applicationId), {
-          applicationStatus: 'rejected',
-          canReapply: true,
-          rejectionDate: new Date()
-        });
+        // For rejected applications
+        await Promise.all([
+          updateDoc(doc(db, 'users', applicationId), {
+            role: 'user',
+            applicationStatus: 'rejected',
+            canReapply: true,
+            rejectionDate: new Date()
+          }),
+          updateDoc(doc(db, 'provider-applications', applicationId), {
+            status: 'rejected',
+            rejectionDate: new Date()
+          })
+        ]);
 
-        // Delete the application document to allow for reapplication
-        await deleteDoc(doc(db, 'provider-applications', applicationId));
+        // Send rejection email
+        try {
+          await emailjs.send(
+            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+            process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_APPROVAL_TEMPLATE_ID!,
+            {
+              to_email: applicationData.email,
+              to_name: applicationData.userName,
+              from_name: "Dudh-Kela Support",
+              reply_to: "support@dudhkela.com",
+              subject: "Update on Your Provider Application",
+              message: "Your application to become a provider has been reviewed. You can reapply after making necessary improvements.",
+            },
+            process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+          );
+        } catch (emailError) {
+          console.error('Error sending rejection email:', emailError);
+        }
       }
 
+      // Refresh applications list
+      fetchApplications();
+      
       toast({
         title: `Application ${status}`,
-        description: `Successfully ${status} the provider application.`,
+        description: `Provider application has been ${status}`,
       });
 
-      // Refresh applications list
-      const db2 = getFirestore();
-      const applicationsRef = collection(db2, 'provider-applications');
-      const q = query(applicationsRef, where('status', '==', 'pending'));
-      const querySnapshot = await getDocs(q);
-      
-      const apps: ProviderApplication[] = [];
-      querySnapshot.forEach((doc) => {
-        apps.push({ ...doc.data(), userId: doc.id } as ProviderApplication);
-      });
-      
-      setApplications(apps);
     } catch (error) {
-      console.error('Error reviewing application:', error);
+      console.error(`Error ${status} application:`, error);
       toast({
         title: "Error",
-        description: `Failed to ${status} the application`,
+        description: `Failed to ${status} application`,
         variant: "destructive",
       });
     } finally {
@@ -321,7 +331,7 @@ export default function ProviderApplicationsPage() {
                       <div className="mt-4 flex items-center gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleApplicationReview(application.userId, 'approved')}
+                          onClick={() => handleApplicationReview(application.userId, 'approved', application)}
                           className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
                         >
                           <CheckCircle className="w-4 h-4 mr-1.5" />
@@ -330,7 +340,7 @@ export default function ProviderApplicationsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleApplicationReview(application.userId, 'rejected')}
+                          onClick={() => handleApplicationReview(application.userId, 'rejected', application)}
                           className="border-black/20 hover:border-black hover:bg-black hover:text-white dark:border-white/20 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
                         >
                           <XCircle className="w-4 h-4 mr-1.5" />

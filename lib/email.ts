@@ -7,6 +7,7 @@ interface NotificationParams {
   customerEmail: string;
   customerAddress: string;
   customerCity: string;
+  customerPincode: string;
   items: {
     name: string;
     quantity: number;
@@ -30,12 +31,11 @@ export const sendProviderNotifications = async (params: NotificationParams) => {
         provider_name: params.providerName,
         customer_name: params.customerName,
         customer_email: params.customerEmail,
-        customer_location: `${params.customerAddress}, ${params.customerCity}`,
+        customer_location: `${params.customerAddress}, ${params.customerCity} - ${params.customerPincode}`,
         service_details: itemsList,
         estimated_value: `₹${totalAmount}`,
         from_name: "Dudh-Kela",
         reply_to: params.customerEmail,
-        message: `A customer in your area needs these services:\n\n${itemsList}\n\nTotal Value: ₹${totalAmount}\n\nIf you're interested, please contact the customer directly.`,
       },
       process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
     );

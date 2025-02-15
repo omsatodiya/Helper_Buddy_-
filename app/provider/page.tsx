@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { auth } from '@/lib/firebase';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from 'next/navigation';
 import { getCityFromPincode } from "@/lib/utils/pincode";
@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import emailjs from '@emailjs/browser';
 
 const AVAILABLE_SERVICES = [
   "Hair Cutting",
@@ -56,6 +57,22 @@ interface ProviderData {
   services: string[];
 }
 
+interface ServiceRequest {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerAddress: string;
+  customerPincode: string;
+  customerCity: string;
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+}
+
 export default function ProviderDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,10 +86,10 @@ export default function ProviderDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
 
   useEffect(() => {
-    const fetchProviderData = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
         router.push('/auth/login');
         return;
@@ -100,9 +117,9 @@ export default function ProviderDashboard() {
       } finally {
         setIsLoading(false);
       }
-    };
+    });
 
-    fetchProviderData();
+    return () => unsubscribe();
   }, [router, toast]);
 
   const handlePincodeAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -242,6 +259,79 @@ export default function ProviderDashboard() {
     }
   };
 
+  const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
+    try {
+      const db = getFirestore();
+      await updateDoc(doc(db, 'serviceRequests', requestId), {
+        status: action === 'accept' ? 'accepted' : 'rejected',
+        updatedAt: new Date()
+      });
+
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_REQUEST_NOTIFICATION_ID!,
+        {
+          to_email: serviceRequests.find(r => r.id === requestId)?.customerEmail,
+          customer_name: serviceRequests.find(r => r.id === requestId)?.customerName,
+          provider_name: auth.currentUser?.displayName,
+          status: action === 'accept' ? 'accepted' : 'rejected',
+          service_details: serviceRequests.find(r => r.id === requestId)?.items
+            .map(item => `${item.name} (Quantity: ${item.quantity})`)
+            .join('\n')
+        }
+      );
+
+      setServiceRequests(prev => 
+        prev.map(request => 
+          request.id === requestId 
+            ? { ...request, status: action === 'accept' ? 'accepted' : 'rejected' }
+            : request
+        )
+      );
+
+      toast({
+        title: `Request ${action === 'accept' ? 'Accepted' : 'Rejected'}`,
+        description: `You have ${action === 'accept' ? 'accepted' : 'rejected'} the service request.`,
+      });
+    } catch (error) {
+      console.error(`Error ${action}ing request:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to ${action} request. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const requestsRef = collection(db, 'serviceRequests');
+        const q = query(
+          requestsRef,
+          where('providerId', '==', user.uid),
+          where('status', '==', 'pending')
+        );
+        
+        const snapshot = await getDocs(q);
+        const requests: ServiceRequest[] = [];
+        
+        snapshot.forEach(doc => {
+          requests.push({ id: doc.id, ...doc.data() } as ServiceRequest);
+        });
+        
+        setServiceRequests(requests);
+      } catch (error) {
+        console.error('Error fetching service requests:', error);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
@@ -303,6 +393,69 @@ export default function ProviderDashboard() {
               </div>
             </Card>
           </div>
+
+          {/* Service Requests */}
+          <Card className="border border-black/10 dark:border-white/10 mt-8">
+            <div className="p-6 border-b border-black/10 dark:border-white/10">
+              <h3 className="text-lg font-semibold">Service Requests</h3>
+              <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+                Manage incoming service requests from customers
+              </p>
+            </div>
+
+            <div className="p-6">
+              {serviceRequests.length === 0 ? (
+                <p className="text-center text-black/60 dark:text-white/60">
+                  No pending service requests
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {serviceRequests.map((request) => (
+                    <div 
+                      key={request.id}
+                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-medium">{request.customerName}</h4>
+                          <p className="text-sm text-black/60 dark:text-white/60">
+                            {request.customerAddress}, {request.customerCity} - {request.customerPincode}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRequestAction(request.id, 'reject')}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleRequestAction(request.id, 'accept')}
+                          >
+                            Accept
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        {request.items.map((item, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span>{item.name} × {item.quantity}</span>
+                            <span>₹{item.price * item.quantity}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                          <span>Total</span>
+                          <span>₹{request.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
 
           {/* Main Content */}
           <Card className="border border-black/10 dark:border-white/10">

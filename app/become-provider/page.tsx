@@ -394,7 +394,7 @@ export default function BecomeProviderPage() {
 
   // Update the effect to handle auth state properly
   useEffect(() => {
-    let isSubscribed = true; // For cleanup
+    let isSubscribed = true;
     
     const checkApplicationStatus = async (user: any) => {
       try {
@@ -411,30 +411,28 @@ export default function BecomeProviderPage() {
           getDoc(doc(db, 'provider-applications', user.uid)),
           getDoc(doc(db, 'users', user.uid))
         ]);
-        
-        if (!isSubscribed) return;
 
-        const hasExistingApplication = applicationDoc.exists() || 
-          (userDoc.exists() && userDoc.data()?.hasProviderApplication);
-        
-        setHasSubmitted(hasExistingApplication);
-        
-        if (hasExistingApplication) {
-          setShowForm(false);
-          toast({
-            title: "Existing Application",
-            description: "You have already submitted an application. Please wait for admin review.",
-            variant: "default",
-          });
+        if (isSubscribed) {
+          // Allow reapplication if previous application was rejected
+          if (applicationDoc.exists()) {
+            const applicationData = applicationDoc.data();
+            if (applicationData.status === 'rejected' && userDoc.data()?.canReapply) {
+              setApplicationChecked(true);
+              setHasSubmitted(false);
+            } else if (applicationData.status === 'pending') {
+              setApplicationChecked(true);
+              setHasSubmitted(true);
+            }
+          } else {
+            setApplicationChecked(true);
+            setHasSubmitted(false);
+          }
         }
       } catch (error) {
         console.error('Error checking application status:', error);
         if (isSubscribed) {
-          setHasSubmitted(false);
-        }
-      } finally {
-        if (isSubscribed) {
           setApplicationChecked(true);
+          setHasSubmitted(false);
         }
       }
     };
@@ -446,12 +444,7 @@ export default function BecomeProviderPage() {
     }
 
     // Set up auth state listener
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      await checkApplicationStatus(user);
-      if (isSubscribed) {
-        setTimeout(() => setLoading(false), 1000);
-      }
-    });
+    const unsubscribe = auth.onAuthStateChanged(checkApplicationStatus);
 
     // Cleanup function
     return () => {
@@ -462,7 +455,7 @@ export default function BecomeProviderPage() {
         footer.style.display = 'block';
       }
     };
-  }, [toast]); // Only depend on toast
+  }, []);
 
   // Update footer visibility based on loading state
   useEffect(() => {
@@ -605,57 +598,20 @@ export default function BecomeProviderPage() {
       return;
     }
 
-    // Validate form data
-    if (!formData.photo) {
-      toast({
-        title: "Photo required",
-        description: "Please upload your photo",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.pincodes.length === 0) {
-      toast({
-        title: "Service area required",
-        description: "Please add at least one pincode where you can provide services",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.services.length === 0) {
-      toast({
-        title: "Services required",
-        description: "Please select at least one service you can provide",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
       const db = getFirestore();
 
-      // Check for existing application first
-      const [applicationDoc, userDoc] = await Promise.all([
-        getDoc(doc(db, 'provider-applications', user.uid)),
-        getDoc(doc(db, 'users', user.uid))
-      ]);
-
-      if (applicationDoc.exists() || (userDoc.exists() && userDoc.data()?.hasProviderApplication)) {
-        setHasSubmitted(true);
-        setShowForm(false);
-        toast({
-          title: "Application Already Exists",
-          description: "You have already submitted an application. Please wait for admin review.",
-          variant: "default",
-        });
-        return;
-      }
+      // Check if this is a reapplication
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const isReapplying = userDoc.exists() && userDoc.data()?.applicationStatus === 'rejected';
 
       // Upload photo to Cloudinary
+      if (!formData.photo) {
+        throw new Error('Photo is required');
+      }
+
       const formDataForUpload = new FormData();
       formDataForUpload.append('file', formData.photo);
       formDataForUpload.append('upload_preset', 'service_providers');
@@ -690,30 +646,27 @@ export default function BecomeProviderPage() {
         services: formData.services,
         status: 'pending',
         applicationDate: new Date(),
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        isReapplication: isReapplying
       };
 
-      // Batch write to both collections
+      // Update both documents
       const batch = writeBatch(db);
       
-      // Add application to provider-applications collection
       batch.set(doc(db, 'provider-applications', user.uid), applicationData);
-      
-      // Update user document
       batch.update(doc(db, 'users', user.uid), {
         hasProviderApplication: true,
         applicationStatus: 'pending',
         applicationDate: new Date(),
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        canReapply: false // Reset reapplication flag
       });
 
-      // Commit the batch
       await batch.commit();
 
-      // Success handling
       setHasSubmitted(true);
       toast({
-        title: "Application submitted successfully!",
+        title: isReapplying ? "Reapplication submitted!" : "Application submitted!",
         description: "We'll review your application and get back to you soon.",
       });
       setShowForm(false);
