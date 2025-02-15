@@ -23,7 +23,216 @@ import {
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
 import ScrollVelocity from "@/components/ui/scroll-velocity";
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 
+const services = [
+  {
+    id: 1,
+    title: "AC Service and Repair",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Professional AC maintenance and repair services",
+    path: "/services/ac-repair"
+  },
+  {
+    id: 2,
+    title: "Washing Machine Repair",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Expert washing machine repair and servicing",
+    path: "/services/washing-machine"
+  },
+  {
+    id: 3,
+    title: "Water Purifier Repair",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Quality water purifier maintenance and repairs",
+    path: "/services/water-purifier"
+  },
+  {
+    id: 4,
+    title: "Refrigerator Repair",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Professional refrigerator repair services",
+    path: "/services/refrigerator"
+  },
+  {
+    id: 5,
+    title: "Microwave Repair",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Expert microwave repair and maintenance",
+    path: "/services/microwave"
+  }
+];
+
+const cleaningServices = [
+  {
+    id: 1,
+    title: "Home Deep Cleaning",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Professional home deep cleaning services",
+    path: "/services/home-cleaning"
+  },
+  {
+    id: 2,
+    title: "Pest Control",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Complete pest control solutions",
+    path: "/services/pest-control"
+  },
+  {
+    id: 3,
+    title: "Carpet Cleaning",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Expert carpet cleaning services",
+    path: "/services/carpet-cleaning"
+  },
+  {
+    id: 4,
+    title: "Sofa Cleaning",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Professional sofa cleaning services",
+    path: "/services/sofa-cleaning"
+  },
+  {
+    id: 5,
+    title: "Kitchen Deep Cleaning",
+    image: "https://picsum.photos/id/237/200/300",
+    description: "Thorough kitchen cleaning services",
+    path: "/services/kitchen-cleaning"
+  }
+];
+
+function ServicesCarousel() {
+  const router = useRouter();
+
+  return (
+    <section className="py-12 bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            AC & Appliance Repair
+          </h2>
+          <button 
+            onClick={() => router.push('/services')}
+            className="text-primary hover:underline"
+          >
+            See all
+          </button>
+        </div>
+        
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {services.map((service) => (
+              <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                <div className="p-1">
+                  <Card 
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => router.push(service.path)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square">
+                        <Image
+                          src={service.image}
+                          alt={service.title}
+                          fill
+                          className="object-cover rounded-t-lg"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-1">{service.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {service.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden md:flex" />
+          <CarouselNext className="hidden md:flex" />
+        </Carousel>
+      </div>
+    </section>
+  )
+}
+
+function CleaningServicesCarousel() {
+  const router = useRouter();
+
+  return (
+    <section className="py-12 bg-white dark:bg-gray-800">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Cleaning & Pest Control
+          </h2>
+          <button 
+            onClick={() => router.push('/services/cleaning')}
+            className="text-primary hover:underline"
+          >
+            See all
+          </button>
+        </div>
+        
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {cleaningServices.map((service) => (
+              <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                <div className="p-1">
+                  <Card 
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => router.push(service.path)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square">
+                        <Image
+                          src={service.image}
+                          alt={service.title}
+                          fill
+                          className="object-cover rounded-t-lg"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-1">{service.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {service.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden md:flex" />
+          <CarouselNext className="hidden md:flex" />
+        </Carousel>
+      </div>
+    </section>
+  )
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -35,57 +244,6 @@ export default function Home() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-
-
-  
-  const fetchServices = async () => {
-    try {
-      const db = getFirestore();
-
-      // Updated trending query to use bookings field
-      const trendingQuery = query(
-        collection(db, "services"),
-        orderBy("bookings", "desc"),
-        limit(4)
-      );
-
-      // Fetch new services
-      const newServicesQuery = query(
-        collection(db, "services"),
-        orderBy("createdAt", "desc"),
-        limit(4)
-      );
-
-      // Fetch top rated services
-      const topRatedQuery = query(
-        collection(db, "services"),
-        orderBy("rating", "desc"),
-        limit(4)
-      );
-
-      const [trendingSnap, newSnap, topRatedSnap] = await Promise.all([
-        getDocs(trendingQuery),
-        getDocs(newServicesQuery),
-        getDocs(topRatedQuery),
-      ]);
-
-      setTrendingServices(
-        trendingSnap.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Service)
-        )
-      );
-      setNewServices(
-        newSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Service))
-      );
-      setTopRatedServices(
-        topRatedSnap.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as Service)
-        )
-      );
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    }
-  };
 
   useEffect(() => {
     const handleStart = () => {
@@ -185,15 +343,11 @@ export default function Home() {
   return (
     <>
       {loading && <Preloader onLoadingComplete={() => setLoading(false)} />}
-      <main
-        className={`transition-opacity duration-300 ${
-          loading ? "opacity-0" : "opacity-100"
-        }`}
-      >
+      <main className={`transition-opacity duration-300 ${loading ? "opacity-0" : "opacity-100"}`}>
         <Header />
-
-
         <LandingPage />
+        <ServicesCarousel />
+        <CleaningServicesCarousel />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
           <div className="mb-12">
@@ -203,20 +357,6 @@ export default function Home() {
             <ServiceFilters />
           </div>
 
-          {/* Trending Services */}
-          <ServiceSection
-            title="Trending Services"
-            services={trendingServices}
-          />
-
-          {/* New Arrivals */}
-          <ServiceSection title="New Services" services={newServices} />
-
-          {/* Top Rated Services */}
-          <ServiceSection
-            title="Top Rated Services"
-            services={topRatedServices}
-          />
 
           {/* Testimonials */}
           <Testimonials />
@@ -224,7 +364,6 @@ export default function Home() {
           {/* FAQ Section */}
           <FAQ />
         </div>
-
         <Footer />
 
         {/* Add Service Modal */}
@@ -237,11 +376,9 @@ export default function Home() {
             }}
             service={selectedService}
             onServiceUpdated={(updatedService) => {
-              fetchServices(); // Refresh services after update
               setSelectedService(updatedService);
             }}
             onServiceDeleted={() => {
-              fetchServices(); // Refresh services after deletion
               setIsServiceModalOpen(false);
               setSelectedService(null);
             }}
