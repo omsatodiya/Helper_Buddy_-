@@ -23,7 +23,116 @@ import {
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
 import ScrollVelocity from "@/components/ui/scroll-velocity";
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 
+const services = [
+  {
+    id: 1,
+    title: "AC Service and Repair",
+    image: "/images/services/ac-repair.jpg",
+    description: "Professional AC maintenance and repair services",
+    path: "/services/ac-repair"
+  },
+  {
+    id: 2,
+    title: "Washing Machine Repair",
+    image: "/images/services/washing-machine.jpg",
+    description: "Expert washing machine repair and servicing",
+    path: "/services/washing-machine"
+  },
+  {
+    id: 3,
+    title: "Water Purifier Repair",
+    image: "/images/services/water-purifier.jpg",
+    description: "Quality water purifier maintenance and repairs",
+    path: "/services/water-purifier"
+  },
+  {
+    id: 4,
+    title: "Refrigerator Repair",
+    image: "/images/services/refrigerator.jpg",
+    description: "Professional refrigerator repair services",
+    path: "/services/refrigerator"
+  },
+  {
+    id: 5,
+    title: "Microwave Repair",
+    image: "/images/services/microwave.jpg",
+    description: "Expert microwave repair and maintenance",
+    path: "/services/microwave"
+  }
+];
+
+function ServicesCarousel() {
+  const router = useRouter();
+
+  return (
+    <section className="py-12 bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            AC & Appliance Repair
+          </h2>
+          <button 
+            onClick={() => router.push('/services')}
+            className="text-primary hover:underline"
+          >
+            See all
+          </button>
+        </div>
+        
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {services.map((service) => (
+              <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                <div className="p-1">
+                  <Card 
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => router.push(service.path)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square">
+                        <Image
+                          src={service.image}
+                          alt={service.title}
+                          fill
+                          className="object-cover rounded-t-lg"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-1">{service.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {service.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden md:flex" />
+          <CarouselNext className="hidden md:flex" />
+        </Carousel>
+      </div>
+    </section>
+  )
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -137,6 +246,7 @@ export default function Home() {
       <main className={`transition-opacity duration-300 ${loading ? "opacity-0" : "opacity-100"}`}>
         <Header />
         <LandingPage />
+        <ServicesCarousel />
         <div className="container mx-auto px-4 py-12">
           {/* Service Categories */}
           <div className="mb-12">
