@@ -45,7 +45,8 @@ interface Order {
     | "paid"
     | "cancelled"
     | "refunded"
-    | "disputed";
+    | "disputed"
+    | "rejected";
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -291,6 +292,10 @@ export default function OrdersPage() {
         class: "bg-red-500/10 text-red-500 border border-red-500/20",
         label: "Disputed",
       },
+      rejected: {
+        class: "bg-red-500/10 text-red-500 border border-red-500/20",
+        label: "Rejected",
+      },
     };
 
     return (
@@ -356,7 +361,7 @@ export default function OrdersPage() {
                             {formatDate(order.createdAt)}
                           </p>
                         </div>
-                        {getStatusBadge(order.status)}
+                        {getStatusBadge(order)}
                       </div>
 
                       <div className="space-y-3 mb-6">
