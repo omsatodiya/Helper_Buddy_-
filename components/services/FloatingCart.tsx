@@ -119,7 +119,7 @@ export default function FloatingCart() {
 
   // Mobile version
   const MobileCart = () => (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-gray-200 dark:border-white/20 p-4 shadow-lg z-50 md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-gray-200 dark:border-white/20 p-4 shadow-lg z-50 h-[75px] lg:hidden">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex flex-col">
           <span className="text-sm text-black/70 dark:text-white/70">
@@ -141,7 +141,7 @@ export default function FloatingCart() {
 
   // Desktop version
   const DesktopCart = () => (
-    <div className="hidden md:block w-[320px] h-[500px] right-4 bg-white dark:bg-black border border-gray-200 dark:border-white/20 rounded-md shadow-lg z-40">
+    <div className="hidden lg:block w-[320px] h-[500px] right-4 bg-white dark:bg-black border border-gray-200 dark:border-white/20 rounded-md shadow-lg z-40">
       <div className="p-4 h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 text-black dark:text-white">

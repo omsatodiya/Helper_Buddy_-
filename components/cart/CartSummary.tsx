@@ -19,7 +19,12 @@ interface CartSummaryProps {
   isSendingEmails: boolean;
 }
 
-const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEmails }: CartSummaryProps) => {
+const CartSummary = ({
+  items,
+  isAddressSelected,
+  onNotifyProviders,
+  isSendingEmails,
+}: CartSummaryProps) => {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -93,7 +98,7 @@ const CartSummary = ({ items, isAddressSelected, onNotifyProviders, isSendingEma
             Notifying Providers...
           </div>
         ) : (
-          'Find Service Providers'
+          "Find Service Providers"
         )}
       </Button>
       {!isAddressSelected && (
