@@ -15,13 +15,15 @@ interface CartItem {
 interface CartSummaryProps {
   items: CartItem[];
   isAddressSelected: boolean;
-  onNotifyProviders: () => Promise<void>;
+  hasDateTime: boolean;
+  onNotifyProviders: () => void;
   isSendingEmails: boolean;
 }
 
 const CartSummary = ({
   items,
   isAddressSelected,
+  hasDateTime,
   onNotifyProviders,
   isSendingEmails,
 }: CartSummaryProps) => {
@@ -89,16 +91,20 @@ const CartSummary = ({
       </div>
       <Button
         className="w-full mt-6"
-        disabled={!isAddressSelected || isSendingEmails}
+        disabled={!isAddressSelected || !hasDateTime || isSendingEmails}
         onClick={onNotifyProviders}
       >
         {isSendingEmails ? (
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Notifying Providers...
+            Finding Service Partners...
           </div>
+        ) : !isAddressSelected ? (
+          "Please Select Address"
+        ) : !hasDateTime ? (
+          "Please Select Date & Time"
         ) : (
-          "Find Service Providers"
+          "Find Service Partners"
         )}
       </Button>
       {!isAddressSelected && (

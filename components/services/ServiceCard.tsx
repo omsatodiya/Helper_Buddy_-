@@ -158,7 +158,6 @@ const ServiceCard = memo(
               price: price || 0,
               quantity: 1,
               imageUrl: safeImageUrl,
-              serviceProvider: providerName || "Unknown Provider",
             };
             updatedItems = [...currentItems, newItem];
           }
@@ -167,7 +166,6 @@ const ServiceCard = memo(
           const cartData = {
             items: updatedItems.map((item) => ({
               ...item,
-              serviceProvider: item.serviceProvider || "Unknown Provider",
               imageUrl: item.imageUrl || "/placeholder-image.jpg",
             })),
             updatedAt: new Date().toISOString(),

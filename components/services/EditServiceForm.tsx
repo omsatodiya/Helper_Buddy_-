@@ -184,26 +184,26 @@ export default function EditServiceForm({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="electrician">Electrician</SelectItem>
-                  <SelectItem value="plumber">Plumber</SelectItem>
-                  <SelectItem value="carpenter">Carpenter</SelectItem>
-                  <SelectItem value="bathroom_kitchen_cleaning">
+                  <SelectItem value="Electrician">Electrician</SelectItem>
+                  <SelectItem value="Plumber">Plumber</SelectItem>
+                  <SelectItem value="Carpenter">Carpenter</SelectItem>
+                  <SelectItem value="Bathroom Kitchen Cleaning">
                     Bathroom & Kitchen Cleaning
                   </SelectItem>
-                  <SelectItem value="sofa_carpet_cleaning">
+                  <SelectItem value="Sofa Carpet Cleaning">
                     Sofa & Carpet Cleaning
                   </SelectItem>
-                  <SelectItem value="ac_repair">
+                  <SelectItem value="AC Repair">
                     AC Repair & Services
                   </SelectItem>
-                  <SelectItem value="chimney_repair">Chimney Repair</SelectItem>
-                  <SelectItem value="water_purifier_repair">
+                  <SelectItem value="Chimney Repair">Chimney Repair</SelectItem>
+                  <SelectItem value="Water Purifier Repair">
                     Water Purifier Repair
                   </SelectItem>
-                  <SelectItem value="microwave_repair">
+                  <SelectItem value="Microwave Repair">
                     Microwave Repair
                   </SelectItem>
-                  <SelectItem value="refrigerator_repair">
+                  <SelectItem value="Refrigerator Repair">
                     Refrigerator Repair
                   </SelectItem>
                 </SelectContent>

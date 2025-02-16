@@ -38,6 +38,9 @@ interface Address {
   pincode: string;
   city: string;
   state: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  remarks?: string;
 }
 
 interface LocationDetails {
@@ -80,10 +83,12 @@ export default function CartPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const router = useRouter();
+  const [dateTimeError, setDateTimeError] = useState<string>("");
 
   // Fetch cart items
   const fetchCartItems = async () => {
     if (!user) {
+      setCartItems([]);
       setLoading(false);
       setInitialized(true);
       return;
@@ -91,9 +96,10 @@ export default function CartPage() {
 
     try {
       const items = await getCartItems(user.uid);
-      setCartItems(items);
+      setCartItems(items || []);
     } catch (error) {
       console.error("Error fetching cart:", error);
+      setCartItems([]);
       toast({
         title: "Error",
         description: "Failed to load cart items",
@@ -350,11 +356,53 @@ export default function CartPage() {
     }
   };
 
+  const validateDateTime = (date: string, time: string): boolean => {
+    const selectedDateTime = new Date(`${date} ${time}`);
+    const now = new Date();
+    
+    // Add 2 hours to current time for minimum delivery time
+    const minDateTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+    
+    // Maximum date is 30 days from now
+    const maxDateTime = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+
+    if (selectedDateTime < minDateTime) {
+      setDateTimeError("Please select a time at least 2 hours from now");
+      return false;
+    }
+
+    if (selectedDateTime > maxDateTime) {
+      setDateTimeError("Please select a date within the next 30 days");
+      return false;
+    }
+
+    setDateTimeError("");
+    return true;
+  };
+
   const handleFindProvider = async () => {
     if (!user || !selectedAddress) {
       toast({
         title: "Error",
         description: "Please select a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedAddress.deliveryDate || !selectedAddress.deliveryTime) {
+      toast({
+        title: "Error",
+        description: "Please select delivery date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateDateTime(selectedAddress.deliveryDate, selectedAddress.deliveryTime)) {
+      toast({
+        title: "Error",
+        description: dateTimeError,
         variant: "destructive",
       });
       return;
@@ -412,6 +460,9 @@ export default function CartPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
         availableProviders: providers.map((p) => p.id),
+        deliveryDate: selectedAddress.deliveryDate,
+        deliveryTime: selectedAddress.deliveryTime,
+        remarks: selectedAddress.remarks || '',
       };
 
       // Save main request
@@ -584,10 +635,10 @@ export default function CartPage() {
                   <MapPin className="w-6 h-6 text-gray-500" />
                   <div className="w-full">
                     <h2 className="text-lg font-semibold mb-4">
-                      Delivery Address
+                      Delivery Details
                     </h2>
                     {selectedAddress ? (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="text-sm">
                           <p className="font-medium">{selectedAddress.label}</p>
                           <p>{selectedAddress.address}</p>
@@ -596,6 +647,74 @@ export default function CartPage() {
                             {selectedAddress.pincode}
                           </p>
                         </div>
+
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium">
+                                Delivery Date
+                              </label>
+                              <input
+                                type="date"
+                                min={new Date().toISOString().split('T')[0]}
+                                max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                                  .toISOString()
+                                  .split('T')[0]}
+                                value={selectedAddress.deliveryDate || ''}
+                                onChange={(e) => {
+                                  setSelectedAddress({
+                                    ...selectedAddress,
+                                    deliveryDate: e.target.value,
+                                  });
+                                }}
+                                className="w-full px-3 py-2 border rounded-md bg-transparent"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium">
+                                Delivery Time
+                              </label>
+                              <input
+                                type="time"
+                                value={selectedAddress.deliveryTime || ''}
+                                onChange={(e) => {
+                                  setSelectedAddress({
+                                    ...selectedAddress,
+                                    deliveryTime: e.target.value,
+                                  });
+                                }}
+                                className="w-full px-3 py-2 border rounded-md bg-transparent"
+                              />
+                            </div>
+                          </div>
+                          {dateTimeError && (
+                            <p className="text-sm text-red-500">{dateTimeError}</p>
+                          )}
+
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium">
+                              Additional Remarks
+                            </label>
+                            <textarea
+                              value={selectedAddress.remarks || ''}
+                              onChange={(e) => {
+                                setSelectedAddress({
+                                  ...selectedAddress,
+                                  remarks: e.target.value,
+                                });
+                              }}
+                              placeholder="Add any special instructions or notes for the service provider..."
+                              className="w-full px-3 py-2 border rounded-md bg-transparent min-h-[100px] resize-y"
+                              maxLength={500}
+                            />
+                            <p className="text-xs text-gray-500">
+                              {((selectedAddress.remarks?.length || 0) <= 500) 
+                                ? `${selectedAddress.remarks?.length || 0}/500 characters`
+                                : 'Maximum character limit reached'}
+                            </p>
+                          </div>
+                        </div>
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -635,6 +754,7 @@ export default function CartPage() {
                 <CartSummary
                   items={cartItems}
                   isAddressSelected={!!selectedAddress}
+                  hasDateTime={!!(selectedAddress?.deliveryDate && selectedAddress?.deliveryTime)}
                   onNotifyProviders={handleFindProvider}
                   isSendingEmails={isSendingEmails}
                 />
