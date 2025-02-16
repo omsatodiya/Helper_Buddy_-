@@ -680,7 +680,7 @@ export default function ProviderDashboard() {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Service Requests Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">Service Requests</h2>
               <p className="text-black/60 dark:text-white/60 text-sm mb-6">
                 Manage incoming service requests
@@ -756,7 +756,7 @@ export default function ProviderDashboard() {
             </div>
 
             {/* Accepted Requests Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">Accepted Requests</h2>
               <p className="text-black/60 dark:text-white/60 text-sm mb-6">
                 View and manage accepted requests (Not paid)
@@ -833,7 +833,7 @@ export default function ProviderDashboard() {
             </div>
 
             {/* Paid But Not Completed Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">
                 Paid Services (Pending)
               </h2>
@@ -915,7 +915,7 @@ export default function ProviderDashboard() {
           {/* Completed Services Section */}
           <div
             id="completed-services"
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8"
+            className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8"
           >
             <h2 className="text-xl font-semibold mb-2">Completed Services</h2>
             <p className="text-black/60 dark:text-white/60 text-sm mb-6">
@@ -941,7 +941,7 @@ export default function ProviderDashboard() {
                           <p className="text-sm text-black/60 dark:text-white/60">
                             {request.customerAddress}, {request.customerCity}
                           </p>
-                          <p className="text-green-500 mt-1">
+                          <p className="text-black/60 dark:text-white/60 mt-1">
                             Completed on{" "}
                             {request.completedAt
                               ? format(new Date(request.completedAt), "PPP")
