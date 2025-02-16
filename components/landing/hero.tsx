@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Service } from "@/types/service";
+import { Search } from "lucide-react";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -217,6 +218,22 @@ export default function LandingPage() {
     router.push(`/services?search=${encodeURIComponent(label)}`);
   };
 
+  // Update the handleSearchChange function
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
+
+  // Add this function to handle search submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Redirect to services page with search query
+      router.push(`/services?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchFocused(false);
+    }
+  };
+
   return (
     <div ref={containerRef} className="bg-white dark:bg-black min-h-screen relative overflow-visible">
       {/* Theme Toggle - Add this near the top of the content */}
@@ -250,102 +267,105 @@ export default function LandingPage() {
           
           {/* Search Bar */}
           <div ref={searchBarRef} className="flex justify-center mt-8 relative opacity-0 z-50">
-            <div ref={searchRef} className="relative w-full max-w-2xl">
+            <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl">
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 onFocus={handleSearchFocus}
                 placeholder={`Search for ${placeholderText}`}
                 className="w-full px-6 py-4 bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-[#2C786C]/30 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:border-[#2C786C] transition-colors text-xl"
               />
+              <button type="submit" className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <Search className="w-6 h-6 text-gray-500 dark:text-white/50" />
+              </button>
+            </form>
 
-              {/* Dropdown Content */}
-              {isSearchFocused && (
-                <div className="dropdown-content absolute w-full mt-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg z-[100]">
-                  <div className="p-4 max-w-full">
-                    {searchQuery === '' ? (
-                      <>
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-gray-700 font-semibold flex items-center gap-2 truncate">
-                            Trending Searches
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              viewBox="0 0 24 24" 
-                              fill="currentColor" 
-                              className="w-5 h-5 text-[#2C786C]"
-                            >
-                              <path 
-                                d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"
-                              />
-                            </svg>
-                          </h3>
+            {/* Dropdown Content */}
+            {isSearchFocused && (
+              <div className="dropdown-content absolute w-full mt-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg z-[100]">
+                <div className="p-4 max-w-full">
+                  {searchQuery === '' ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-gray-700 font-semibold flex items-center gap-2 truncate">
+                          Trending Searches
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            viewBox="0 0 24 24" 
+                            fill="currentColor" 
+                            className="w-5 h-5 text-[#2C786C]"
+                          >
+                            <path 
+                              d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"
+                            />
+                          </svg>
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2 max-w-full">
+                        {TRENDING_SEARCHES.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => handleTrendingClick(item.label)}
+                            className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors whitespace-nowrap"
+                          >
+                            <span className="text-gray-800">{item.label}</span>
+                            <span className="text-xs text-gray-500 group-hover:text-gray-700">
+                              • {item.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <img 
+                          src="https://picsum.photos/32/32" 
+                          alt="Services" 
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <h3 className="text-gray-700 font-semibold">Search Results</h3>
+                      </div>
+                      {filteredServices.length > 0 ? (
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar overflow-x-hidden">
+                          {filteredServices
+                            .filter((service, index, self) => 
+                              index === self.findIndex((s) => s.name === service.name)
+                            )
+                            .map((service) => (
+                              <button
+                                key={service.id}
+                                onClick={() => handleServiceClick(service)}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
+                              >
+                                <img 
+                                  src={service.imageUrl || service.images?.[0]?.url || "/placeholder.jpg"} 
+                                  alt={service.name}
+                                  className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-gray-800 font-medium group-hover:text-[#2C786C] transition-colors">
+                                    {service.name}
+                                  </p>
+                                  <p className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
+                                    {service.category}
+                                  </p>
+                                </div>
+                                <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
+                                  ₹{service.price}
+                                </span>
+                              </button>
+                            ))}
                         </div>
-                        <div className="flex flex-wrap gap-2 max-w-full">
-                          {TRENDING_SEARCHES.map((item) => (
-                            <button
-                              key={item.id}
-                              onClick={() => handleTrendingClick(item.label)}
-                              className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors whitespace-nowrap"
-                            >
-                              <span className="text-gray-800">{item.label}</span>
-                              <span className="text-xs text-gray-500 group-hover:text-gray-700">
-                                • {item.count}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 mb-3">
-                          <img 
-                            src="https://picsum.photos/32/32" 
-                            alt="Services" 
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <h3 className="text-gray-700 font-semibold">Search Results</h3>
-                        </div>
-                        {filteredServices.length > 0 ? (
-                          <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar overflow-x-hidden">
-                            {filteredServices
-                              .filter((service, index, self) => 
-                                index === self.findIndex((s) => s.name === service.name)
-                              )
-                              .map((service) => (
-                                <button
-                                  key={service.id}
-                                  onClick={() => handleServiceClick(service)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
-                                >
-                                  <img 
-                                    src={service.imageUrl || service.images?.[0]?.url || "/placeholder.jpg"} 
-                                    alt={service.name}
-                                    className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
-                                  />
-                                  <div className="flex-1">
-                                    <p className="text-gray-800 font-medium group-hover:text-[#2C786C] transition-colors">
-                                      {service.name}
-                                    </p>
-                                    <p className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors">
-                                      {service.category}
-                                    </p>
-                                  </div>
-                                  <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
-                                    ₹{service.price}
-                                  </span>
-                                </button>
-                              ))}
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 text-center py-4">No services found</p>
-                        )}
-                      </>
-                    )}
-                  </div>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">No services found</p>
+                      )}
+                    </>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

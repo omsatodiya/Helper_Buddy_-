@@ -195,92 +195,23 @@ function ServicesContent() {
     fetchServices();
   }, [category]);
 
-  // Apply filters and sorting
-  useEffect(() => {
-    let filtered = services;
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (service) =>
-          service.name.toLowerCase().includes(query) ||
-          service.description.toLowerCase().includes(query) ||
-          service.category.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply existing filters
-    if (selectedService) {
-      filtered = filtered.filter(
-        (service) =>
-          service.category?.toLowerCase() ===
-          selectedService.category?.toLowerCase()
-      );
-    }
-
-    if (selectedPriceRanges.length > 0) {
-      filtered = filtered.filter((service) => {
-        return selectedPriceRanges.some((rangeId) => {
-          const range = priceRanges.find((r) => r.id === rangeId);
-          if (!range) return false;
-          if (range.max === null) {
-            return service.price >= range.min;
-          }
-          return service.price >= range.min && service.price <= range.max;
-        });
-      });
-    }
-
-    if (minReviewRating !== null) {
-      filtered = filtered.filter(
-        (service) =>
-          service.rating !== undefined && service.rating >= minReviewRating
-      );
-    }
-
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortOption) {
-        case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        case "oldest":
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        case "trending":
-          // Sort by a combination of recent reviews and rating
-          const aScore =
-            a.rating * a.totalReviews +
-            new Date(a.updatedAt).getTime() / 1000000000;
-          const bScore =
-            b.rating * b.totalReviews +
-            new Date(b.updatedAt).getTime() / 1000000000;
-          return bScore - aScore;
-        case "price_low_high":
-          return a.price - b.price;
-        case "price_high_low":
-          return b.price - a.price;
-        case "rating_high_low":
-          return b.rating - a.rating;
-        case "most_reviewed":
-          return b.totalReviews - a.totalReviews;
-        default:
-          return 0;
-      }
+  // Update the filterServices function
+  const filterServices = (services: SimpleService[]) => {
+    return services.filter(service => {
+      if (!searchQuery) return true;
+      
+      const searchTerm = searchQuery.toLowerCase().trim();
+      const serviceName = service.name.toLowerCase();
+      
+      return serviceName.includes(searchTerm);
     });
+  };
 
-    setFilteredServices(sorted);
-  }, [
-    selectedService,
-    selectedPriceRanges,
-    minReviewRating,
-    services,
-    sortOption,
-    searchQuery,
-  ]);
+  // Update the useEffect to run filtering when search changes
+  useEffect(() => {
+    const filtered = filterServices(services);
+    setFilteredServices(filtered);
+  }, [services, searchQuery]);
 
   // Filter handlers
   const handleClearServiceFilter = () => {
