@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, CreditCard, Truck, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc, collection, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
+import { getFirestore } from "firebase/firestore";
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
@@ -44,6 +45,8 @@ function PaymentPageContent() {
         return;
       }
 
+      const db = getFirestore();
+
       // Get the order details first
       const orderRef = doc(db, "serviceRequests", orderId);
       const orderDoc = await getDoc(orderRef);
@@ -58,14 +61,29 @@ function PaymentPageContent() {
         return;
       }
 
-      // Update order status with payment information
+      // Create payment record
+      const paymentRef = doc(collection(db, "payments"));
+      await setDoc(paymentRef, {
+        id: paymentRef.id,
+        amount: amount,
+        userId: user.uid,
+        userEmail: user.email,
+        orderId: orderId,
+        status: "completed",
+        paymentMethod: paymentMethod,
+        createdAt: new Date(),
+        providerId: orderData.providerId,
+        providerName: orderData.providerName,
+      });
+
+      // Update order status
       await updateDoc(orderRef, {
         status: "paid",
         isPaid: true,
         paymentMethod: paymentMethod,
         paymentDate: new Date(),
         updatedAt: new Date(),
-        // Include provider information in payment update
+        paymentId: paymentRef.id,
         paidToProvider: orderData.providerId,
         providerName: orderData.providerName,
       });

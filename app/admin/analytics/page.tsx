@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Users, DollarSign, TrendingUp } from "lucide-react";
 import { DashboardCard } from "@/components/admin/DashboardCard";
 import { getFirestore, getDocs, collection } from "firebase/firestore";
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,7 +17,7 @@ import {
   Tooltip,
   Legend,
   Filler,
-} from 'chart.js';
+} from "chart.js";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Register ChartJS components
@@ -37,7 +37,7 @@ ChartJS.register(
 interface UserData {
   id: string;
   role: string;
-  createdAt: string;
+  createdAt: Date | string;
 }
 
 interface PaymentData {
@@ -81,45 +81,112 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<UserStats>({
+  const [stats, setStats] = useState({
     totalUsers: 0,
     totalServiceProviders: 0,
     totalRevenue: 0,
     growthRate: 0,
   });
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+  const [analyticsData, setAnalyticsData] = useState<{
+    userGrowth: { labels: string[]; data: number[] };
+    revenue: { labels: string[]; data: number[] };
+    userTypes: { labels: string[]; data: number[] };
+    servicePopularity: { labels: string[]; data: number[] };
+  }>({
     userGrowth: { labels: [], data: [] },
     revenue: { labels: [], data: [] },
     userTypes: { labels: [], data: [] },
-    servicePopularity: { labels: [], data: [] }
+    servicePopularity: { labels: [], data: [] },
   });
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAnalytics = async () => {
       try {
         setIsLoading(true);
         const db = getFirestore();
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        const paymentsSnapshot = await getDocs(collection(db, "payments"));
-        const servicesSnapshot = await getDocs(collection(db, "services"));
 
-        const users = usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as UserData[];
-        const payments = paymentsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as PaymentData[];
-        const services = servicesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as ServiceData[];
+        // Fetch collections
+        const [usersSnap, paymentsSnap, servicesSnap] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "payments")),
+          getDocs(collection(db, "services")),
+        ]);
+
+        // Process users data
+        const users = usersSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt:
+            doc.data().createdAt?.toDate?.() || new Date(doc.data().createdAt),
+        })) as UserData[];
+
+        // Process payments data
+        const payments = paymentsSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt:
+            doc.data().createdAt?.toDate?.() || new Date(doc.data().createdAt),
+        })) as PaymentData[];
 
         // Calculate basic stats
         const totalUsers = users.length;
-        const serviceProviders = users.filter((user) => user.role === "provider").length;
+        const serviceProviders = users.filter(
+          (user) => user.role === "provider"
+        ).length;
         const totalRevenue = payments
           .filter((payment) => payment.status === "completed")
           .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
+        // Calculate growth rate (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const recentUsers = users.filter(
+        const newUsers = users.filter(
           (user) => new Date(user.createdAt) > thirtyDaysAgo
-        );
-        const growthRate = (recentUsers.length / totalUsers) * 100;
+        ).length;
+        const growthRate = (newUsers / totalUsers) * 100;
+
+        // Generate daily data for the last 30 days
+        const days = Array.from({ length: 30 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          return d.toISOString().split("T")[0];
+        }).reverse();
+
+        const userGrowthData = days.map((day) => {
+          return users.filter((user) => {
+            const userDate = new Date(user.createdAt)
+              .toISOString()
+              .split("T")[0];
+            return userDate === day;
+          }).length;
+        });
+
+        const revenueData = days.map((day) => {
+          return payments
+            .filter((payment) => {
+              const paymentDate = new Date(payment.createdAt)
+                .toISOString()
+                .split("T")[0];
+              return paymentDate === day && payment.status === "completed";
+            })
+            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        });
+
+        // Calculate user types distribution
+        const userTypes = {
+          regular: users.filter((user) => user.role === "user").length,
+          provider: serviceProviders,
+          admin: users.filter((user) => user.role === "admin").length,
+        };
+
+        // Calculate service popularity
+        const serviceUsage = servicesSnap.docs
+          .map((doc) => ({
+            name: doc.data().name,
+            count: payments.filter((p) => p.serviceId === doc.id).length,
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
 
         setStats({
           totalUsers,
@@ -128,73 +195,38 @@ export default function AnalyticsPage() {
           growthRate: Math.round(growthRate * 10) / 10,
         });
 
-        // Calculate analytics data
-        const days = Array.from({ length: 30 }, (_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          return d.toISOString().split('T')[0];
-        }).reverse();
-
-        const userGrowthData = days.map(day => {
-          return users.filter(user => {
-            const userDate = new Date(user.createdAt).toISOString().split('T')[0];
-            return userDate === day;
-          }).length;
-        });
-
-        const revenueData = days.map(day => {
-          return payments
-            .filter(payment => {
-              const paymentDate = new Date(payment.createdAt).toISOString().split('T')[0];
-              return paymentDate === day && payment.status === 'completed';
-            })
-            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-        });
-
-        const formattedDays = days.map(day => {
-          const date = new Date(day);
-          return `${date.getDate()}/${date.getMonth() + 1}`;
-        });
-
-        const userTypes = {
-          regular: users.filter(user => user.role === 'user').length,
-          provider: users.filter(user => user.role === 'provider').length,
-          admin: users.filter(user => user.role === 'admin').length
-        };
-
-        const serviceUsage = services.map(service => ({
-          name: service.name,
-          count: payments.filter(p => p.serviceId === service.id).length
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
         setAnalyticsData({
           userGrowth: {
-            labels: formattedDays,
-            data: userGrowthData
+            labels: days.map((day) => {
+              const date = new Date(day);
+              return `${date.getDate()}/${date.getMonth() + 1}`;
+            }),
+            data: userGrowthData,
           },
           revenue: {
-            labels: formattedDays,
-            data: revenueData
+            labels: days.map((day) => {
+              const date = new Date(day);
+              return `${date.getDate()}/${date.getMonth() + 1}`;
+            }),
+            data: revenueData,
           },
           userTypes: {
-            labels: ['Regular Users', 'Service Providers', 'Admins'],
-            data: [userTypes.regular, userTypes.provider, userTypes.admin]
+            labels: ["Regular Users", "Service Providers", "Admins"],
+            data: [userTypes.regular, userTypes.provider, userTypes.admin],
           },
           servicePopularity: {
-            labels: serviceUsage.map(s => s.name),
-            data: serviceUsage.map(s => s.count)
-          }
+            labels: serviceUsage.map((s) => s.name),
+            data: serviceUsage.map((s) => s.count),
+          },
         });
       } catch (error) {
-        console.error("Error fetching analytics data:", error);
+        console.error("Error fetching analytics:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchAnalytics();
   }, []);
 
   if (isLoading) {
@@ -244,40 +276,42 @@ export default function AnalyticsPage() {
             <Line
               data={{
                 labels: analyticsData.userGrowth.labels,
-                datasets: [{
-                  label: 'New Users',
-                  data: analyticsData.userGrowth.data,
-                  borderColor: '#2563eb',
-                  backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                  fill: true,
-                  tension: 0.4
-                }]
+                datasets: [
+                  {
+                    label: "New Users",
+                    data: analyticsData.userGrowth.data,
+                    borderColor: "#2563eb",
+                    backgroundColor: "rgba(37, 99, 235, 0.1)",
+                    fill: true,
+                    tension: 0.4,
+                  },
+                ],
               }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    display: false
-                  }
+                    display: false,
+                  },
                 },
                 scales: {
                   y: {
                     beginAtZero: true,
                     grid: {
-                      display: false
-                    }
+                      display: false,
+                    },
                   },
                   x: {
                     grid: {
-                      display: false
+                      display: false,
                     },
                     ticks: {
                       maxRotation: 45,
-                      minRotation: 45
-                    }
-                  }
-                }
+                      minRotation: 45,
+                    },
+                  },
+                },
               }}
             />
           </div>
@@ -290,37 +324,39 @@ export default function AnalyticsPage() {
             <Bar
               data={{
                 labels: analyticsData.revenue.labels,
-                datasets: [{
-                  label: 'Revenue (₹)',
-                  data: analyticsData.revenue.data,
-                  backgroundColor: '#22c55e',
-                }]
+                datasets: [
+                  {
+                    label: "Revenue (₹)",
+                    data: analyticsData.revenue.data,
+                    backgroundColor: "#22c55e",
+                  },
+                ],
               }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    display: false
-                  }
+                    display: false,
+                  },
                 },
                 scales: {
                   y: {
                     beginAtZero: true,
                     grid: {
-                      display: false
-                    }
+                      display: false,
+                    },
                   },
                   x: {
                     grid: {
-                      display: false
+                      display: false,
                     },
                     ticks: {
                       maxRotation: 45,
-                      minRotation: 45
-                    }
-                  }
-                }
+                      minRotation: 45,
+                    },
+                  },
+                },
               }}
             />
           </div>
@@ -333,26 +369,24 @@ export default function AnalyticsPage() {
             <Doughnut
               data={{
                 labels: analyticsData.userTypes.labels,
-                datasets: [{
-                  data: analyticsData.userTypes.data,
-                  backgroundColor: [
-                    '#3b82f6',
-                    '#22c55e',
-                    '#f59e0b'
-                  ]
-                }]
+                datasets: [
+                  {
+                    data: analyticsData.userTypes.data,
+                    backgroundColor: ["#3b82f6", "#22c55e", "#f59e0b"],
+                  },
+                ],
               }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    position: 'right',
+                    position: "right",
                     labels: {
-                      boxWidth: 12
-                    }
-                  }
-                }
+                      boxWidth: 12,
+                    },
+                  },
+                },
               }}
             />
           </div>
@@ -365,34 +399,36 @@ export default function AnalyticsPage() {
             <Bar
               data={{
                 labels: analyticsData.servicePopularity.labels,
-                datasets: [{
-                  label: 'Bookings',
-                  data: analyticsData.servicePopularity.data,
-                  backgroundColor: '#8b5cf6',
-                }]
+                datasets: [
+                  {
+                    label: "Bookings",
+                    data: analyticsData.servicePopularity.data,
+                    backgroundColor: "#8b5cf6",
+                  },
+                ],
               }}
               options={{
-                indexAxis: 'y',
+                indexAxis: "y",
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    display: false
-                  }
+                    display: false,
+                  },
                 },
                 scales: {
                   x: {
                     beginAtZero: true,
                     grid: {
-                      display: false
-                    }
+                      display: false,
+                    },
                   },
                   y: {
                     grid: {
-                      display: false
-                    }
-                  }
-                }
+                      display: false,
+                    },
+                  },
+                },
               }}
             />
           </div>
@@ -400,4 +436,4 @@ export default function AnalyticsPage() {
       </div>
     </div>
   );
-} 
+}

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
@@ -17,11 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSearch } from "@/context/SearchContext";
 import { formatDate } from "@/lib/utils/date";
-import { Home } from "lucide-react";
-import gsap from "gsap";
+import { Home, Star } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 
 interface OrderItem {
   name: string;
@@ -40,12 +40,9 @@ interface Order {
   status:
     | "pending"
     | "accepted"
-    | "in_progress"
     | "completed"
     | "paid"
     | "cancelled"
-    | "refunded"
-    | "disputed"
     | "rejected";
   totalAmount: number;
   createdAt: Date;
@@ -69,12 +66,8 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { setSearchQuery } = useSearch();
-
-  // Add refs for GSAP animations
-  const pageRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const ordersRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 6; // Show 6 orders per page (2 rows x 3 columns)
 
   useEffect(() => {
     if (!user) {
@@ -84,7 +77,6 @@ export default function OrdersPage() {
       return;
     }
 
-    // Set up real-time listener
     const ordersRef = collection(db, "serviceRequests");
     const q = query(
       ordersRef,
@@ -114,72 +106,6 @@ export default function OrdersPage() {
 
     return () => unsubscribe();
   }, [user, authLoading, router]);
-
-  // Initial page load animation
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      // Initial state - everything invisible
-      gsap.set([headerRef.current, statsRef.current, ordersRef.current], {
-        opacity: 0,
-        y: 20,
-      });
-
-      // Create timeline for smooth sequence
-      const tl = gsap.timeline({
-        defaults: { ease: "power3.out" },
-      });
-
-      // Animate header
-      tl.to(headerRef.current, {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-      });
-
-      // Animate stats cards
-      if (statsRef.current) {
-        tl.to(
-          statsRef.current.children,
-          {
-            opacity: 1,
-            y: 0,
-            stagger: 0.1,
-            duration: 0.4,
-          },
-          "-=0.2"
-        ); // Overlap with previous animation
-      }
-
-      // Animate orders
-      if (ordersRef.current) {
-        tl.to(
-          ordersRef.current.children,
-          {
-            opacity: 1,
-            y: 0,
-            stagger: 0.1,
-            duration: 0.4,
-          },
-          "-=0.2"
-        );
-      }
-    });
-
-    return () => ctx.revert();
-  }, []);
-
-  // Animate new orders when they update
-  useEffect(() => {
-    if (!isLoading && ordersRef.current) {
-      gsap.from(ordersRef.current.children, {
-        opacity: 0,
-        y: 20,
-        duration: 0.4,
-        stagger: 0.1,
-        ease: "power2.out",
-      });
-    }
-  }, [orders, isLoading]);
 
   const handlePayment = (order: Order) => {
     try {
@@ -244,21 +170,7 @@ export default function OrdersPage() {
     return "pending";
   };
 
-  const getStatusBadge = (order: Order) => {
-    // If there's a provider response with "accepted" status, show as accepted
-    if (order.providerResponses) {
-      const responses = Object.values(order.providerResponses);
-      const hasAccepted = responses.some((r) => r.status === "accepted");
-      if (hasAccepted) {
-        return (
-          <Badge className="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full">
-            Accepted
-          </Badge>
-        );
-      }
-    }
-
-    // Otherwise use the order's status
+  const getStatusBadge = (status: Order["status"]) => {
     const statusConfig = {
       pending: {
         class: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20",
@@ -267,10 +179,6 @@ export default function OrdersPage() {
       accepted: {
         class: "bg-blue-500/10 text-blue-500 border border-blue-500/20",
         label: "Accepted",
-      },
-      in_progress: {
-        class: "bg-orange-500/10 text-orange-500 border border-orange-500/20",
-        label: "In Progress",
       },
       completed: {
         class: "bg-green-500/10 text-green-500 border border-green-500/20",
@@ -284,40 +192,45 @@ export default function OrdersPage() {
         class: "bg-gray-500/10 text-gray-500 border border-gray-500/20",
         label: "Cancelled",
       },
-      refunded: {
-        class: "bg-pink-500/10 text-pink-500 border border-pink-500/20",
-        label: "Refunded",
-      },
-      disputed: {
-        class: "bg-red-500/10 text-red-500 border border-red-500/20",
-        label: "Disputed",
-      },
       rejected: {
         class: "bg-red-500/10 text-red-500 border border-red-500/20",
         label: "Rejected",
       },
-    };
+    } as const;
 
     return (
-      <Badge
-        className={`${statusConfig[order.status].class} px-3 py-1 rounded-full`}
-      >
-        {statusConfig[order.status].label}
+      <Badge className={`${statusConfig[status].class} px-3 py-1 rounded-full`}>
+        {statusConfig[status].label}
       </Badge>
     );
   };
 
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  if (isLoading || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
-    <div
-      ref={pageRef}
-      className="min-h-screen bg-white dark:bg-black opacity-0"
-    >
+    <div className="min-h-screen bg-white dark:bg-black">
       <div className="container mx-auto px-4 py-8">
-        <div ref={headerRef} className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">My Service Requests</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">My Orders</h1>
           <Button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
+            className="flex items-center gap-2"
           >
             <Home className="w-4 h-4" />
             Back to Home
@@ -325,58 +238,45 @@ export default function OrdersPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content - Orders List */}
+          {/* Main Content - Orders Grid */}
           <div className="lg:col-span-3">
-            {isLoading ? (
-              <div className="flex justify-center items-center min-h-[400px]">
-                <LoadingSpinner />
-              </div>
-            ) : error ? (
+            {error ? (
               <div className="text-center py-8">
                 <p className="text-red-500 mb-4">{error}</p>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                >
+                <Button onClick={() => window.location.reload()}>
                   Try Again
                 </Button>
               </div>
             ) : (
-              <div ref={ordersRef} className="grid gap-6">
-                {orders.map((order) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-xl hover:border-black dark:hover:border-white transition-all duration-200"
-                  >
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-6">
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {currentOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-xl p-4 hover:border-black dark:hover:border-white transition-all duration-200"
+                    >
+                      <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold mb-2">
+                          <h3 className="text-base font-semibold">
                             Order #{order.id.slice(0, 8)}
                           </h3>
                           <p className="text-sm text-black/60 dark:text-white/60">
                             {formatDate(order.createdAt)}
                           </p>
                         </div>
-                        {getStatusBadge(order)}
+                        {getStatusBadge(order.status)}
                       </div>
 
-                      <div className="space-y-3 mb-6">
+                      <div className="space-y-2 mb-4">
                         {order.items.map((item, index) => (
                           <div
                             key={index}
                             className="flex justify-between items-center text-sm"
                           >
-                            <div className="flex items-center">
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-black/60 dark:text-white/60 ml-2">
-                                × {item.quantity}
-                              </span>
-                            </div>
                             <span className="font-medium">
+                              {item.name} × {item.quantity}
+                            </span>
+                            <span>
                               {formatPrice(item.price * item.quantity)}
                             </span>
                           </div>
@@ -385,72 +285,71 @@ export default function OrdersPage() {
 
                       <div className="border-t border-black/10 dark:border-white/10 pt-4">
                         <div className="flex justify-between items-center mb-4">
-                          <span className="font-semibold">Total Amount</span>
-                          <span className="font-semibold text-lg">
+                          <span className="font-medium">Total</span>
+                          <span className="font-semibold">
                             {formatPrice(order.totalAmount)}
                           </span>
                         </div>
 
-                        <div className="space-y-3">
-                          {order.status === "completed" &&
-                            !order.isReviewed && (
-                              <Button
-                                onClick={() => {
-                                  const serviceName = order.items[0]?.name;
-                                  setSearchQuery(serviceName);
-                                  router.push(
-                                    `/services?search=${encodeURIComponent(
-                                      serviceName
-                                    )}&orderId=${
-                                      order.id
-                                    }&isCompleted=true&isReviewed=${!!order.isReviewed}`
-                                  );
-                                }}
-                                className="w-full bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                              >
-                                Write a Review
-                              </Button>
-                            )}
-                          {order.status === "accepted" && (
-                            <Button
-                              onClick={() => handlePayment(order)}
-                              className="w-full bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                            >
-                              Proceed to Payment
-                            </Button>
-                          )}
-                          {order.status === "pending" && (
-                            <Button
-                              onClick={() => handleCancelRequest(order.id)}
-                              className="w-full bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                            >
-                              Cancel Service Request
-                            </Button>
-                          )}
-                        </div>
+                        {order.status === "pending" && (
+                          <Button
+                            onClick={() => handleCancelRequest(order.id)}
+                            variant="destructive"
+                            className="w-full"
+                          >
+                            Cancel Request
+                          </Button>
+                        )}
+                        {order.status === "accepted" && (
+                          <Button
+                            onClick={() => handlePayment(order)}
+                            className="w-full"
+                          >
+                            Proceed to Payment
+                          </Button>
+                        )}
+                        {order.status === "completed" && !order.isReviewed && (
+                          <Button
+                            onClick={() => {
+                              router.push(
+                                `/services?search=${encodeURIComponent(
+                                  order.items[0].name
+                                )}&review=true&orderId=${order.id}`
+                              );
+                            }}
+                            variant="outline"
+                            className="w-full flex items-center justify-center gap-2"
+                          >
+                            <Star className="w-4 h-4" />
+                            Write Review
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
+
+                {orders.length > ordersPerPage && (
+                  <div className="mt-8">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
 
                 {orders.length === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-12 border border-black/10 dark:border-white/10 rounded-xl"
-                  >
-                    <p className="text-black/60 dark:text-white/60 text-lg">
-                      No service requests found
+                  <div className="col-span-full text-center py-12 border border-black/10 dark:border-white/10 rounded-xl">
+                    <p className="text-black/60 dark:text-white/60 mb-4">
+                      No orders found
                     </p>
-                    <Button
-                      onClick={() => router.push("/services")}
-                      className="mt-4 bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-                    >
+                    <Button onClick={() => router.push("/services")}>
                       Browse Services
                     </Button>
-                  </motion.div>
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 
@@ -458,7 +357,7 @@ export default function OrdersPage() {
           <div className="lg:col-span-1">
             <div className="border border-black/10 dark:border-white/10 rounded-xl p-6 sticky top-8 bg-white dark:bg-black">
               <h2 className="text-xl font-semibold mb-6">Request Statistics</h2>
-              <div ref={statsRef} className="space-y-4">
+              <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors border border-yellow-500/10">
                   <p className="font-medium text-yellow-500">Pending</p>
                   <p className="text-2xl font-bold mt-1 text-yellow-500">
@@ -479,16 +378,6 @@ export default function OrdersPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-orange-500/5 hover:bg-orange-500/10 transition-colors border border-orange-500/10">
-                  <p className="font-medium text-orange-500">In Progress</p>
-                  <p className="text-2xl font-bold mt-1 text-orange-500">
-                    {
-                      orders.filter((order) => order.status === "in_progress")
-                        .length
-                    }
-                  </p>
-                </div>
-
                 <div className="p-4 rounded-lg bg-green-500/5 hover:bg-green-500/10 transition-colors border border-green-500/10">
                   <p className="font-medium text-green-500">Completed</p>
                   <p className="text-2xl font-bold mt-1 text-green-500">
@@ -499,28 +388,11 @@ export default function OrdersPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-purple-500/5 hover:bg-purple-500/10 transition-colors border border-purple-500/10">
-                  <p className="font-medium text-purple-500">Paid</p>
-                  <p className="text-2xl font-bold mt-1 text-purple-500">
-                    {orders.filter((order) => order.status === "paid").length}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-pink-500/5 hover:bg-pink-500/10 transition-colors border border-pink-500/10">
-                  <p className="font-medium text-pink-500">Refunded</p>
-                  <p className="text-2xl font-bold mt-1 text-pink-500">
-                    {
-                      orders.filter((order) => order.status === "refunded")
-                        .length
-                    }
-                  </p>
-                </div>
-
                 <div className="p-4 rounded-lg bg-red-500/5 hover:bg-red-500/10 transition-colors border border-red-500/10">
-                  <p className="font-medium text-red-500">Disputed</p>
+                  <p className="font-medium text-red-500">Rejected</p>
                   <p className="text-2xl font-bold mt-1 text-red-500">
                     {
-                      orders.filter((order) => order.status === "disputed")
+                      orders.filter((order) => order.status === "rejected")
                         .length
                     }
                   </p>

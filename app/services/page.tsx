@@ -197,12 +197,12 @@ function ServicesContent() {
 
   // Update the filterServices function
   const filterServices = (services: SimpleService[]) => {
-    return services.filter(service => {
+    return services.filter((service) => {
       if (!searchQuery) return true;
-      
+
       const searchTerm = searchQuery.toLowerCase().trim();
       const serviceName = service.name.toLowerCase();
-      
+
       return serviceName.includes(searchTerm);
     });
   };
@@ -378,12 +378,18 @@ function ServicesContent() {
   };
 
   const handleReviewAdded = (review: ServiceReview) => {
+    // Ensure the rating is typed correctly when creating a review
+    const newReview: ServiceReview = {
+      ...review,
+      rating: review.rating as 1 | 2 | 3 | 4 | 5,
+    };
+    // Update services list with new review data
     setServices((prevServices) =>
       prevServices.map((s) =>
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating as 1 | 2 | 3 | 4 | 5,
+              rating: newReview.rating,
               totalReviews: s.totalReviews + 1,
             }
           : s
@@ -395,7 +401,7 @@ function ServicesContent() {
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating as 1 | 2 | 3 | 4 | 5,
+              rating: newReview.rating,
               totalReviews: s.totalReviews + 1,
             }
           : s
@@ -493,11 +499,41 @@ function ServicesContent() {
   }, [services]);
 
   // Add state for order status
-  const [orderStatus, setOrderStatus] = useState<{
-    isCompleted: boolean;
-    orderId?: string;
-    isReviewed?: boolean;
-  }>();
+  const [orderStatus, setOrderStatus] = useState<
+    | {
+        isCompleted: boolean;
+        orderId?: string;
+        isReviewed?: boolean;
+      }
+    | undefined
+  >(undefined);
+
+  useEffect(() => {
+    const review = searchParams.get("review");
+    const search = searchParams.get("search");
+    const orderId = searchParams.get("orderId");
+
+    if (review === "true" && search) {
+      // Find the service by name
+      const findAndOpenService = async () => {
+        const servicesRef = collection(db, "services");
+        const q = query(servicesRef, where("name", "==", search));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const service = {
+            id: snapshot.docs[0].id,
+            ...snapshot.docs[0].data(),
+          } as Service;
+
+          setSelectedService(service);
+          setIsModalOpen(true);
+        }
+      };
+
+      findAndOpenService();
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -702,8 +738,8 @@ function ServicesContent() {
           onServiceDeleted={handleServiceDeleted}
           onReviewAdded={handleReviewAdded}
           onServiceUpdated={handleServiceUpdated}
-          isReviewMode={!!searchParams.get("search")}
-          orderStatus={orderStatus}
+          isReviewMode={true}
+          orderStatus={orderStatus || undefined}
         />
       )}
 
