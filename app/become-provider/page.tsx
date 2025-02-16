@@ -24,6 +24,8 @@ import {
   setDoc,
   getDoc,
   writeBatch,
+  getDocs,
+  collection,
 } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -205,6 +207,7 @@ const ProviderForm = ({
   setTermsAccepted,
   previewUrl,
   hasSubmitted,
+  availableServices,
 }: {
   showForm: boolean;
   setShowForm: (show: boolean) => void;
@@ -222,6 +225,7 @@ const ProviderForm = ({
   setTermsAccepted: (accepted: boolean) => void;
   previewUrl: string | null;
   hasSubmitted: boolean;
+  availableServices: string[];
 }) => (
   <Dialog
     open={showForm && !hasSubmitted}
@@ -391,7 +395,7 @@ const ProviderForm = ({
                   Select the services you can provide
                 </p>
                 <div className="grid grid-cols-1 gap-1.5 md:gap-2 mt-2 h-[240px] md:h-[280px] overflow-y-auto p-2 bg-black/5 dark:bg-white/5 rounded-lg">
-                  {AVAILABLE_SERVICES.map((service) => (
+                  {availableServices.map((service) => (
                     <label
                       key={service}
                       className={`flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg cursor-pointer transition-all text-sm md:text-base
@@ -485,6 +489,39 @@ export default function BecomeProviderPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [availableServices, setAvailableServices] = useState<string[]>([]);
+
+  // Add this function to fetch services
+  const fetchAvailableServices = async () => {
+    try {
+      const db = getFirestore();
+      const servicesSnapshot = await getDocs(collection(db, "services"));
+      
+      // Extract unique service names
+      const serviceNames = new Set<string>();
+      servicesSnapshot.forEach((doc) => {
+        const service = doc.data();
+        if (service.name) {
+          serviceNames.add(service.name);
+        }
+      });
+      
+      // Convert to array and sort alphabetically
+      const sortedServices = Array.from(serviceNames).sort();
+      
+      // Add "Other" option at the end
+      sortedServices.push("Other");
+      
+      setAvailableServices(sortedServices);
+    } catch (error) {
+      console.error("Error fetching available services:", error);
+    }
+  };
+
+  // Add useEffect to fetch services when component mounts
+  useEffect(() => {
+    fetchAvailableServices();
+  }, []);
 
   // Update the effect to handle auth state properly
   useEffect(() => {
@@ -1030,6 +1067,7 @@ export default function BecomeProviderPage() {
           setTermsAccepted={setTermsAccepted}
           previewUrl={previewUrl}
           hasSubmitted={hasSubmitted}
+          availableServices={availableServices}
         />
       </main>
     </>
