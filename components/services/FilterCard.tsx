@@ -156,12 +156,16 @@ function FilterCard({
   }, [selectedService, selectedPriceRanges, minReviewRating]);
 
   useEffect(() => {
-    // Get search query from URL and update filter
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      onSearchChange(searchQuery);
+    const query = searchParams.get('search');
+    if (query) {
+      onSearchChange(query);
     }
   }, [searchParams, onSearchChange]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    onSearchChange(value);
+  };
 
   return (
     <div
@@ -173,15 +177,15 @@ function FilterCard({
         <h2 className="text-lg font-semibold text-black dark:text-white mb-3">
           Search Services
         </h2>
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 h-4 w-4 group-hover:text-gray-600 dark:group-hover:text-white transition-colors" />
+        <div className="relative">
           <Input
             type="text"
-            placeholder="Search services..."
+            placeholder="Search by service name..."
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 w-full border-gray-200 dark:border-white/20 focus:border-black dark:focus:border-white transition-all hover:border-gray-300 dark:hover:border-white/40 dark:bg-black dark:text-white"
+            onChange={handleSearchChange}
+            className="pl-10 pr-4 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
         </div>
       </div>
 
