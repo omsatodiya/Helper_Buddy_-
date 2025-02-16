@@ -378,6 +378,15 @@ export default function CartPage() {
         }
       });
 
+      if (providers.length === 0) {
+        toast({
+          title: "No Providers Found",
+          description: "Currently there are no service providers in your pincode area.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Calculate total amount
       const totalAmount = cartItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
@@ -409,41 +418,20 @@ export default function CartPage() {
       await setDoc(orderRef, orderData);
 
       // Create requests for providers
-      if (providers.length > 0) {
-        await Promise.all(
-          providers.map(async (provider) => {
-            const providerRequestRef = doc(
-              collection(db, "providers", provider.id, "serviceRequests")
-            );
+      await Promise.all(
+        providers.map(async (provider) => {
+          const providerRequestRef = doc(
+            collection(db, "providers", provider.id, "serviceRequests")
+          );
 
-            await setDoc(providerRequestRef, {
-              ...orderData,
-              id: providerRequestRef.id,
-              mainRequestId: orderRef.id,
-              providerStatus: "pending",
-            });
-
-            // Send notification
-            await sendProviderNotifications({
-              providerEmail: provider.email,
-              providerName: provider.name,
-              customerName: user.displayName || "Customer",
-              customerEmail: user.email || "",
-              customerAddress: selectedAddress.address,
-              customerPincode: selectedAddress.pincode,
-              customerCity: selectedAddress.city,
-              items: cartItems,
-            });
-          })
-        );
-      } else {
-        toast({
-          title: "No Providers Found",
-          description:
-            "Currently there are no service providers in your pincode area.",
-          variant: "destructive",
-        });
-      }
+          await setDoc(providerRequestRef, {
+            ...orderData,
+            id: providerRequestRef.id,
+            mainRequestId: orderRef.id,
+            providerStatus: "pending",
+          });
+        })
+      );
 
       // Clear cart
       const cartRef = doc(db, "carts", user.uid);
