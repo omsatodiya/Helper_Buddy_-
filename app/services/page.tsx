@@ -21,6 +21,7 @@ import {
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
 import { Service, SimpleService, ServiceReview } from "@/types/service";
+import { Service, SimpleService, ServiceReview } from "@/types/service";
 import Footer from "@/components/layout/Footer";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -465,7 +466,6 @@ function ServicesContent() {
       )
     );
 
-    // Update filtered services list
     setFilteredServices((prevFiltered) =>
       prevFiltered.map((s) =>
         s.id === review.id

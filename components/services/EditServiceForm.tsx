@@ -122,6 +122,8 @@ export default function EditServiceForm({
         ...service,
         ...updatedService,
         id: service.id,
+        createdAt: service.createdAt,
+        updatedAt: new Date(),
       });
 
       onClose();

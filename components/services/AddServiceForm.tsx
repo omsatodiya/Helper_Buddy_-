@@ -138,6 +138,46 @@ export default function AddServiceForm({
     }
   };
 
+  // Replace the category select element with updated categories
+  const serviceCategories = [
+    { id: "Cleaning", name: "Cleaning & Maintenance" },
+    { id: "Plumbing", name: "Plumbing" },
+    { id: "Carpentry", name: "Carpentry" },
+    { id: "Electrical", name: "Electrical" },
+    { id: "AC", name: "AC Repair & Services" },
+    { id: "Chimney", name: "Chimney Repair" },
+    { id: "Water Purifier", name: "Water Purifier Repair" },
+    { id: "Microwave", name: "Microwave Repair" },
+    { id: "Refrigerator", name: "Refrigerator Repair" },
+    { id: "TV", name: "TV Repair" },
+    { id: "Washing Machine", name: "Washing Machine Repair" },
+    { id: "Geyser", name: "Geyser Repair" },
+    { id: "Painting", name: "Painting & Decoration" },
+    { id: "Carpets", name: "Carpets & Flooring" },
+    { id: "Furniture", name: "Furniture Repair & Assembly" },
+    { id: "Home Appliances", name: "Home Appliances Repair" },
+    { id: "Fans", name: "Fans Repair" },
+    { id: "Fan Cleaning", name: "Fan Cleaning" },
+    { id: "Home Cleaning", name: "Home Cleaning" },
+    { id: "Home Security", name: "Home Security" },
+    { id: "Home Maintenance", name: "Home Maintenance" },
+    { id: "Home Repair", name: "Home Repair" },
+    { id: "Home Renovation", name: "Home Renovation" },
+    { id: "Landscaping", name: "Landscaping & Gardening" },
+    { id: "Moving", name: "Moving & Transportation" },
+    { id: "Tutoring", name: "Tutoring & Education" },
+    { id: "Wellness", name: "Health & Wellness" },
+    { id: "Events", name: "Events & Entertainment" },
+    { id: "Technology", name: "Technology & IT" },
+    { id: "Pets", name: "Pet Services" },
+    { id: "Beauty", name: "Beauty & Personal Care" },
+    { id: "Automotive", name: "Automotive" },
+    { id: "Legal", name: "Legal Services" },
+    { id: "Financial", name: "Financial Services" },
+    { id: "Creative", name: "Creative & Design" },
+    { id: "Other", name: "Other Services" },
+  ];
+
   const renderStepContent = () => {
     switch (step) {
       case STEPS.BASIC_INFO:

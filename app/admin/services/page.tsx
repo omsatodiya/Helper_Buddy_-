@@ -218,7 +218,6 @@ export default function ServicesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
         {paginatedServices.map((service) => (
           <AdminServiceCard
-          
             key={service.id}
             id={service.id}
             title={service.name}
