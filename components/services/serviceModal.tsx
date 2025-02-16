@@ -104,26 +104,24 @@ interface ServiceModalProps {
   onReviewAdded: (review: import("@/types/service").ServiceReview) => void;
   onServiceUpdated: (service: Service) => void;
   isAdminView?: boolean;
-  onServiceDeleted?: () => void;
-  onReviewAdded: (review: {
-    id: string;
-    rating: 1 | 2 | 3 | 4 | 5; // Match the ServiceReview type
-    comment: string;
-    userName: string;
-    userEmail: string;
-    date: string;
-    editedAt?: string;
-    isEdited?: boolean;
-    helpful: number;
-    reply?: {
-      comment: string;
-      date: string;
-    };
-    userId: string;
-    createdAt: Date;
-    orderId: string;
-  }) => void;
-  onServiceUpdated?: (updatedService: Service) => void;
+  // onReviewAdded: (review: {
+  //   id: string;
+  //   rating: 1 | 2 | 3 | 4 | 5; // Match the ServiceReview type
+  //   comment: string;
+  //   userName: string;
+  //   userEmail: string;
+  //   date: string;
+  //   editedAt?: string;
+  //   isEdited?: boolean;
+  //   helpful: number;
+  //   reply?: {
+  //     comment: string;
+  //     date: string;
+  //   };
+  //   userId: string;
+  //   createdAt: Date;
+  //   orderId: string;
+  // }) => void;
   isInCart?: boolean;
   quantity?: number;
   onQuantityChange?: (newQuantity: number) => void;
