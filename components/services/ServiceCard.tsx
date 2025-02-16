@@ -6,7 +6,7 @@ import { SimpleService } from "../../types/service";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import Image from "next/image"; // Using Next.js Image for better performance
 
 interface ServiceCardProps {

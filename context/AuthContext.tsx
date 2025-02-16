@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Import the initialized auth instance
+import { auth } from '@/lib/firebase/firebase'; // Import the initialized auth instance
 
 interface User {
   uid: string;

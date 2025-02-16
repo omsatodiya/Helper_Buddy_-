@@ -28,7 +28,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { useRouter } from "next/navigation";
 
 interface Address {

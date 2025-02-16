@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, CreditCard, Truck, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { doc, updateDoc, getDoc, collection, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getFirestore } from "firebase/firestore";

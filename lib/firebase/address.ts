@@ -1,4 +1,4 @@
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { collection, doc, setDoc, getDoc, deleteDoc, getDocs } from "firebase/firestore";
 
 interface Address {

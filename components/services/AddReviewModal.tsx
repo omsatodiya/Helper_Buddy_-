@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Star, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import {
   doc,
   updateDoc,

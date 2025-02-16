@@ -7,7 +7,7 @@ import ServiceCard from "@/components/services/ServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import { Filter, X, Search } from "lucide-react";
 import Header from "@/components/layout/Header";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import {
   collection,
   getDocs,

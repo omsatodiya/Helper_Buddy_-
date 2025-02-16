@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase/firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 export function useAdmin() {

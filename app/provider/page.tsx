@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase/firebase";
 import {
   getFirestore,
   doc,

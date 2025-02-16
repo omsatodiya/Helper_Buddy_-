@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Plus } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { Service } from "@/types/service";

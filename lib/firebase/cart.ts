@@ -1,4 +1,4 @@
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, deleteField } from "firebase/firestore";
 import { CartItem } from "@/types/cart";
 

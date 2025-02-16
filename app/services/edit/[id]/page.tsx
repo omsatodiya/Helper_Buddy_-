@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import EditServiceForm from "@/components/services/EditServiceForm";
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { Service } from "@/types/service";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import gsap from "gsap";

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/lib/cloudinary";

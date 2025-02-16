@@ -4,7 +4,7 @@ import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { doc, onSnapshot, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
