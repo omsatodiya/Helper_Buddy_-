@@ -185,6 +185,17 @@ const ServiceModal = ({
     }
   }, [isReviewMode]);
 
+  useEffect(() => {
+    if (
+      user &&
+      isReviewMode &&
+      orderStatus?.orderId &&
+      !orderStatus.isReviewed
+    ) {
+      setIsReviewModalOpen(true);
+    }
+  }, [user, isReviewMode, orderStatus]);
+
   // Auto-slide effect
   useEffect(() => {
     if (!service.images || service.images.length <= 1) return;
@@ -269,7 +280,7 @@ const ServiceModal = ({
     }
   }, [service.id, onClose, onServiceDeleted]);
 
-  const handleReviewClick = () => {
+  const handleReviewClick = useCallback(() => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -278,8 +289,11 @@ const ServiceModal = ({
       });
       return;
     }
-    setIsReviewModalOpen(true);
-  };
+
+    if (orderStatus?.orderId && !orderStatus.isReviewed) {
+      setIsReviewModalOpen(true);
+    }
+  }, [user, orderStatus, toast]);
 
   const handleReviewAdded = async (newReview: {
     rating: number;
@@ -866,12 +880,14 @@ const ServiceModal = ({
 
             {/* Add this after the price section */}
             <div className="mt-4 space-y-4">
-              {orderStatus?.isCompleted && !orderStatus?.isReviewed && (
+              {user && orderStatus?.isCompleted && !orderStatus.isReviewed && (
                 <Button
                   onClick={handleReviewClick}
-                  className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 mb-4"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-2"
                 >
-                  Write a Review
+                  <Star className="w-4 h-4" />
+                  Write Review
                 </Button>
               )}
             </div>
@@ -1087,12 +1103,14 @@ const ServiceModal = ({
       </AlertDialog>
 
       {/* Add Review Modal */}
-      <AddReviewModal
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        onSubmit={handleReviewAdded}
-        serviceId={service.id}
-      />
+      {user && (
+        <AddReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          onSubmit={handleReviewAdded}
+          serviceId={service.id}
+        />
+      )}
     </div>
   );
 };

@@ -197,12 +197,12 @@ function ServicesContent() {
 
   // Update the filterServices function
   const filterServices = (services: SimpleService[]) => {
-    return services.filter(service => {
+    return services.filter((service) => {
       if (!searchQuery) return true;
-      
+
       const searchTerm = searchQuery.toLowerCase().trim();
       const serviceName = service.name.toLowerCase();
-      
+
       return serviceName.includes(searchTerm);
     });
   };
@@ -508,6 +508,33 @@ function ServicesContent() {
     | undefined
   >(undefined);
 
+  useEffect(() => {
+    const review = searchParams.get("review");
+    const search = searchParams.get("search");
+    const orderId = searchParams.get("orderId");
+
+    if (review === "true" && search) {
+      // Find the service by name
+      const findAndOpenService = async () => {
+        const servicesRef = collection(db, "services");
+        const q = query(servicesRef, where("name", "==", search));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const service = {
+            id: snapshot.docs[0].id,
+            ...snapshot.docs[0].data(),
+          } as Service;
+
+          setSelectedService(service);
+          setIsModalOpen(true);
+        }
+      };
+
+      findAndOpenService();
+    }
+  }, [searchParams]);
+
   if (loading) {
     return (
       <>
@@ -711,7 +738,7 @@ function ServicesContent() {
           onServiceDeleted={handleServiceDeleted}
           onReviewAdded={handleReviewAdded}
           onServiceUpdated={handleServiceUpdated}
-          isReviewMode={!!searchParams.get("search")}
+          isReviewMode={true}
           orderStatus={orderStatus || undefined}
         />
       )}
