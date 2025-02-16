@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
-import { Service, SimpleService } from "@/types/service";
+import { Service, SimpleService, ServiceReview } from "@/types/service";
 import Footer from "@/components/layout/Footer";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,20 +55,6 @@ interface ServiceProvider {
   phone: string;
   rating: number;
   totalServices: number;
-}
-
-interface ServiceReview {
-  id: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  comment: string;
-  userName: string;
-  userEmail: string;
-  date: string;
-  helpful: number;
-  reply?: {
-    comment: string;
-    date: string;
-  };
 }
 
 interface ServiceImage {
@@ -461,26 +447,24 @@ function ServicesContent() {
   };
 
   const handleReviewAdded = (review: ServiceReview) => {
-    // Update services list with new review data
     setServices((prevServices) =>
       prevServices.map((s) =>
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating,
+              rating: review.rating as 1 | 2 | 3 | 4 | 5,
               totalReviews: s.totalReviews + 1,
             }
           : s
       )
     );
 
-    // Update filtered services list
     setFilteredServices((prevFiltered) =>
       prevFiltered.map((s) =>
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating,
+              rating: review.rating as 1 | 2 | 3 | 4 | 5,
               totalReviews: s.totalReviews + 1,
             }
           : s
@@ -582,7 +566,7 @@ function ServicesContent() {
     isCompleted: boolean;
     orderId?: string;
     isReviewed?: boolean;
-  } | null>(null);
+  }>();
 
   if (loading) {
     return (
@@ -802,7 +786,7 @@ function ServicesContent() {
           </h1>
         </div>
 
-        <div className="flex flex md:flex-row md:gap-14">
+        <div className="flex flex-col md:flex-row md:gap-14">
           {/* Desktop Filter Card */}
           <div className="hidden md:block flex-1 max-w-xs sticky top-4">
             <FilterCard

@@ -115,7 +115,7 @@ const EditServiceForm = ({
       const updatedService = {
         ...service,
         ...formData,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       };
 
       await updateDoc(serviceRef, updatedService);
@@ -123,6 +123,8 @@ const EditServiceForm = ({
       onServiceUpdated({
         ...updatedService,
         id: service.id,
+        createdAt: service.createdAt,
+        updatedAt: new Date(),
       });
 
       onClose();

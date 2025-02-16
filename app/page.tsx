@@ -311,8 +311,8 @@ export default function Home() {
             category: service.category || "uncategorized",
             rating: service.rating || 0,
             totalReviews: service.totalReviews || 0,
-            createdAt: service.createdAt || new Date().toISOString(),
-            updatedAt: service.updatedAt || new Date().toISOString(),
+            createdAt: service.createdAt?.toString() || new Date().toISOString(),
+            updatedAt: service.updatedAt?.toString() || new Date().toISOString(),
             provider: service.provider || null,
             servicePincodes: service.servicePincodes || []
           };
@@ -382,6 +382,7 @@ export default function Home() {
               setIsServiceModalOpen(false);
               setSelectedService(null);
             }}
+            onReviewAdded={() => {}}
           />
         )}
       </main>

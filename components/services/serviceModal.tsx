@@ -97,13 +97,13 @@ interface ServiceStatus {
 }
 
 interface ServiceModalProps {
+  service: Service;
   isOpen: boolean;
   onClose: () => void;
-  service: Service;
+  onServiceDeleted: () => void;
+  onReviewAdded: (review: import("@/types/service").ServiceReview) => void;
+  onServiceUpdated: (service: Service) => void;
   isAdminView?: boolean;
-  onServiceDeleted?: () => void;
-  onReviewAdded?: (review: ServiceReview) => void;
-  onServiceUpdated?: (updatedService: Service) => void;
   isInCart?: boolean;
   quantity?: number;
   onQuantityChange?: (newQuantity: number) => void;

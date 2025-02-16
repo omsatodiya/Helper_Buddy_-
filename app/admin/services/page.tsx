@@ -49,8 +49,8 @@ export default function ServicesPage() {
             category: data.category || "uncategorized",
             rating: data.rating || 0,
             totalReviews: (data.reviews || []).length,
-            createdAt: data.createdAt || new Date().toISOString(),
-            updatedAt: data.updatedAt || new Date().toISOString(),
+            createdAt: data.createdAt?.toString() || new Date().toISOString(),
+            updatedAt: data.updatedAt?.toString() || new Date().toISOString(),
           };
           return simpleService;
         });
@@ -226,6 +226,7 @@ export default function ServicesPage() {
             })) as SimpleService[];
             setServices(servicesData);
           }}
+          onReviewAdded={() => {}}
         />
       )}
     </div>
