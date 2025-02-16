@@ -30,6 +30,20 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 import { useRouter } from "next/navigation";
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Clock } from "lucide-react"
+import emailjs from "@emailjs/browser"
 
 interface Address {
   id: string;
@@ -84,6 +98,7 @@ export default function CartPage() {
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const router = useRouter();
   const [dateTimeError, setDateTimeError] = useState<string>("");
+  const [date, setDate] = useState<Date | undefined>(undefined);
 
   // Fetch cart items
   const fetchCartItems = async () => {
@@ -441,6 +456,39 @@ export default function CartPage() {
         0
       );
 
+      // Format service details for email
+      const serviceDetails = cartItems
+        .map(item => `${item.name} (Quantity: ${item.quantity}) - ₹${item.price * item.quantity}`)
+        .join('<br>');
+
+      // Send emails to all matching providers
+      await Promise.all(
+        providers.map(async (provider) => {
+          try {
+            await emailjs.send(
+              process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID_2!,
+              process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_NOTIFICATION_TEMPLATE_ID!,
+              {
+                to_email: provider.email,
+                to_name: provider.name,
+                customer_name: user?.displayName || "Customer",
+                customer_location: `${selectedAddress.address}, ${selectedAddress.city} - ${selectedAddress.pincode}`,
+                delivery_date: selectedAddress.deliveryDate,
+                delivery_time: selectedAddress.deliveryTime,
+                service_details: serviceDetails,
+                estimated_value: `₹${totalAmount.toLocaleString("en-IN")}`,
+                remarks: selectedAddress.remarks || "No additional remarks",
+                from_name: "Your Service Platform",
+                reply_to: "support@yourplatform.com"
+              },
+              process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY_2
+            );
+          } catch (error) {
+            console.error(`Failed to send email to provider ${provider.email}:`, error);
+          }
+        })
+      );
+
       // Create main service request
       const orderRef = doc(collection(db, "serviceRequests"));
       const orderData = {
@@ -654,37 +702,99 @@ export default function CartPage() {
                               <label className="block text-sm font-medium">
                                 Delivery Date
                               </label>
-                              <input
-                                type="date"
-                                min={new Date().toISOString().split('T')[0]}
-                                max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                                  .toISOString()
-                                  .split('T')[0]}
-                                value={selectedAddress.deliveryDate || ''}
-                                onChange={(e) => {
-                                  setSelectedAddress({
-                                    ...selectedAddress,
-                                    deliveryDate: e.target.value,
-                                  });
-                                }}
-                                className="w-full px-3 py-2 border rounded-md bg-transparent"
-                              />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !date && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={(newDate) => {
+                                      setDate(newDate);
+                                      if (newDate) {
+                                        setSelectedAddress({
+                                          ...selectedAddress!,
+                                          deliveryDate: format(newDate, "yyyy-MM-dd"),
+                                        });
+                                      }
+                                    }}
+                                    disabled={(date) => {
+                                      const now = new Date();
+                                      const maxDate = new Date();
+                                      maxDate.setDate(maxDate.getDate() + 30);
+                                      return date < now || date > maxDate;
+                                    }}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                             <div className="space-y-2">
                               <label className="block text-sm font-medium">
                                 Delivery Time
                               </label>
-                              <input
-                                type="time"
-                                value={selectedAddress.deliveryTime || ''}
-                                onChange={(e) => {
-                                  setSelectedAddress({
-                                    ...selectedAddress,
-                                    deliveryTime: e.target.value,
-                                  });
-                                }}
-                                className="w-full px-3 py-2 border rounded-md bg-transparent"
-                              />
+                              <div className="flex gap-2">
+                                <Select
+                                  value={selectedAddress?.deliveryTime?.split(":")[0] || ""}
+                                  onValueChange={(hour) => {
+                                    const currentMins = selectedAddress?.deliveryTime?.split(":")[1] || "00";
+                                    setSelectedAddress({
+                                      ...selectedAddress!,
+                                      deliveryTime: `${hour}:${currentMins}`,
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Hour" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: 24 }, (_, i) => {
+                                      const hour = i.toString().padStart(2, "0");
+                                      return (
+                                        <SelectItem key={hour} value={hour}>
+                                          {hour}:00
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+
+                                <Select
+                                  value={selectedAddress?.deliveryTime?.split(":")[1] || ""}
+                                  onValueChange={(minute) => {
+                                    const currentHour = selectedAddress?.deliveryTime?.split(":")[0] || "00";
+                                    setSelectedAddress({
+                                      ...selectedAddress!,
+                                      deliveryTime: `${currentHour}:${minute}`,
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Minute" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {["00", "15", "30", "45"].map((minute) => (
+                                      <SelectItem key={minute} value={minute}>
+                                        :{minute}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                <Clock className="inline-block w-3 h-3 mr-1" />
+                                Select delivery time in 15-minute intervals
+                              </p>
                             </div>
                           </div>
                           {dateTimeError && (
