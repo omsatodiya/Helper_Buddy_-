@@ -102,7 +102,24 @@ interface ServiceModalProps {
   service: Service;
   isAdminView?: boolean;
   onServiceDeleted?: () => void;
-  onReviewAdded?: (review: ServiceReview) => void;
+  onReviewAdded: (review: {
+    id: string;
+    rating: 1 | 2 | 3 | 4 | 5; // Match the ServiceReview type
+    comment: string;
+    userName: string;
+    userEmail: string;
+    date: string;
+    editedAt?: string;
+    isEdited?: boolean;
+    helpful: number;
+    reply?: {
+      comment: string;
+      date: string;
+    };
+    userId: string;
+    createdAt: Date;
+    orderId: string;
+  }) => void;
   onServiceUpdated?: (updatedService: Service) => void;
   isInCart?: boolean;
   quantity?: number;

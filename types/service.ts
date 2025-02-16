@@ -19,7 +19,7 @@ export interface ServiceProvider {
 
 export interface ServiceReview {
   id: string;
-  rating: number;
+  rating: 1 | 2 | 3 | 4 | 5;
   comment: string;
   userName: string;
   userEmail: string;

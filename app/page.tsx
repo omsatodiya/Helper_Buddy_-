@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect , useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Preloader from "@/components/ui/preloader";
@@ -12,7 +12,7 @@ import { Service, SimpleService } from "@/types/service";
 import ServiceCard from "@/components/services/ServiceCard";
 import {
   getFirestore,
-  collection, 
+  collection,
   getDocs,
   query,
   where,
@@ -23,16 +23,16 @@ import {
 import ServiceModal from "@/components/services/serviceModal";
 import LandingPage from "@/components/landing/hero";
 import ScrollVelocity from "@/components/ui/scroll-velocity";
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/carousel";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const services = [
   {
@@ -40,36 +40,36 @@ const services = [
     title: "AC Service and Repair",
     image: "https://picsum.photos/id/237/200/300",
     description: "Professional AC maintenance and repair services",
-    path: "/services/ac-repair"
+    path: "/services/ac-repair",
   },
   {
     id: 2,
     title: "Washing Machine Repair",
     image: "https://picsum.photos/id/237/200/300",
     description: "Expert washing machine repair and servicing",
-    path: "/services/washing-machine"
+    path: "/services/washing-machine",
   },
   {
     id: 3,
     title: "Water Purifier Repair",
     image: "https://picsum.photos/id/237/200/300",
     description: "Quality water purifier maintenance and repairs",
-    path: "/services/water-purifier"
+    path: "/services/water-purifier",
   },
   {
     id: 4,
     title: "Refrigerator Repair",
     image: "https://picsum.photos/id/237/200/300",
     description: "Professional refrigerator repair services",
-    path: "/services/refrigerator"
+    path: "/services/refrigerator",
   },
   {
     id: 5,
     title: "Microwave Repair",
     image: "https://picsum.photos/id/237/200/300",
     description: "Expert microwave repair and maintenance",
-    path: "/services/microwave"
-  }
+    path: "/services/microwave",
+  },
 ];
 
 const cleaningServices = [
@@ -78,36 +78,36 @@ const cleaningServices = [
     title: "Home Deep Cleaning",
     image: "https://picsum.photos/id/237/200/300",
     description: "Professional home deep cleaning services",
-    path: "/services/home-cleaning"
+    path: "/services/home-cleaning",
   },
   {
     id: 2,
     title: "Pest Control",
     image: "https://picsum.photos/id/237/200/300",
     description: "Complete pest control solutions",
-    path: "/services/pest-control"
+    path: "/services/pest-control",
   },
   {
     id: 3,
     title: "Carpet Cleaning",
     image: "https://picsum.photos/id/237/200/300",
     description: "Expert carpet cleaning services",
-    path: "/services/carpet-cleaning"
+    path: "/services/carpet-cleaning",
   },
   {
     id: 4,
     title: "Sofa Cleaning",
     image: "https://picsum.photos/id/237/200/300",
     description: "Professional sofa cleaning services",
-    path: "/services/sofa-cleaning"
+    path: "/services/sofa-cleaning",
   },
   {
     id: 5,
     title: "Kitchen Deep Cleaning",
     image: "https://picsum.photos/id/237/200/300",
     description: "Thorough kitchen cleaning services",
-    path: "/services/kitchen-cleaning"
-  }
+    path: "/services/kitchen-cleaning",
+  },
 ];
 
 function ServicesCarousel() {
@@ -120,14 +120,14 @@ function ServicesCarousel() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             AC & Appliance Repair
           </h2>
-          <button 
-            onClick={() => router.push('/services')}
+          <button
+            onClick={() => router.push("/services")}
             className="text-primary hover:underline"
           >
             See all
           </button>
         </div>
-        
+
         <Carousel
           opts={{
             align: "start",
@@ -137,9 +137,12 @@ function ServicesCarousel() {
         >
           <CarouselContent>
             {services.map((service) => (
-              <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+              <CarouselItem
+                key={service.id}
+                className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+              >
                 <div className="p-1">
-                  <Card 
+                  <Card
                     className="cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => router.push(service.path)}
                   >
@@ -153,7 +156,9 @@ function ServicesCarousel() {
                         />
                       </div>
                       <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-1">{service.title}</h3>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {service.title}
+                        </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           {service.description}
                         </p>
@@ -169,7 +174,7 @@ function ServicesCarousel() {
         </Carousel>
       </div>
     </section>
-  )
+  );
 }
 
 function CleaningServicesCarousel() {
@@ -182,14 +187,14 @@ function CleaningServicesCarousel() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             Cleaning & Pest Control
           </h2>
-          <button 
-            onClick={() => router.push('/services/cleaning')}
+          <button
+            onClick={() => router.push("/services/cleaning")}
             className="text-primary hover:underline"
           >
             See all
           </button>
         </div>
-        
+
         <Carousel
           opts={{
             align: "start",
@@ -199,9 +204,12 @@ function CleaningServicesCarousel() {
         >
           <CarouselContent>
             {cleaningServices.map((service) => (
-              <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+              <CarouselItem
+                key={service.id}
+                className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+              >
                 <div className="p-1">
-                  <Card 
+                  <Card
                     className="cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => router.push(service.path)}
                   >
@@ -215,7 +223,9 @@ function CleaningServicesCarousel() {
                         />
                       </div>
                       <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-1">{service.title}</h3>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {service.title}
+                        </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           {service.description}
                         </p>
@@ -231,7 +241,7 @@ function CleaningServicesCarousel() {
         </Carousel>
       </div>
     </section>
-  )
+  );
 }
 
 export default function Home() {
@@ -244,19 +254,18 @@ export default function Home() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-
   useEffect(() => {
     const handleStart = () => {
       setLoading(true);
     };
 
     // Handle both initial load and refresh
-    window.addEventListener('load', handleStart);
-    window.addEventListener('beforeunload', handleStart);
+    window.addEventListener("load", handleStart);
+    window.addEventListener("beforeunload", handleStart);
 
     return () => {
-      window.removeEventListener('load', handleStart);
-      window.removeEventListener('beforeunload', handleStart);
+      window.removeEventListener("load", handleStart);
+      window.removeEventListener("beforeunload", handleStart);
     };
   }, []);
 
@@ -306,15 +315,24 @@ export default function Home() {
             name: service.name,
             description: service.description,
             price: service.price,
-            imageUrl: typeof service.images?.[0] === "string" ? service.images[0] : service.images?.[0]?.url || "/placeholder-image.jpg",
+            imageUrl:
+              typeof service.images?.[0] === "string"
+                ? service.images[0]
+                : service.images?.[0]?.url || "/placeholder-image.jpg",
             details: service.details || "",
             category: service.category || "uncategorized",
             rating: service.rating || 0,
             totalReviews: service.totalReviews || 0,
-            createdAt: service.createdAt || new Date().toISOString(),
-            updatedAt: service.updatedAt || new Date().toISOString(),
+            createdAt:
+              (service.createdAt instanceof Date
+                ? service.createdAt.toISOString()
+                : service.createdAt) || new Date().toISOString(),
+            updatedAt:
+              (service.updatedAt instanceof Date
+                ? service.updatedAt.toISOString()
+                : service.updatedAt) || new Date().toISOString(),
             provider: service.provider || null,
-            servicePincodes: service.servicePincodes || []
+            servicePincodes: service.servicePincodes || [],
           };
           return (
             <ServiceCard
@@ -343,7 +361,11 @@ export default function Home() {
   return (
     <>
       {loading && <Preloader onLoadingComplete={() => setLoading(false)} />}
-      <main className={`transition-opacity duration-300 ${loading ? "opacity-0" : "opacity-100"}`}>
+      <main
+        className={`transition-opacity duration-300 ${
+          loading ? "opacity-0" : "opacity-100"
+        }`}
+      >
         <Header />
         <LandingPage />
         <ServicesCarousel />
@@ -357,7 +379,6 @@ export default function Home() {
             <ServiceFilters />
           </div>
 
-
           {/* Testimonials */}
           <Testimonials />
 
@@ -369,6 +390,7 @@ export default function Home() {
         {/* Add Service Modal */}
         {selectedService && (
           <ServiceModal
+            onReviewAdded={() => {}}
             isOpen={isServiceModalOpen}
             onClose={() => {
               setIsServiceModalOpen(false);

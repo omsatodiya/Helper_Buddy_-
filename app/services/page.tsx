@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import AddServiceForm from "@/components/services/AddServiceForm";
 import { Button } from "@/components/ui/button";
-import { Service, SimpleService } from "@/types/service";
+import { Service, SimpleService, ServiceReview } from "@/types/service";
 import Footer from "@/components/layout/Footer";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,20 +55,6 @@ interface ServiceProvider {
   phone: string;
   rating: number;
   totalServices: number;
-}
-
-interface ServiceReview {
-  id: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  comment: string;
-  userName: string;
-  userEmail: string;
-  date: string;
-  helpful: number;
-  reply?: {
-    comment: string;
-    date: string;
-  };
 }
 
 interface ServiceImage {
@@ -461,13 +447,18 @@ function ServicesContent() {
   };
 
   const handleReviewAdded = (review: ServiceReview) => {
+    // Ensure the rating is typed correctly when creating a review
+    const newReview: ServiceReview = {
+      ...review,
+      rating: review.rating as 1 | 2 | 3 | 4 | 5,
+    };
     // Update services list with new review data
     setServices((prevServices) =>
       prevServices.map((s) =>
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating,
+              rating: newReview.rating,
               totalReviews: s.totalReviews + 1,
             }
           : s
@@ -480,7 +471,7 @@ function ServicesContent() {
         s.id === review.id
           ? {
               ...s,
-              rating: review.rating,
+              rating: newReview.rating,
               totalReviews: s.totalReviews + 1,
             }
           : s
@@ -578,11 +569,14 @@ function ServicesContent() {
   }, [services]);
 
   // Add state for order status
-  const [orderStatus, setOrderStatus] = useState<{
-    isCompleted: boolean;
-    orderId?: string;
-    isReviewed?: boolean;
-  } | null>(null);
+  const [orderStatus, setOrderStatus] = useState<
+    | {
+        isCompleted: boolean;
+        orderId?: string;
+        isReviewed?: boolean;
+      }
+    | undefined
+  >(undefined);
 
   if (loading) {
     return (
@@ -788,7 +782,7 @@ function ServicesContent() {
           onReviewAdded={handleReviewAdded}
           onServiceUpdated={handleServiceUpdated}
           isReviewMode={!!searchParams.get("search")}
-          orderStatus={orderStatus}
+          orderStatus={orderStatus || undefined}
         />
       )}
 

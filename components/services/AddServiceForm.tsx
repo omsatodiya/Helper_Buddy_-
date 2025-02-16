@@ -1,14 +1,14 @@
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
+"use client";
+
+import { useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { ImagePlus, X, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { toast } from "react-hot-toast";
-import { ServiceImage } from "@/types/service";
-import { ImagePlus, X, Check, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
 interface AddServiceFormProps {
@@ -17,11 +17,21 @@ interface AddServiceFormProps {
   onServiceAdded: () => void;
 }
 
-const AddServiceForm = ({
+const STEPS = {
+  BASIC_INFO: 0,
+  DETAILS: 1,
+  FEATURES_AND_IMAGES: 2,
+};
+
+export default function AddServiceForm({
   isOpen,
   onClose,
   onServiceAdded,
-}: AddServiceFormProps) => {
+}: AddServiceFormProps) {
+  const [step, setStep] = useState(STEPS.BASIC_INFO);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -29,34 +39,16 @@ const AddServiceForm = ({
     category: "",
     details: "",
     features: "",
-    rating: 0,
-    totalReviews: 0,
-    reviews: [],
-    images: [
-      {
-        url: "/api/placeholder/400/300",
-        alt: "Service Image",
-        isPrimary: true,
-      },
-    ],
     provider: {
-      id: `provider-${Date.now()}`,
       name: "",
+      id: `provider-${Date.now()}`,
       email: "provider@example.com",
       phone: "+1234567890",
       rating: 0,
       totalServices: 0,
     },
+    images: [{ url: "", alt: "", isPrimary: true }],
   });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [images, setImages] = useState<
-    { url: string; alt: string; isPrimary: boolean }[]
-  >([{ url: "", alt: "", isPrimary: true }]);
-
-  const [features, setFeatures] = useState<string[]>([""]);
 
   const [selectedFiles, setSelectedFiles] = useState<{ [key: number]: File }>(
     {}
@@ -65,135 +57,44 @@ const AddServiceForm = ({
     {}
   );
 
-  // Add form ref
-  const formRef = React.useRef<HTMLFormElement>(null);
-
-  const isValid = () => {
-    return images.length > 0 && images.every((img) => img.url.trim() !== "");
-  };
-
-  const addImageField = () => {
-    setImages([...images, { url: "", alt: "", isPrimary: false }]);
-  };
-
-  const removeImageField = (index: number) => {
-    if (images.length > 1) {
-      const newImages = images.filter((_, i) => i !== index);
-      if (images[index].isPrimary && newImages.length > 0) {
-        newImages[0].isPrimary = true;
-      }
-      setImages(newImages);
-
-      // Clean up file preview and selected file
-      const newFilePreviews = { ...filePreviews };
-      const newSelectedFiles = { ...selectedFiles };
-      delete newFilePreviews[index];
-      delete newSelectedFiles[index];
-      setFilePreviews(newFilePreviews);
-      setSelectedFiles(newSelectedFiles);
+  const handleNext = () => {
+    if (step < STEPS.FEATURES_AND_IMAGES) {
+      setStep(step + 1);
     }
   };
 
-  const updateImage = (
-    index: number,
-    field: keyof ServiceImage,
-    value: string | boolean
-  ) => {
-    const newImages = [...images];
-    newImages[index] = { ...newImages[index], [field]: value };
-    setImages(newImages);
-  };
-
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFilePreviews((prev) => ({
-          ...prev,
-          [index]: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
-
-      // Store file for upload
-      setSelectedFiles((prev) => ({
-        ...prev,
-        [index]: file,
-      }));
-
-      // Upload to Cloudinary immediately
-      const cloudinaryUrl = await uploadToCloudinary(file);
-
-      // Update image URL in state
-      const newImages = [...images];
-      newImages[index] = {
-        ...newImages[index],
-        url: cloudinaryUrl,
-        alt: file.name,
-      };
-      setImages(newImages);
-    } catch (error) {
-      console.error("Error handling file:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
-        variant: "destructive",
-      });
+  const handleBack = () => {
+    if (step > STEPS.BASIC_INFO) {
+      setStep(step - 1);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Only proceed with submission if we're on the last step
+    if (step !== STEPS.FEATURES_AND_IMAGES) {
+      handleNext();
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Validate required fields
-      if (
-        !formData.name ||
-        !formData.description ||
-        !formData.price ||
-        !formData.category
-      ) {
-        throw new Error("Please fill in all required fields");
-      }
-
       // Upload images to Cloudinary
       const uploadPromises = Object.entries(selectedFiles).map(
         async ([index, file]) => {
           const cloudinaryUrl = await uploadToCloudinary(file);
           return {
             url: cloudinaryUrl,
-            alt: images[Number(index)].alt || formData.name,
-            isPrimary: images[Number(index)].isPrimary,
+            alt: formData.images[Number(index)].alt || formData.name,
+            isPrimary: formData.images[Number(index)].isPrimary,
           };
         }
       );
 
       const uploadedImages = await Promise.all(uploadPromises);
-
-      // Combine uploaded images with existing image URLs
-      const finalImages = images
-        .map((img, index) => {
-          if (selectedFiles[index]) {
-            return uploadedImages.find(
-              (uploaded) => uploaded.alt === (img.alt || formData.name)
-            );
-          }
-          return img.url ? img : null;
-        })
-        .filter((img): img is ServiceImage => img !== null);
-
-      if (finalImages.length === 0) {
-        throw new Error("At least one image is required");
-      }
 
       // Prepare service data
       const serviceData = {
@@ -206,354 +107,282 @@ const AddServiceForm = ({
           .split(",")
           .map((f) => f.trim())
           .filter((f) => f !== ""),
-        rating: 0,
-        totalReviews: 0,
-        reviews: [],
-        images: finalImages,
+        images: uploadedImages,
         provider: {
           ...formData.provider,
           name: formData.provider.name.trim(),
         },
+        rating: 0,
+        totalReviews: 0,
+        reviews: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       // Add to Firestore
-      const docRef = await addDoc(collection(db, "services"), serviceData);
+      await addDoc(collection(db, "services"), serviceData);
 
       toast({
         title: "Success",
         description: "Service added successfully",
       });
 
-      // Reset form and state
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        category: "",
-        details: "",
-        features: "",
-        rating: 0,
-        totalReviews: 0,
-        reviews: [],
-        images: [{ url: "", alt: "", isPrimary: true }],
-        provider: {
-          id: `provider-${Date.now()}`,
-          name: "",
-          email: "provider@example.com",
-          phone: "+1234567890",
-          rating: 0,
-          totalServices: 0,
-        },
-      });
-      setImages([{ url: "", alt: "", isPrimary: true }]);
-      setSelectedFiles({});
-      setFilePreviews({});
-
       onServiceAdded();
       onClose();
-    } catch (err) {
-      console.error("Error adding service:", err);
-      setError(err instanceof Error ? err.message : "Failed to add service");
-      toast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to add service",
-        variant: "destructive",
-      });
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Failed to add service"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit} ref={formRef} className="space-y-8">
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Basic Information */}
-        <div className="space-y-4 md:col-span-2">
-          <h3 className="text-lg font-semibold text-black dark:text-white">
-            Basic Information
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
+  const renderStepContent = () => {
+    switch (step) {
+      case STEPS.BASIC_INFO:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Basic Information</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Service Name
+                </label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                  placeholder="Enter service name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Price (₹)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                  required
+                  placeholder="Enter price"
+                  min="0"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">
+                  Category
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  required
+                  className="w-full rounded-md border p-2"
+                >
+                  <option value="">Select category</option>
+                  <option value="electrician">Electrician</option>
+                  <option value="plumber">Plumber</option>
+                  <option value="carpenter">Carpenter</option>
+                  <option value="bathroom_kitchen_cleaning">
+                    Bathroom & Kitchen Cleaning
+                  </option>
+                  <option value="sofa_carpet_cleaning">
+                    Sofa & Carpet Cleaning
+                  </option>
+                  <option value="ac_repair">AC Repair & Services</option>
+                  <option value="chimney_repair">Chimney Repair</option>
+                  <option value="water_purifier_repair">
+                    Water Purifier Repair
+                  </option>
+                  <option value="microwave_repair">Microwave Repair</option>
+                  <option value="refrigerator_repair">
+                    Refrigerator Repair
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case STEPS.DETAILS:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Service Details</h2>
             <div>
               <label className="block text-sm font-medium mb-1">
-                Service Name
+                Description
               </label>
-              <Input
-                value={formData.name}
+              <Textarea
+                value={formData.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setFormData({ ...formData, description: e.target.value })
                 }
                 required
-                placeholder="Enter service name"
+                placeholder="Enter service description"
+                className="h-32"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
-                Price (₹)
+                Additional Details
               </label>
-              <Input
-                type="number"
-                value={formData.price}
+              <Textarea
+                value={formData.details}
                 onChange={(e) =>
-                  setFormData({ ...formData, price: e.target.value })
+                  setFormData({ ...formData, details: e.target.value })
                 }
-                required
-                placeholder="Enter price"
-                min="0"
-                step="0.01"
+                placeholder="Enter additional details"
+                className="h-32"
               />
             </div>
           </div>
-        </div>
+        );
 
-        {/* Description */}
-        <div className="space-y-4 md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Description</label>
-          <Textarea
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            required
-            placeholder="Enter service description"
-            className="h-32"
-          />
-        </div>
-
-        {/* Category and Provider */}
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-black dark:text-white">
-            Category
-          </label>
-          <select
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
-            required
-            className="w-full rounded-md border border-black/10 dark:border-white/10 p-2 bg-white dark:bg-black text-black dark:text-white"
-          >
-            <option value="">Select category</option>
-            <option value="electrician">Electrician</option>
-            <option value="plumber">Plumber</option>
-            <option value="carpenter">Carpenter</option>
-            <option value="bathroom_kitchen_cleaning">
-              Bathroom & Kitchen Cleaning
-            </option>
-            <option value="sofa_carpet_cleaning">Sofa & Carpet Cleaning</option>
-            <option value="ac_repair">AC Repair & Services</option>
-            <option value="chimney_repair">Chimney Repair</option>
-            <option value="water_purifier_repair">Water Purifier Repair</option>
-            <option value="microwave_repair">Microwave Repair</option>
-            <option value="refrigerator_repair">Refrigerator Repair</option>
-          </select>
-        </div>
-
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-black dark:text-white">
-            Service Provider Name
-          </label>
-          <Input
-            value={formData.provider.name}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                provider: {
-                  ...formData.provider,
-                  name: e.target.value,
-                },
-              })
-            }
-            required
-            placeholder="Enter service provider name"
-            className="bg-white dark:bg-black border-black/10 dark:border-white/10"
-          />
-        </div>
-
-        {/* Details */}
-        <div className="space-y-4 md:col-span-2">
-          <label className="block text-sm font-medium text-black dark:text-white">
-            Details
-          </label>
-          <Textarea
-            value={formData.details}
-            onChange={(e) =>
-              setFormData({ ...formData, details: e.target.value })
-            }
-            placeholder="Enter additional details"
-            className="h-32 bg-white dark:bg-black border-black/10 dark:border-white/10"
-          />
-        </div>
-
-        {/* Features Section */}
-        <div className="space-y-4 md:col-span-2">
-          <h3 className="text-lg font-semibold text-black dark:text-white">
-            Features
-          </h3>
-          <div className="space-y-3">
-            {formData.features.split(",").map((feature, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={feature}
-                  onChange={(e) => {
-                    const newFeatures = [...formData.features.split(",")];
-                    newFeatures[index] = e.target.value;
-                    setFormData({
-                      ...formData,
-                      features: newFeatures.join(","),
-                    });
-                  }}
-                  placeholder="Enter a feature"
-                  className="flex-1"
-                />
+      case STEPS.FEATURES_AND_IMAGES:
+        return (
+          <div className="space-y-8">
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold">Service Features</h2>
+              <div className="space-y-3">
+                {formData.features.split(",").map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={feature}
+                      onChange={(e) => {
+                        const newFeatures = [...formData.features.split(",")];
+                        newFeatures[index] = e.target.value;
+                        setFormData({
+                          ...formData,
+                          features: newFeatures.join(","),
+                        });
+                      }}
+                      placeholder="Enter a feature"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => {
+                        const newFeatures = formData.features
+                          .split(",")
+                          .filter((_, i) => i !== index);
+                        setFormData({
+                          ...formData,
+                          features: newFeatures.join(","),
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
                 <Button
                   type="button"
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => {
-                    const newFeatures = formData.features
-                      .split(",")
-                      .filter((_, i) => i !== index);
+                  variant="outline"
+                  onClick={() =>
                     setFormData({
                       ...formData,
-                      features: newFeatures.join(","),
-                    });
-                  }}
-                  className="h-10 w-10"
+                      features: [...formData.features.split(","), ""].join(","),
+                    })
+                  }
+                  className="w-full"
                 >
-                  <X className="h-4 w-4" />
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Feature
                 </Button>
               </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                setFormData({
-                  ...formData,
-                  features: [...formData.features.split(","), ""].join(","),
-                })
-              }
-              className="w-full flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Feature
-            </Button>
-          </div>
-        </div>
+            </div>
 
-        {/* Images Section */}
-        <div className="space-y-4 md:col-span-2">
-          <h3 className="text-lg font-semibold text-black dark:text-white">
-            Service Images
-          </h3>
-          <p className="text-sm text-black/70 dark:text-white/70">
-            Add up to 5 images for your service
-          </p>
-          {images.map((image, index) => (
-            <div
-              key={index}
-              className="p-4 border border-black/10 dark:border-white/10 rounded-lg space-y-4 relative bg-white dark:bg-black"
-            >
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-black dark:text-white">
-                  Upload Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, index)}
-                  className="w-full p-2 border border-black/10 dark:border-white/10 rounded bg-white dark:bg-black text-black dark:text-white"
-                />
-              </div>
-
-              {/* Alt Text */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-black dark:text-white">
-                  Alt Text
-                </label>
-                <input
-                  type="text"
-                  value={image.alt}
-                  onChange={(e) => updateImage(index, "alt", e.target.value)}
-                  placeholder="Describe the image"
-                  className="w-full p-2 border border-black/10 dark:border-white/10 rounded bg-white dark:bg-black text-black dark:text-white"
-                />
-              </div>
-
-              {/* Primary Image Radio */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  checked={image.isPrimary}
-                  onChange={() => {
-                    const newImages = images.map((img, i) => ({
-                      ...img,
-                      isPrimary: i === index,
-                    }));
-                    setImages(newImages);
-                  }}
-                  className="rounded"
-                />
-                <label className="text-sm text-black dark:text-white">
-                  Primary Image
-                </label>
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold">Service Images</h2>
+              <div className="space-y-4">
+                {formData.images.map((image, index) => (
+                  <div key={index} className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFiles((prev) => ({
+                            ...prev,
+                            [index]: file,
+                          }));
+                          setFilePreviews((prev) => ({
+                            ...prev,
+                            [index]: URL.createObjectURL(file),
+                          }));
+                        }
+                      }}
+                    />
+                    {filePreviews[index] && (
+                      <img
+                        src={filePreviews[index]}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                    )}
+                  </div>
+                ))}
+                {formData.images.length < 5 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        images: [
+                          ...formData.images,
+                          { url: "", alt: "", isPrimary: false },
+                        ],
+                      })
+                    }
+                    className="w-full"
+                  >
+                    <ImagePlus className="w-4 h-4 mr-2" />
+                    Add Another Image
+                  </Button>
+                )}
               </div>
             </div>
-          ))}
+          </div>
+        );
+    }
+  };
 
-          {/* Add Image Button */}
-          {images.length < 5 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addImageField}
-              className="w-full py-6 border-dashed flex items-center gap-2 hover:border-primary"
-            >
-              <ImagePlus className="w-5 h-5" />
-              Add Another Image
-            </Button>
-          )}
-        </div>
-      </div>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {renderStepContent()}
 
       {error && (
-        <div className="bg-white dark:bg-black border border-red-600 dark:border-red-400 text-red-600 dark:text-red-400 p-4 rounded-lg">
+        <div className="bg-red-50 border border-red-500 text-red-500 p-4 rounded">
           {error}
         </div>
       )}
 
-      <div className="flex justify-end gap-4 pt-6 border-t border-black/10 dark:border-white/10">
+      <div className="flex justify-between pt-6 border-t">
         <Button
           type="button"
           variant="outline"
-          onClick={onClose}
-          className="border-black dark:border-white text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5"
+          onClick={step === STEPS.BASIC_INFO ? onClose : handleBack}
         >
-          Cancel
+          {step === STEPS.BASIC_INFO ? "Cancel" : "Back"}
         </Button>
-        <Button
-          type="submit"
-          disabled={loading}
-          className={cn(
-            "bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90",
-            loading && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white dark:border-black border-t-transparent"></div>
-              Adding...
-            </div>
-          ) : (
-            "Add Service"
-          )}
+
+        <Button type="submit" disabled={loading}>
+          {step === STEPS.FEATURES_AND_IMAGES
+            ? loading
+              ? "Adding..."
+              : "Add Service"
+            : "Next"}
         </Button>
       </div>
     </form>
   );
-};
-
-export default AddServiceForm;
+}

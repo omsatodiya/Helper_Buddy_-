@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import ServiceCard from "@/components/services/ServiceCard";
+import AdminServiceCard from "@/components/admin/AdminServiceCard";
 import ServiceModal from "@/components/services/serviceModal";
 import {
   getFirestore,
@@ -49,8 +49,14 @@ export default function ServicesPage() {
             category: data.category || "uncategorized",
             rating: data.rating || 0,
             totalReviews: (data.reviews || []).length,
-            createdAt: data.createdAt || new Date().toISOString(),
-            updatedAt: data.updatedAt || new Date().toISOString(),
+            createdAt:
+              data.createdAt instanceof Date
+                ? data.createdAt.toISOString()
+                : data.createdAt,
+            updatedAt:
+              data.updatedAt instanceof Date
+                ? data.updatedAt.toISOString()
+                : data.updatedAt,
           };
           return simpleService;
         });
@@ -122,6 +128,46 @@ export default function ServicesPage() {
     }
   };
 
+  const handleServiceEdit = (service: SimpleService) => {
+    handleServiceClick(service); // This will open the edit modal
+  };
+
+  const handleServiceDelete = async () => {
+    // Refresh the services list after deletion
+    try {
+      const db = getFirestore();
+      const servicesSnapshot = await getDocs(collection(db, "services"));
+      const servicesData = servicesSnapshot.docs.map((doc) => {
+        const data = doc.data() as Service;
+        return {
+          id: doc.id,
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          imageUrl:
+            data.imageUrl ||
+            data.images?.[0]?.url ||
+            "/placeholder-service.jpg",
+          details: data.details || "",
+          category: data.category || "uncategorized",
+          rating: data.rating || 0,
+          totalReviews: (data.reviews || []).length,
+          createdAt:
+            data.createdAt instanceof Date
+              ? data.createdAt.toISOString()
+              : data.createdAt,
+          updatedAt:
+            data.updatedAt instanceof Date
+              ? data.updatedAt.toISOString()
+              : data.updatedAt,
+        } as SimpleService;
+      });
+      setServices(servicesData);
+    } catch (error) {
+      console.error("Error refreshing services:", error);
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -171,18 +217,16 @@ export default function ServicesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
         {paginatedServices.map((service) => (
-          <ServiceCard
+          <AdminServiceCard
+          
             key={service.id}
             id={service.id}
             title={service.name}
-            description={service.description}
             price={service.price}
-            rating={service.rating}
-            totalRatings={service.totalReviews}
+            description={service.description}
             imageUrl={service.imageUrl}
-            onClick={() => handleServiceClick(service)}
-            onAddToCart={() => {}}
-            onBuyNow={() => {}}
+            onEdit={() => handleServiceEdit(service)}
+            onDelete={handleServiceDelete}
           />
         ))}
       </div>
@@ -199,6 +243,7 @@ export default function ServicesPage() {
 
       {selectedService && (
         <ServiceModal
+          onReviewAdded={() => {}}
           isOpen={isServiceModalOpen}
           onClose={() => {
             setIsServiceModalOpen(false);
@@ -206,25 +251,10 @@ export default function ServicesPage() {
           }}
           service={selectedService}
           isAdminView={true}
-          onServiceDeleted={async () => {
-            // Refresh services list after deletion
-            const db = getFirestore();
-            const servicesSnapshot = await getDocs(collection(db, "services"));
-            const servicesData = servicesSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as SimpleService[];
-            setServices(servicesData);
-          }}
+          onServiceDeleted={handleServiceDelete}
           onServiceUpdated={async (updatedService) => {
             // Refresh services list after update
-            const db = getFirestore();
-            const servicesSnapshot = await getDocs(collection(db, "services"));
-            const servicesData = servicesSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as SimpleService[];
-            setServices(servicesData);
+            handleServiceDelete(); // Reuse the refresh function
           }}
         />
       )}
