@@ -57,6 +57,7 @@ import {
 import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Pagination } from "@/components/ui/pagination";
 
 const AVAILABLE_SERVICES = [
   "Ceiling Fan Cleaning",
@@ -194,6 +195,26 @@ export default function ProviderDashboard() {
     serviceAreas: 0,
   });
   const [paidOrders, setPaidOrders] = useState<Order[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // Number of items to show per page
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCompletedRequests = completedRequests.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(completedRequests.length / itemsPerPage);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({
+      top: document.getElementById("completed-services")?.offsetTop,
+      behavior: "smooth",
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -881,8 +902,11 @@ export default function ProviderDashboard() {
             </div>
           </div>
 
-          {/* Full-width Completed Services Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8">
+          {/* Completed Services Section */}
+          <div
+            id="completed-services"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8"
+          >
             <h2 className="text-xl font-semibold mb-2">Completed Services</h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
               View completed service history
@@ -892,55 +916,68 @@ export default function ProviderDashboard() {
                 No completed services
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-medium">{request.customerName}</h4>
-                        <p className="text-sm text-black/60 dark:text-white/60">
-                          {request.customerAddress}, {request.customerCity}
-                        </p>
-                        <p className="text-sm text-green-600 mt-1">
-                          Completed on{" "}
-                          {request.completedAt
-                            ? format(new Date(request.completedAt), "PPP")
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <Badge className="bg-green-500/10 text-green-500">
-                        Completed
-                      </Badge>
-                    </div>
-                    <div className="space-y-1">
-                      {request.items.map((item, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between text-sm"
-                        >
-                          <span>
-                            {item.name} × {item.quantity}
-                          </span>
-                          <span>₹{item.price * item.quantity}</span>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentCompletedRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-medium">
+                            {request.customerName}
+                          </h4>
+                          <p className="text-sm text-black/60 dark:text-white/60">
+                            {request.customerAddress}, {request.customerCity}
+                          </p>
+                          <p className="text-sm text-green-600 mt-1">
+                            Completed on{" "}
+                            {request.completedAt
+                              ? format(new Date(request.completedAt), "PPP")
+                              : "N/A"}
+                          </p>
                         </div>
-                      ))}
-                      <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
-                        <span>Total</span>
-                        <span>
-                          ₹
-                          {request.items.reduce(
-                            (sum, item) => sum + item.price * item.quantity,
-                            0
-                          )}
-                        </span>
+                        <Badge className="bg-green-500/10 text-green-500">
+                          Completed
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        {request.items.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between text-sm"
+                          >
+                            <span>
+                              {item.name} × {item.quantity}
+                            </span>
+                            <span>₹{item.price * item.quantity}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
+                          <span>Total</span>
+                          <span>
+                            ₹
+                            {request.items.reduce(
+                              (sum, item) => sum + item.price * item.quantity,
+                              0
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </>
             )}
           </div>
 

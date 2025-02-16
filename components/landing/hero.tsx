@@ -4,6 +4,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useRouter } from "next/navigation";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Service } from "@/types/service";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -46,7 +50,9 @@ const PLACEHOLDER_TEXTS = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -58,6 +64,24 @@ export default function LandingPage() {
   const currentTextIndex = useRef(0);
   const currentCharIndex = useRef(0);
   const isDeleting = useRef(false);
+
+  // Fetch services from Firebase
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const servicesSnapshot = await getDocs(collection(db, "services"));
+        const servicesData = servicesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Service));
+        setServices(servicesData);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   // Initial page load animations
   useEffect(() => {
@@ -149,9 +173,10 @@ export default function LandingPage() {
   };
 
   // Filter services based on search query
-  const filteredServices = ALL_SERVICES.filter(service => 
+  const filteredServices = services.filter(service => 
     service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    service.category.toLowerCase().includes(searchQuery.toLowerCase())
+    service.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Close dropdown when clicking outside
@@ -180,15 +205,27 @@ export default function LandingPage() {
     };
   }, [isSearchFocused]);
 
+  const handleServiceClick = (service: Service) => {
+    setIsSearchFocused(false);
+    router.push(`/services?service=${service.id}&search=${encodeURIComponent(searchQuery)}`);
+  };
+
+  // Also update the trending searches click handler
+  const handleTrendingClick = (label: string) => {
+    setSearchQuery(label);
+    setIsSearchFocused(false);
+    router.push(`/services?search=${encodeURIComponent(label)}`);
+  };
+
   return (
-    <div ref={containerRef} className="bg-black dark:bg-black bg-white min-h-screen relative overflow-visible">
+    <div ref={containerRef} className="bg-white dark:bg-black min-h-screen relative overflow-visible">
       {/* Theme Toggle - Add this near the top of the content */}
       <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
       </div>
 
-      {/* Gradient overlay - Update with dark mode support */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black dark:via-black/50 dark:to-black via-gray-100/50 to-white pointer-events-none" />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-100/50 to-white dark:via-black/50 dark:to-black pointer-events-none" />
 
       {/* Main content */}
       <div className="relative  z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
@@ -248,10 +285,7 @@ export default function LandingPage() {
                           {TRENDING_SEARCHES.map((item) => (
                             <button
                               key={item.id}
-                              onClick={() => {
-                                setSearchQuery(item.label);
-                                setIsSearchFocused(false);
-                              }}
+                              onClick={() => handleTrendingClick(item.label)}
                               className="group flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-full transition-colors whitespace-nowrap"
                             >
                               <span className="text-gray-800">{item.label}</span>
@@ -281,14 +315,11 @@ export default function LandingPage() {
                               .map((service) => (
                                 <button
                                   key={service.id}
-                                  onClick={() => {
-                                    setSearchQuery(service.name);
-                                    setIsSearchFocused(false);
-                                  }}
+                                  onClick={() => handleServiceClick(service)}
                                   className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 flex items-center gap-4 group hover:scale-[1.02]"
                                 >
                                   <img 
-                                    src={service.image} 
+                                    src={service.imageUrl || service.images?.[0]?.url || "/placeholder.jpg"} 
                                     alt={service.name}
                                     className="w-12 h-12 rounded-lg object-cover group-hover:shadow-md transition-all duration-200"
                                   />
@@ -301,7 +332,7 @@ export default function LandingPage() {
                                     </p>
                                   </div>
                                   <span className="text-[#2C786C] font-medium group-hover:scale-105 transition-transform">
-                                    {service.price}
+                                    ₹{service.price}
                                   </span>
                                 </button>
                               ))}
@@ -317,38 +348,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-
-        {/* Features Section */}
-        {/* <div ref={featuresRef} className="w-full mt-10 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Home & Office Cleaning",
-                description: "Expert cleaning tailored to your space, using eco-friendly products",
-                icon: "🏠"
-              },
-              {
-                title: "Appliance Repair & Maintenance",
-                description: "Quick, reliable appliance repairs and maintenance",
-                icon: "🔧"
-              },
-              {
-                title: "Plumbing & Electrical",
-                description: "Trusted plumbing and electrical services, with emergency response",
-                icon: "⚡"
-              }
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="feature-card p-6 rounded-lg border border-gray-200 dark:border-[#2C786C]/20 backdrop-blur-sm bg-white/30 dark:bg-black/30 opacity-0"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-[#EAEAEA] mb-2">{feature.title}</h3>
-                <p className="text-gray-700 dark:text-[#EAEAEA]/80">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div> */}
       </div>
     </div>
   );

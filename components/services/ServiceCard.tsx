@@ -132,46 +132,49 @@ const ServiceCard = memo(
 
           if (cartDoc.exists()) {
             const cartData = cartDoc.data();
-            // Explicitly check and convert to array if needed
             currentItems = Array.isArray(cartData?.items) ? cartData.items : [];
           }
 
-          // Now currentItems is guaranteed to be an array
           const existingItemIndex = currentItems.findIndex(
             (item) => item.id === id
           );
 
+          // Ensure imageUrl is never undefined
+          const safeImageUrl =
+            serviceData?.images?.[0]?.url || "/placeholder-image.jpg";
+
           let updatedItems: CartItem[];
           if (existingItemIndex !== -1) {
-            // Update existing item
             updatedItems = [...currentItems];
             updatedItems[existingItemIndex] = {
               ...updatedItems[existingItemIndex],
               quantity: (updatedItems[existingItemIndex].quantity || 0) + 1,
             };
           } else {
-            // Add new item
+            // Ensure all fields are defined
             const newItem: CartItem = {
-              id,
+              id: id,
               name: title,
-              price,
+              price: price || 0,
               quantity: 1,
-              imageUrl:
-                serviceData?.images?.[0]?.url || "/placeholder-image.jpg",
-              serviceProvider: providerName,
+              imageUrl: safeImageUrl,
+              serviceProvider: providerName || "Unknown Provider",
             };
             updatedItems = [...currentItems, newItem];
           }
 
+          // Create a clean object with no undefined values
+          const cartData = {
+            items: updatedItems.map((item) => ({
+              ...item,
+              serviceProvider: item.serviceProvider || "Unknown Provider",
+              imageUrl: item.imageUrl || "/placeholder-image.jpg",
+            })),
+            updatedAt: new Date().toISOString(),
+          };
+
           // Update cart in Firestore
-          await setDoc(
-            cartRef,
-            {
-              items: updatedItems,
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
+          await setDoc(cartRef, cartData, { merge: true });
 
           toast({
             title: "Added to cart",
