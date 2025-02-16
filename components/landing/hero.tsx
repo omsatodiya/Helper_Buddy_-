@@ -5,10 +5,12 @@ import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { getFirestore, collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Service } from "@/types/service";
 import { Search } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollToPlugin);
@@ -69,6 +71,7 @@ export default function LandingPage() {
   const currentTextIndex = useRef(0);
   const currentCharIndex = useRef(0);
   const isDeleting = useRef(false);
+  const { user } = useAuth();
 
   // Fetch services from Firebase
   useEffect(() => {
@@ -245,24 +248,48 @@ export default function LandingPage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
-    // Auto-focus first result if available
-    if (filteredServices.length > 0) {
-      const firstResult = filteredServices[0];
-      if (normalizeString(firstResult.name) === normalizeString(value)) {
-        // Could auto-select or highlight the first result
-      }
-    }
   };
 
-  // Add this function to handle search submission
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  // Update the handleSearchSubmit function
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // Redirect to services page with search query
-      router.push(`/services?search=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchFocused(false);
+    if (!searchQuery.trim()) return;
+
+    // Check if service exists
+    const serviceExists = services.some(service => 
+      normalizeString(service.name).includes(normalizeString(searchQuery))
+    );
+
+    if (!serviceExists) {
+      try {
+        // Store the unavailable service search
+        await addDoc(collection(db, "service-requests"), {
+          serviceName: searchQuery.trim(),
+          description: "User searched for this unavailable service",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+          source: "search",
+          userInfo: user ? {
+            userId: user.uid,
+            email: user.email
+          } : {
+            userId: 'anonymous',
+            email: 'anonymous'
+          }
+        });
+
+        toast({
+          title: "Service Not Available",
+          description: "We've noted your interest in this service.",
+        });
+      } catch (error) {
+        console.error("Error logging service request:", error);
+      }
     }
+
+    // Redirect to services page with search query
+    router.push(`/services?search=${encodeURIComponent(searchQuery.trim())}`);
+    setIsSearchFocused(false);
   };
 
   return (
