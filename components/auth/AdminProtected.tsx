@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase/firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 

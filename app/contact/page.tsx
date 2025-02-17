@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { getFirestore, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase/firebase';
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from 'next/navigation';
 import Header from "@/components/layout/Header";

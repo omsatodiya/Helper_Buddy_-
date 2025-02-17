@@ -73,6 +73,11 @@ const CartItemCard = ({
             <h3 className="font-semibold text-black dark:text-white">
               {item.name}
             </h3>
+            {item.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                {item.description}
+              </p>
+            )}
             {item.serviceProvider && (
               <p className="text-sm text-gray-500 dark:text-white/70">
                 Provider: {item.serviceProvider}

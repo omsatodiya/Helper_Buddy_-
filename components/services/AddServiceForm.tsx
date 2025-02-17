@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -228,24 +228,22 @@ export default function AddServiceForm({
                   className="w-full rounded-md border p-2"
                 >
                   <option value="">Select category</option>
-                  <option value="electrician">Electrician</option>
-                  <option value="plumber">Plumber</option>
-                  <option value="carpenter">Carpenter</option>
-                  <option value="bathroom_kitchen_cleaning">
+                  <option value="Electrician">Electrician</option>
+                  <option value="Plumber">Plumber</option>
+                  <option value="Carpenter">Carpenter</option>
+                  <option value="Bathroom Kitchen Cleaning">
                     Bathroom & Kitchen Cleaning
                   </option>
-                  <option value="sofa_carpet_cleaning">
+                  <option value="Sofa Carpet Cleaning">
                     Sofa & Carpet Cleaning
                   </option>
-                  <option value="ac_repair">AC Repair & Services</option>
-                  <option value="chimney_repair">Chimney Repair</option>
-                  <option value="water_purifier_repair">
+                  <option value="AC Repair">AC Repair & Services</option>
+                  <option value="Chimney Repair">Chimney Repair</option>
+                  <option value="Water Purifier Repair">
                     Water Purifier Repair
                   </option>
-                  <option value="microwave_repair">Microwave Repair</option>
-                  <option value="refrigerator_repair">
-                    Refrigerator Repair
-                  </option>
+                  <option value="Microwave Repair">Microwave Repair</option>
+                  <option value="Refrigerator Repair">Refrigerator Repair</option>
                 </select>
               </div>
             </div>

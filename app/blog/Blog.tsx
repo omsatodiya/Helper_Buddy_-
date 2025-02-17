@@ -21,7 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase/firebase";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 interface BlogPost {

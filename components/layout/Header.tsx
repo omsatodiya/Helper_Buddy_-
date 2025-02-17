@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase/firebase";
 import { User as FirebaseUser } from "firebase/auth";
 import { useLoadingStore } from "@/store/loading-store";
 import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";

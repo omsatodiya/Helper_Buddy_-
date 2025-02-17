@@ -9,8 +9,7 @@ import {
   Tag,
   User,
   PenSquare,
-  ArrowLeft,
-  Star,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -56,6 +55,12 @@ const adminRoutes = [
     description: "Create and manage blog content",
     icon: PenSquare,
     path: "/admin/blogs",
+  },
+  {
+    name: "Service Requests",
+    description: "View requested services from users",
+    icon: MessageSquare,
+    path: "/admin/service-requests",
   },
 ];
 

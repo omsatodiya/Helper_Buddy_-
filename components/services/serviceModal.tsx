@@ -21,7 +21,7 @@ import Link from "next/link";
 import { Service } from "@/types/service";
 import AddReviewModal from "./AddReviewModal";
 import { useToast } from "../../hooks/use-toast";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import {
   deleteDoc,
   doc,

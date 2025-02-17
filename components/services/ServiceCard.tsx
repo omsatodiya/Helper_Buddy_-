@@ -6,7 +6,7 @@ import { SimpleService } from "../../types/service";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import Image from "next/image"; // Using Next.js Image for better performance
 
 interface ServiceCardProps {
@@ -158,7 +158,6 @@ const ServiceCard = memo(
               price: price || 0,
               quantity: 1,
               imageUrl: safeImageUrl,
-              serviceProvider: providerName || "Unknown Provider",
             };
             updatedItems = [...currentItems, newItem];
           }
@@ -167,7 +166,6 @@ const ServiceCard = memo(
           const cartData = {
             items: updatedItems.map((item) => ({
               ...item,
-              serviceProvider: item.serviceProvider || "Unknown Provider",
               imageUrl: item.imageUrl || "/placeholder-image.jpg",
             })),
             updatedAt: new Date().toISOString(),

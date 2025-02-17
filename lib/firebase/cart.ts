@@ -1,39 +1,44 @@
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/firebase";
 import { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, deleteField } from "firebase/firestore";
 import { CartItem } from "@/types/cart";
 
 export const addToCart = async (userId: string, item: CartItem) => {
   try {
-    // Create a reference to the user's cart document
     const cartRef = doc(db, "carts", userId);
-    
-    // Get the current cart
     const cartDoc = await getDoc(cartRef);
     
     if (!cartDoc.exists()) {
-      // If cart doesn't exist, create a new one with the item
+      // If cart doesn't exist, create a new one with the item as an array
       await setDoc(cartRef, {
-        items: {
-          [item.id]: {
-            ...item,
-            addedAt: new Date().toISOString()
-          }
-        },
+        items: [{
+          ...item,
+          addedAt: new Date().toISOString()
+        }],
         updatedAt: new Date().toISOString()
       });
     } else {
       // If cart exists, update it with the new item
       const cartData = cartDoc.data();
-      const updatedItems = {
-        ...cartData.items,
-        [item.id]: {
+      const items = Array.isArray(cartData.items) ? cartData.items : [];
+      
+      // Check if item already exists
+      const existingItemIndex = items.findIndex(
+        (existingItem: CartItem) => existingItem.id === item.id
+      );
+
+      if (existingItemIndex !== -1) {
+        // Update existing item quantity
+        items[existingItemIndex].quantity += 1;
+      } else {
+        // Add new item to array
+        items.push({
           ...item,
           addedAt: new Date().toISOString()
-        }
-      };
+        });
+      }
 
       await updateDoc(cartRef, {
-        items: updatedItems,
+        items: items,
         updatedAt: new Date().toISOString()
       });
     }
@@ -47,27 +52,16 @@ export const getCartItems = async (userId: string): Promise<CartItem[]> => {
   try {
     const cartRef = doc(db, "carts", userId);
     const cartDoc = await getDoc(cartRef);
-
-    if (!cartDoc.exists() || !cartDoc.data().items) {
-      return [];
+    
+    if (cartDoc.exists()) {
+      const cartData = cartDoc.data();
+      return cartData.items || [];
     }
-
-    const cartData = cartDoc.data();
-    // Convert the items object to an array
-    return Object.entries(cartData.items).map(([id, item]) => ({
-      id,
-      ...(item as {
-        name: string;
-        price: number;
-        quantity: number;
-        imageUrl: string;
-        serviceProvider?: string;
-        addedAt: string;
-      })
-    }));
+    
+    return [];
   } catch (error) {
     console.error("Error getting cart items:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -82,9 +76,16 @@ export const updateCartItemQuantity = async (
 
     if (cartDoc.exists()) {
       const cartData = cartDoc.data();
-      const updatedItems = cartData.items.map((item: any) => {
+      // Ensure items is an array
+      const items = Array.isArray(cartData.items) ? cartData.items : [];
+      
+      const updatedItems = items.map((item: any) => {
         if (item.id === itemId) {
-          return { ...item, quantity: newQuantity };
+          // Preserve all existing item properties while updating quantity
+          return {
+            ...item,
+            quantity: newQuantity
+          };
         }
         return item;
       });
@@ -114,10 +115,13 @@ export const removeFromCart = async (
 
     if (cartDoc.exists()) {
       const cartData = cartDoc.data();
-      const { [itemId]: removedItem, ...remainingItems } = cartData.items;
+      // Ensure items is an array
+      const items = Array.isArray(cartData.items) ? cartData.items : [];
+      
+      const updatedItems = items.filter((item: any) => item.id !== itemId);
 
       await updateDoc(cartRef, {
-        items: remainingItems,
+        items: updatedItems,
         updatedAt: new Date().toISOString()
       });
     }

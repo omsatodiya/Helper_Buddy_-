@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase/firebase";
 import {
   getFirestore,
   doc,
@@ -30,6 +30,7 @@ import {
   where,
   getDocs,
   onSnapshot,
+  writeBatch,
 } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -58,65 +59,6 @@ import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Pagination } from "@/components/ui/pagination";
-
-const AVAILABLE_SERVICES = [
-  "Ceiling Fan Cleaning",
-  "Glass Shelf Installation",
-  "Exhaust Fan Cleaning",
-  "Gas Stove Cleaning",
-  "Kitchen Sink Cleaning",
-  "Fan Installation",
-  "Shower Filter Installation",
-  "Drawer Channel Replacement (One Set)",
-  "Microwave Cleaning",
-  "3 Ceiling Fan Cleaning",
-  "Fully Automatic Washing Machine Check Up (Top Load)",
-  "Window Hinge Installation (Upto 4)",
-  "Semi-Automatic Washing Machine Check Up",
-  "Fully Automatic Washing Machine Check Up (Front Load)",
-  "Cushions Cleaning",
-  "Switchbox Installation",
-  "Water Purifier Check Up",
-  "Single Door Refrigerator Check Up",
-  "Water Purifier Uninstallation",
-  "Water Purifier Filter Check Up",
-  "Double Door Refrigerator Check Up (Inverter)",
-  "AC Repair",
-  "TV Installation",
-  "Ceiling Mounted Hanger Installation",
-  "Water Purifier Installation",
-  "Dining Table & Chairs Cleaning",
-  "Utensil Removal and Placing Back",
-  "Washing Machine Installation",
-  "Balcony Cleaning",
-  "Washing Machine Uninstallation",
-  "Double Door Refrigerator Check Up (Non-Inverter)",
-  "Classic Bathroom Cleaning",
-  "Geyser Installation",
-  "Carpet Cleaning",
-  "Intense Bathroom Cleaning",
-  "Power Saver AC Service",
-  "AC Uninstallation",
-  "Side By Side Door Refrigerator Check Up",
-  "Lite AC Service",
-  "Fridge Cleaning",
-  "Classic Cleaning (2 Bathrooms)",
-  "Anti-Rust Deep Clean AC Service",
-  "Chimney Cleaning",
-  "Trolley & Shelves Cleaning",
-  "Intense Cleaning (2 Bathrooms)",
-  "Overhead Tank Cleaning (Open Placed)",
-  "AC Installation",
-  "Classic Cleaning (3 Bathrooms)",
-  "Intense Cleaning (3 Bathroom)",
-  "Normal Kitchen Cleaning",
-  "Underground Tank Cleaning",
-  "Toilet Pot Blockage Removal",
-  "AC Gas Leak Fix and Refill",
-  "Complete Kitchen Cleaning",
-  "Sofa and Cushions Cleaning",
-  "Other", // Added Other option
-];
 
 interface ProviderData {
   photo: string;
@@ -197,6 +139,7 @@ export default function ProviderDashboard() {
   const [paidOrders, setPaidOrders] = useState<Order[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Number of items to show per page
+  const [availableServices, setAvailableServices] = useState<string[]>([]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -455,19 +398,59 @@ export default function ProviderDashboard() {
     setIsSaving(true);
     try {
       const db = getFirestore();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        throw new Error("No authenticated user found");
+      }
 
-      await updateDoc(doc(db, "provider-applications", auth.currentUser!.uid), {
+      // Create a batch with writeBatch instead of db.batch()
+      const batch = writeBatch(db);
+      
+      const providerAppRef = doc(db, "provider-applications", user.uid);
+      const providerRef = doc(db, "providers", user.uid);
+
+      // Check if documents exist
+      const [providerAppDoc, providerDoc] = await Promise.all([
+        getDoc(providerAppRef),
+        getDoc(providerRef)
+      ]);
+
+      const updateData = {
         servicePincodes: providerData.servicePincodes,
         services: providerData.services,
         updatedAt: new Date(),
-      });
+      };
+
+      // If provider-applications document exists, update it
+      if (providerAppDoc.exists()) {
+        batch.update(providerAppRef, updateData);
+      } else {
+        batch.set(providerAppRef, {
+          ...updateData,
+          uid: user.uid,
+          createdAt: new Date(),
+        });
+      }
+
+      // If providers document exists, update it
+      if (providerDoc.exists()) {
+        batch.update(providerRef, updateData);
+      } else {
+        batch.set(providerRef, {
+          ...updateData,
+          uid: user.uid,
+          createdAt: new Date(),
+        });
+      }
+
+      await batch.commit();
 
       toast({
         title: "Changes saved",
         description: "Your provider profile has been updated successfully.",
       });
 
-      router.push("/");
     } catch (error) {
       console.error("Error saving changes:", error);
       toast({
@@ -654,6 +637,33 @@ export default function ProviderDashboard() {
     });
   }, [auth.currentUser]);
 
+  const fetchAvailableServices = async () => {
+    try {
+      const db = getFirestore();
+      const servicesSnapshot = await getDocs(collection(db, "services"));
+      
+      // Extract unique service names
+      const serviceNames = new Set<string>();
+      servicesSnapshot.forEach((doc) => {
+        const service = doc.data();
+        if (service.name) {
+          serviceNames.add(service.name);
+        }
+      });
+      
+      // Convert to array and sort alphabetically
+      const sortedServices = Array.from(serviceNames).sort();
+      
+      setAvailableServices(sortedServices);
+    } catch (error) {
+      console.error("Error fetching available services:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableServices();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
@@ -670,13 +680,13 @@ export default function ProviderDashboard() {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Service Requests Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">Service Requests</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+              <p className="text-black/60 dark:text-white/60 text-sm mb-6">
                 Manage incoming service requests
               </p>
               {serviceRequests.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-black/60 dark:text-white/60">
                   No pending requests
                 </p>
               ) : (
@@ -746,15 +756,15 @@ export default function ProviderDashboard() {
             </div>
 
             {/* Accepted Requests Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">Accepted Requests</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+              <p className="text-black/60 dark:text-white/60 text-sm mb-6">
                 View and manage accepted requests (Not paid)
               </p>
               {acceptedRequests.filter(
                 (request) => !request.isPaid && request.status !== "completed"
               ).length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-black/60 dark:text-white/60">
                   No pending accepted requests
                 </p>
               ) : (
@@ -779,7 +789,7 @@ export default function ProviderDashboard() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge className="bg-blue-500/10 text-blue-500">
+                            <Badge className="bg-black/10 dark:bg-white/10 text-black dark:text-white">
                               Accepted
                             </Badge>
                             <Button
@@ -823,16 +833,16 @@ export default function ProviderDashboard() {
             </div>
 
             {/* Paid But Not Completed Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
+            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10">
               <h2 className="text-xl font-semibold mb-2">
                 Paid Services (Pending)
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+              <p className="text-black/60 dark:text-white/60 text-sm mb-6">
                 Services paid but not completed
               </p>
               {paidOrders.filter((order) => order.status !== "completed")
                 .length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-black/60 dark:text-white/60">
                   No pending paid services
                 </p>
               ) : (
@@ -860,7 +870,7 @@ export default function ProviderDashboard() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge className="bg-orange-500/10 text-orange-500">
+                            <Badge className="bg-black/10 dark:bg-white/10 text-black dark:text-white">
                               Paid (Pending)
                             </Badge>
                             <Button
@@ -905,14 +915,14 @@ export default function ProviderDashboard() {
           {/* Completed Services Section */}
           <div
             id="completed-services"
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8"
+            className="bg-white dark:bg-black rounded-xl shadow-sm p-6 border-2 border-black/10 dark:border-white/10 mb-8"
           >
             <h2 className="text-xl font-semibold mb-2">Completed Services</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+            <p className="text-black/60 dark:text-white/60 text-sm mb-6">
               View completed service history
             </p>
             {completedRequests.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-black/60 dark:text-white/60">
                 No completed services
               </p>
             ) : (
@@ -931,7 +941,7 @@ export default function ProviderDashboard() {
                           <p className="text-sm text-black/60 dark:text-white/60">
                             {request.customerAddress}, {request.customerCity}
                           </p>
-                          <p className="text-sm text-green-600 mt-1">
+                          <p className="text-black/60 dark:text-white/60 mt-1">
                             Completed on{" "}
                             {request.completedAt
                               ? format(new Date(request.completedAt), "PPP")
@@ -1073,7 +1083,7 @@ export default function ProviderDashboard() {
                   </Label>
                   <div className="h-[400px] overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-4">
                     <div className="space-y-2">
-                      {AVAILABLE_SERVICES.map((service) => (
+                      {availableServices.map((service) => (
                         <div
                           key={service}
                           className="flex items-center space-x-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
