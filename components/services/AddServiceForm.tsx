@@ -48,6 +48,7 @@ export default function AddServiceForm({
       totalServices: 0,
     },
     images: [{ url: "", alt: "", isPrimary: true }],
+    thresholdTime: "",
   });
 
   const [selectedFiles, setSelectedFiles] = useState<{ [key: number]: File }>(
@@ -112,6 +113,7 @@ export default function AddServiceForm({
           ...formData.provider,
           name: formData.provider.name.trim(),
         },
+        thresholdTime: formData.thresholdTime,
         rating: 0,
         totalReviews: 0,
         reviews: [],
@@ -266,6 +268,22 @@ export default function AddServiceForm({
                 required
                 placeholder="Enter service description"
                 className="h-32"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Threshold Time (minutes)
+              </label>
+              <Input
+                type="number"
+                value={formData.thresholdTime}
+                onChange={(e) =>
+                  setFormData({ ...formData, thresholdTime: e.target.value })
+                }
+                required
+                placeholder="Enter threshold time in minutes"
+                min="1"
+                className="w-full"
               />
             </div>
             <div>

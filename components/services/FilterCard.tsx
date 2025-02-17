@@ -17,14 +17,6 @@ import { cn } from "@/lib/utils";
 import gsap from "gsap";
 import { useSearchParams } from "next/navigation";
 
-interface ServiceOption {
-  id: string;
-  icon: string;
-  label: string;
-  price: number;
-  reviews: number;
-}
-
 interface PriceRange {
   id: string;
   label: string;
@@ -34,20 +26,20 @@ interface PriceRange {
 
 interface FilterCardProps {
   className?: string;
-  selectedService: string | null;
+  selectedService?: string | null;
   selectedPriceRanges: string[];
   minReviewRating: number | null;
   sortOption: string;
   searchQuery: string;
-  onServiceSelect: (serviceId: string) => void;
   onPriceRangeChange: (priceRanges: string[]) => void;
-  onReviewRatingChange: (rating: number) => void;
+  onReviewRatingChange: (rating: number | null) => void;
   onSortChange: (option: string) => void;
+  onSearchChange: (query: string) => void;
+  onResetFilters: () => void;
+  onServiceSelect?: (serviceId: string) => Promise<void>;
   onClearServiceFilter: () => void;
   onClearPriceRange: (rangeId: string) => void;
   onClearReviewFilter: () => void;
-  onResetFilters: () => void;
-  onSearchChange: (query: string) => void;
 }
 
 function FilterCard({
@@ -57,30 +49,19 @@ function FilterCard({
   minReviewRating,
   sortOption,
   searchQuery,
-  onServiceSelect,
   onPriceRangeChange,
   onReviewRatingChange,
   onSortChange,
+  onSearchChange,
+  onResetFilters,
+  onServiceSelect,
   onClearServiceFilter,
   onClearPriceRange,
   onClearReviewFilter,
-  onResetFilters,
-  onSearchChange,
 }: FilterCardProps) {
   const filterRef = useRef<HTMLDivElement>(null);
   const activeFiltersRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-
-  const serviceOptions: ServiceOption[] = [
-    {
-      id: "switch-socket",
-      icon: "/icons/switch-socket.webp",
-      label: "Switch & socket",
-      price: 50,
-      reviews: 128,
-    },
-    // ... other service options
-  ];
 
   const priceRanges: PriceRange[] = [
     { id: "under-100", label: "Under ₹100", min: 0, max: 100 },
@@ -108,10 +89,10 @@ function FilterCard({
   ];
 
   const handlePriceRangeClick = (rangeId: string) => {
-    const newSelectedRanges = selectedPriceRanges.includes(rangeId)
+    const newRanges = selectedPriceRanges.includes(rangeId)
       ? selectedPriceRanges.filter((id) => id !== rangeId)
-      : [...selectedPriceRanges, rangeId];
-    onPriceRangeChange(newSelectedRanges);
+      : [rangeId]; // Only allow one price range at a time
+    onPriceRangeChange(newRanges);
   };
 
   // Animation for filter card mount
@@ -153,10 +134,10 @@ function FilterCard({
         }
       );
     }
-  }, [selectedService, selectedPriceRanges, minReviewRating]);
+  }, [selectedPriceRanges, minReviewRating]);
 
   useEffect(() => {
-    const query = searchParams.get('search');
+    const query = searchParams.get("search");
     if (query) {
       onSearchChange(query);
     }
@@ -213,29 +194,12 @@ function FilterCard({
       </div>
 
       {/* Active Filters with animation */}
-      {(selectedService ||
-        selectedPriceRanges.length > 0 ||
-        minReviewRating) && (
+      {(selectedPriceRanges.length > 0 || minReviewRating) && (
         <div className="py-4 border-b space-y-2">
           <h3 className="text-sm font-medium text-gray-700 dark:text-white">
             Active Filters
           </h3>
           <div ref={activeFiltersRef} className="flex flex-wrap gap-2">
-            {selectedService && (
-              <span
-                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm 
-                bg-blue-50 text-blue-700 border border-blue-200 transition-all hover:bg-blue-100
-                dark:bg-black dark:border-white/20 dark:text-white dark:hover:bg-white/10"
-              >
-                {serviceOptions.find((s) => s.id === selectedService)?.label}
-                <button
-                  onClick={onClearServiceFilter}
-                  className="ml-2 hover:text-blue-800 dark:hover:text-white/80 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            )}
             {selectedPriceRanges.map((rangeId) => (
               <span
                 key={rangeId}
@@ -245,7 +209,7 @@ function FilterCard({
               >
                 {priceRanges.find((r) => r.id === rangeId)?.label}
                 <button
-                  onClick={() => onClearPriceRange(rangeId)}
+                  onClick={() => handlePriceRangeClick(rangeId)}
                   className="ml-2 hover:text-green-800 dark:hover:text-white/80 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -260,7 +224,7 @@ function FilterCard({
               >
                 {minReviewRating}+ Stars
                 <button
-                  onClick={onClearReviewFilter}
+                  onClick={() => onReviewRatingChange(null)}
                   className="ml-2 hover:text-yellow-800 dark:hover:text-white/80 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />

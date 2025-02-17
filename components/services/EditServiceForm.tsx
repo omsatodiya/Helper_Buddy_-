@@ -64,6 +64,7 @@ export default function EditServiceForm({
       rating: 0,
       totalServices: 0,
     },
+    thresholdTime: service.thresholdTime || "",
   });
 
   const handleNext = () => {
@@ -169,6 +170,23 @@ export default function EditServiceForm({
                 placeholder="Enter price"
                 className="mt-1.5"
                 required
+              />
+            </div>
+
+            <div>
+              <Label className="font-medium mb-1.5">
+                Threshold Time (minutes)
+              </Label>
+              <Input
+                type="number"
+                value={formData.thresholdTime}
+                onChange={(e) =>
+                  setFormData({ ...formData, thresholdTime: e.target.value })
+                }
+                placeholder="Enter threshold time in minutes"
+                className="mt-1.5"
+                required
+                min="1"
               />
             </div>
 

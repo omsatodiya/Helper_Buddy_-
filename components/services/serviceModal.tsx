@@ -13,6 +13,8 @@ import {
   Minus,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Wrench,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -26,6 +28,10 @@ import {
   updateDoc,
   arrayRemove,
   arrayUnion,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import ServiceProviderCard from "./ServiceProviderCard";
 import {
@@ -44,13 +50,24 @@ import { useAuth } from "@/hooks/useAuth";
 import EditReviewModal from "./EditReviewModal";
 import { addToCart } from "@/lib/firebase/cart";
 
+interface ServiceLocation {
+  city: string;
+  pincode: string;
+  state: string;
+}
+
 interface ServiceProvider {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  rating: number;
-  totalServices: number;
+  photo: string;
+  servicePincodes: ServiceLocation[];
+  services: string[];
+  status: string;
+  updatedAt: string;
+  applicationDate: string;
+  approvalDate: string;
+  createdAt: string;
 }
 
 interface ServiceReview {
@@ -170,6 +187,9 @@ const ServiceModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
+  const [categoryProviders, setCategoryProviders] = useState<ServiceProvider[]>(
+    []
+  );
 
   useEffect(() => {
     setLocalService(service);
@@ -363,16 +383,6 @@ const ServiceModal = ({
     return (totalRating + newRating) / (totalReviews + 1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Instead of handling file uploads, we'll just use the existing image URLs
-    const updatedImages = service.images || [];
-
-    // Continue with your existing submit logic using updatedImages
-    // ...
-  };
-
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -496,17 +506,17 @@ const ServiceModal = ({
   };
 
   // Add this function to calculate average rating
-  const calculateAverageRating = (
-    reviews: ServiceReview[] | undefined
-  ): number => {
-    if (!reviews || reviews.length === 0) return 0;
+  // const calculateAverageRating = (
+  //   reviews: ServiceReview[] | undefined
+  // ): number => {
+  //   if (!reviews || reviews.length === 0) return 0;
 
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
-    const average = sum / reviews.length;
+  //   const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+  //   const average = sum / reviews.length;
 
-    // Round to 1 decimal place
-    return Math.round(average * 10) / 10;
-  };
+  //   // Round to 1 decimal place
+  //   return Math.round(average * 10) / 10;
+  // };
 
   // Use it in your component
   const averageRating = useMemo(() => {
@@ -517,21 +527,21 @@ const ServiceModal = ({
     );
   }, [service.reviews]);
 
-  // Add this function to calculate rating distribution
-  const calculateRatingDistribution = (
-    reviews: ServiceReview[] | undefined
-  ) => {
-    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  // // Add this function to calculate rating distribution
+  // const calculateRatingDistribution = (
+  //   reviews: ServiceReview[] | undefined
+  // ) => {
+  //   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
-    if (!reviews?.length) return distribution;
+  //   if (!reviews?.length) return distribution;
 
-    reviews.forEach((review) => {
-      const rating = Math.round(review.rating);
-      distribution[rating as keyof typeof distribution]++;
-    });
+  //   reviews.forEach((review) => {
+  //     const rating = Math.round(review.rating);
+  //     distribution[rating as keyof typeof distribution]++;
+  //   });
 
-    return distribution;
-  };
+  //   return distribution;
+  // };
 
   // In your ServiceModal component, add this JSX after the average rating display
   const ratingDistribution = useMemo(() => {
@@ -615,6 +625,45 @@ const ServiceModal = ({
     }
   };
 
+  useEffect(() => {
+    const fetchCategoryProviders = async () => {
+      // Get the service name instead of category
+      const serviceName = service.name;
+      if (!serviceName) {
+        console.log("No service name found:", service);
+        return;
+      }
+
+      console.log("Fetching providers for service:", serviceName);
+
+      try {
+        // Update query to match your database structure
+        const providersQuery = query(
+          collection(db, "providers"),
+          where("services", "array-contains", serviceName)
+        );
+
+        const snapshot = await getDocs(providersQuery);
+        console.log("Providers found:", snapshot.docs.length);
+
+        const providers = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as ServiceProvider)
+        );
+
+        console.log("Fetched providers:", providers);
+        setCategoryProviders(providers);
+      } catch (error) {
+        console.error("Error fetching providers:", error);
+      }
+    };
+
+    fetchCategoryProviders();
+  }, [service.name]); // Change dependency to service.name
+
   return (
     <div className="relative">
       {/* Close button outside the modal */}
@@ -634,14 +683,6 @@ const ServiceModal = ({
                 <DialogTitle className="text-2xl font-bold">
                   {service.name}
                 </DialogTitle>
-                {service.provider && (
-                  <Link
-                    href={`/service-provider/${service.provider.id}`}
-                    className="text-sm text-muted-foreground hover:text-primary mt-1 inline-block"
-                  >
-                    by {service.provider.name}
-                  </Link>
-                )}
               </div>
 
               {/* Only show edit/delete buttons for admin */}
@@ -779,16 +820,18 @@ const ServiceModal = ({
                   <span>{formatServiceTime()}</span>
                 </div>
               )}
-              {service.provider && (
+
+              {service.thresholdTime && (
                 <div className="flex items-center gap-2 text-gray-600">
-                  <User className="w-5 h-5" />
-                  <span>Service Provider: </span>
-                  <Link
-                    href={`/service-provider/${service.provider.id}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    {service.provider.name}
-                  </Link>
+                  <Clock className="w-5 h-5" />
+                  <span>Arrival Time: {service.thresholdTime} minutes</span>
+                  <div className="relative group">
+                    <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap">
+                      Maximum time within which service provider will reach your
+                      location
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -832,51 +875,6 @@ const ServiceModal = ({
                 </div>
               </div>
             )}
-
-            {/* Quantity and Add to Cart Section */}
-            <div className="space-y-4 my-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium dark:text-white">
-                  Quantity:
-                </span>
-                <div className="flex items-center border rounded-md dark:border-white/20">
-                  <button
-                    onClick={() => handleQuantityAdjustment(-1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors dark:text-white"
-                    aria-label="Decrease quantity"
-                    disabled={localQuantity <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="px-4 py-2 min-w-[40px] text-center dark:text-white">
-                    {localQuantity}
-                  </span>
-                  <button
-                    onClick={() => handleQuantityAdjustment(1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors dark:text-white"
-                    aria-label="Increase quantity"
-                    disabled={localQuantity >= 10}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm dark:text-white">
-                <span>Total Price:</span>
-                <span className="font-semibold">
-                  ₹{(service.price * localQuantity).toLocaleString()}
-                </span>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full mt-4 dark:bg-black dark:text-white dark:border-white/20 dark:hover:bg-white/10"
-                onClick={handleAddToCart}
-              >
-                Add {localQuantity} to Cart
-              </Button>
-            </div>
 
             {/* Add this after the price section */}
             <div className="mt-4 space-y-4">
@@ -1010,10 +1008,52 @@ const ServiceModal = ({
               )}
             </div>
 
-            {service.provider && (
-              <div className="my-6">
-                <h3 className="text-lg font-semibold mb-4">Service Provider</h3>
-                <ServiceProviderCard provider={service.provider} />
+            {/* Service Providers Section */}
+            {categoryProviders.length > 0 && (
+              <div className="mt-8 border-t pt-6">
+                <h3 className="text-xl font-semibold mb-4">
+                  Service Providers in Your Area
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {categoryProviders.map((provider) => (
+                    <div
+                      key={provider.id}
+                      className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-white/10"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-semibold text-lg">
+                            {provider.name}
+                          </h4>
+                          <span className="px-2 py-1 text-sm rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                            {provider.status}
+                          </span>
+                        </div>
+                        <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300">
+                          {provider.servicePincodes.map((location, index) => (
+                            <p key={index} className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              {location.city}, {location.state} -{" "}
+                              {location.pincode}
+                            </p>
+                          ))}
+                          <p className="flex items-center gap-2">
+                            <Wrench className="w-4 h-4" />
+                            Services: {provider.services.join(", ")}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        className="mt-4 w-full"
+                        onClick={() => {
+                          /* Add your service request logic here */
+                        }}
+                      >
+                        Request Service
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

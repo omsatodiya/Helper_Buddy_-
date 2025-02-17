@@ -104,6 +104,7 @@ export interface Service {
   maxQuantity?: number;
   availableQuantity?: number;
   servicePincodes?: { pincode: string }[];
+  thresholdTime: string;
 }
 
 export interface SimpleService {

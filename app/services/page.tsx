@@ -195,23 +195,68 @@ function ServicesContent() {
     fetchServices();
   }, [category]);
 
-  // Update the filterServices function
+  // Add these filter functions near the top of ServicesContent component
   const filterServices = (services: SimpleService[]) => {
     return services.filter((service) => {
-      if (!searchQuery) return true;
+      // Search filter
+      if (searchQuery) {
+        const searchTerm = searchQuery.toLowerCase();
+        if (!service.name.toLowerCase().includes(searchTerm)) {
+          return false;
+        }
+      }
 
-      const searchTerm = searchQuery.toLowerCase().trim();
-      const serviceName = service.name.toLowerCase();
+      // Price range filter
+      if (selectedPriceRanges.length > 0) {
+        const matchesPrice = selectedPriceRanges.some((rangeId) => {
+          const range = priceRanges.find((r) => r.id === rangeId);
+          if (!range) return false;
+          return (
+            service.price >= range.min &&
+            (range.max === null || service.price <= range.max)
+          );
+        });
+        if (!matchesPrice) return false;
+      }
 
-      return serviceName.includes(searchTerm);
+      // Rating filter
+      if (minReviewRating !== null && service.rating < minReviewRating) {
+        return false;
+      }
+
+      return true;
     });
   };
 
-  // Update the useEffect to run filtering when search changes
+  const sortServices = (services: SimpleService[]) => {
+    return [...services].sort((a, b) => {
+      switch (sortOption) {
+        case "price_low_high":
+          return a.price - b.price;
+        case "price_high_low":
+          return b.price - a.price;
+        case "rating_high_low":
+          return b.rating - a.rating;
+        case "most_reviewed":
+          return b.totalReviews - a.totalReviews;
+        case "oldest":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        default:
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          ); // newest first
+      }
+    });
+  };
+
+  // Update the useEffect to apply filters and sorting
   useEffect(() => {
     const filtered = filterServices(services);
-    setFilteredServices(filtered);
-  }, [services, searchQuery]);
+    const sorted = sortServices(filtered);
+    setFilteredServices(sorted);
+  }, [services, searchQuery, selectedPriceRanges, minReviewRating, sortOption]);
 
   // Filter handlers
   const handleClearServiceFilter = () => {
