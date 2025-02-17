@@ -59,6 +59,7 @@ import emailjs from "@emailjs/browser";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Pagination } from "@/components/ui/pagination";
+import { ServiceDetailsModal } from "@/components/provider/ServiceDetailsModal";
 
 interface ProviderData {
   photo: string;
@@ -75,6 +76,7 @@ interface ServiceRequest {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
   customerAddress: string;
   customerPincode: string;
   customerCity: string;
@@ -87,6 +89,10 @@ interface ServiceRequest {
   status: "pending" | "accepted" | "rejected" | "completed";
   createdAt: Date;
   completedAt?: Date;
+  deliveryDate: Date;
+  deliveryTime: string;
+  rating?: number;
+  review?: string;
 }
 
 interface Order {
@@ -140,6 +146,13 @@ export default function ProviderDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Number of items to show per page
   const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null
+  );
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(
+    null
+  );
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -211,7 +224,22 @@ export default function ProviderDashboard() {
       );
 
       const requestsSnapshot = await getDocs(requestsQuery);
-      const requests = requestsSnapshot.docs.map((doc) => doc.data());
+      const requests = requestsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        customerName: doc.data().customerName,
+        customerEmail: doc.data().customerEmail,
+        customerPhone: doc.data().customerPhone,
+        customerAddress: doc.data().customerAddress,
+        customerPincode: doc.data().customerPincode,
+        customerCity: doc.data().customerCity,
+        items: doc.data().items,
+        status: doc.data().status,
+        rating: doc.data().rating,
+        review: doc.data().review,
+        createdAt: doc.data().createdAt.toDate(),
+        deliveryDate: doc.data().deliveryDate,
+        deliveryTime: doc.data().deliveryTime,
+      }));
 
       // Calculate statistics
       const todaysBookings = requests.filter(
@@ -399,21 +427,21 @@ export default function ProviderDashboard() {
     try {
       const db = getFirestore();
       const user = auth.currentUser;
-      
+
       if (!user) {
         throw new Error("No authenticated user found");
       }
 
       // Create a batch with writeBatch instead of db.batch()
       const batch = writeBatch(db);
-      
+
       const providerAppRef = doc(db, "provider-applications", user.uid);
       const providerRef = doc(db, "providers", user.uid);
 
       // Check if documents exist
       const [providerAppDoc, providerDoc] = await Promise.all([
         getDoc(providerAppRef),
-        getDoc(providerRef)
+        getDoc(providerRef),
       ]);
 
       const updateData = {
@@ -450,7 +478,6 @@ export default function ProviderDashboard() {
         title: "Changes saved",
         description: "Your provider profile has been updated successfully.",
       });
-
     } catch (error) {
       console.error("Error saving changes:", error);
       toast({
@@ -511,26 +538,35 @@ export default function ProviderDashboard() {
     }
   };
 
-  const handleServiceCompletion = async (requestId: string) => {
+  const handleServiceCompletion = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setShowCompleteDialog(true);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!selectedRequestId) return;
+
     try {
       const db = getFirestore();
-      await updateDoc(doc(db, "serviceRequests", requestId), {
+      const requestRef = doc(db, "serviceRequests", selectedRequestId);
+      await updateDoc(requestRef, {
         status: "completed",
         completedAt: new Date(),
-        updatedAt: new Date(),
       });
-
       toast({
-        title: "Service Marked as Completed",
-        description: "The service request has been marked as completed.",
+        title: "Success",
+        description: "Service marked as completed",
       });
     } catch (error) {
-      console.error("Error marking service as completed:", error);
+      console.error("Error completing service:", error);
       toast({
         title: "Error",
-        description: "Failed to mark service as completed. Please try again.",
+        description: "Failed to complete service",
         variant: "destructive",
       });
+    } finally {
+      setShowCompleteDialog(false);
+      setSelectedRequestId(null);
     }
   };
 
@@ -564,12 +600,17 @@ export default function ProviderDashboard() {
           id: doc.id,
           customerName: doc.data().customerName,
           customerEmail: doc.data().customerEmail,
+          customerPhone: doc.data().customerPhone,
           customerAddress: doc.data().customerAddress,
           customerPincode: doc.data().customerPincode,
           customerCity: doc.data().customerCity,
           items: doc.data().items,
           status: doc.data().status,
+          rating: doc.data().rating,
+          review: doc.data().review,
           createdAt: doc.data().createdAt.toDate(),
+          deliveryDate: doc.data().deliveryDate,
+          deliveryTime: doc.data().deliveryTime,
         }));
         setServiceRequests(requests);
       });
@@ -579,12 +620,17 @@ export default function ProviderDashboard() {
           id: doc.id,
           customerName: doc.data().customerName,
           customerEmail: doc.data().customerEmail,
+          customerPhone: doc.data().customerPhone,
           customerAddress: doc.data().customerAddress,
           customerPincode: doc.data().customerPincode,
           customerCity: doc.data().customerCity,
           items: doc.data().items,
           status: doc.data().status,
+          rating: doc.data().rating,
+          review: doc.data().review,
           createdAt: doc.data().createdAt.toDate(),
+          deliveryDate: doc.data().deliveryDate,
+          deliveryTime: doc.data().deliveryTime,
         }));
         setAcceptedRequests(requests);
       });
@@ -620,13 +666,18 @@ export default function ProviderDashboard() {
           id: doc.id,
           customerName: doc.data().customerName,
           customerEmail: doc.data().customerEmail,
+          customerPhone: doc.data().customerPhone,
           customerAddress: doc.data().customerAddress,
           customerPincode: doc.data().customerPincode,
           customerCity: doc.data().customerCity,
           items: doc.data().items,
           status: doc.data().status,
+          rating: doc.data().rating,
+          review: doc.data().review,
           createdAt: doc.data().createdAt.toDate(),
           completedAt: doc.data().completedAt?.toDate(),
+          deliveryDate: doc.data().deliveryDate,
+          deliveryTime: doc.data().deliveryTime,
         }));
         setCompletedRequests(requests);
       });
@@ -641,7 +692,7 @@ export default function ProviderDashboard() {
     try {
       const db = getFirestore();
       const servicesSnapshot = await getDocs(collection(db, "services"));
-      
+
       // Extract unique service names
       const serviceNames = new Set<string>();
       servicesSnapshot.forEach((doc) => {
@@ -650,10 +701,10 @@ export default function ProviderDashboard() {
           serviceNames.add(service.name);
         }
       });
-      
+
       // Convert to array and sort alphabetically
       const sortedServices = Array.from(serviceNames).sort();
-      
+
       setAvailableServices(sortedServices);
     } catch (error) {
       console.error("Error fetching available services:", error);
@@ -694,7 +745,8 @@ export default function ProviderDashboard() {
                   {serviceRequests.map((request) => (
                     <div
                       key={request.id}
-                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg cursor-pointer hover:border-black dark:hover:border-white transition-colors"
+                      onClick={() => setSelectedRequest(request)}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
@@ -710,17 +762,19 @@ export default function ProviderDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              handleRequestAction(request.id, "reject")
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRequestAction(request.id, "reject");
+                            }}
                           >
                             Reject
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() =>
-                              handleRequestAction(request.id, "accept")
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRequestAction(request.id, "accept");
+                            }}
                           >
                             Accept
                           </Button>
@@ -777,14 +831,15 @@ export default function ProviderDashboard() {
                     .map((request) => (
                       <div
                         key={request.id}
-                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg cursor-pointer hover:border-black dark:hover:border-white transition-colors"
+                        onClick={() => setSelectedRequest(request)}
                       >
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="font-medium">
+                            <h3 className="font-semibold">
                               {request.customerName}
-                            </h4>
-                            <p className="text-sm text-black/60 dark:text-white/60">
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
                               {request.customerAddress}, {request.customerCity}
                             </p>
                           </div>
@@ -792,38 +847,34 @@ export default function ProviderDashboard() {
                             <Badge className="bg-black/10 dark:bg-white/10 text-black dark:text-white">
                               Accepted
                             </Badge>
-                            <Button
-                              onClick={() =>
-                                handleServiceCompletion(request.id)
-                              }
-                              variant="outline"
-                              size="sm"
-                            >
-                              Mark Complete
-                            </Button>
                           </div>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {request.items.map((item, index) => (
                             <div
                               key={index}
-                              className="flex justify-between text-sm"
+                              className="flex justify-between items-center text-sm"
                             >
                               <span>
                                 {item.name} × {item.quantity}
                               </span>
-                              <span>₹{item.price * item.quantity}</span>
+                              <span className="font-medium">
+                                ₹{item.price * item.quantity}
+                              </span>
                             </div>
                           ))}
-                          <div className="border-t border-black/10 dark:border-white/10 mt-2 pt-2 flex justify-between font-medium">
-                            <span>Total</span>
-                            <span>
-                              ₹
-                              {request.items.reduce(
-                                (sum, item) => sum + item.price * item.quantity,
-                                0
-                              )}
-                            </span>
+                          <div className="border-t pt-2 mt-2">
+                            <div className="flex justify-between items-center font-semibold">
+                              <span>Total Amount</span>
+                              <span>
+                                ₹
+                                {request.items.reduce(
+                                  (sum, item) =>
+                                    sum + item.price * item.quantity,
+                                  0
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -852,7 +903,10 @@ export default function ProviderDashboard() {
                     .map((order) => (
                       <div
                         key={order.id}
-                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                        className="p-4 border border-black/10 dark:border-white/10 rounded-lg cursor-pointer hover:border-black dark:hover:border-white transition-colors"
+                        onClick={() =>
+                          setSelectedRequest(order as unknown as ServiceRequest)
+                        }
                       >
                         <div className="flex justify-between items-start mb-4">
                           <div>
@@ -874,7 +928,10 @@ export default function ProviderDashboard() {
                               Paid (Pending)
                             </Badge>
                             <Button
-                              onClick={() => handleServiceCompletion(order.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleServiceCompletion(order.id);
+                              }}
                               variant="outline"
                               size="sm"
                             >
@@ -931,7 +988,8 @@ export default function ProviderDashboard() {
                   {currentCompletedRequests.map((request) => (
                     <div
                       key={request.id}
-                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg"
+                      className="p-4 border border-black/10 dark:border-white/10 rounded-lg cursor-pointer hover:border-black dark:hover:border-white transition-colors"
+                      onClick={() => setSelectedRequest(request)}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
@@ -1028,14 +1086,15 @@ export default function ProviderDashboard() {
                           </span>
                         )}
                         <button
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setProviderData((prev) => ({
                               ...prev,
                               servicePincodes: prev.servicePincodes.filter(
                                 (p) => p.pincode !== pincode
                               ),
-                            }))
-                          }
+                            }));
+                          }}
                           className="hover:text-black dark:hover:text-white ml-1"
                         >
                           ×
@@ -1064,7 +1123,10 @@ export default function ProviderDashboard() {
                           >
                             <span className="text-sm">{service}</span>
                             <button
-                              onClick={() => handleServiceToggle(service)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleServiceToggle(service);
+                              }}
                               className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
                             >
                               <X className="w-4 h-4" />
@@ -1091,7 +1153,9 @@ export default function ProviderDashboard() {
                           <Checkbox
                             id={service}
                             checked={providerData.services.includes(service)}
-                            onCheckedChange={() => handleServiceToggle(service)}
+                            onCheckedChange={(checked) =>
+                              handleServiceToggle(service)
+                            }
                           />
                           <label
                             htmlFor={service}
@@ -1137,6 +1201,35 @@ export default function ProviderDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Completion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this service as complete? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmComplete}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {selectedRequest && (
+        <ServiceDetailsModal
+          request={selectedRequest}
+          open={!!selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+        />
+      )}
     </div>
   );
 }

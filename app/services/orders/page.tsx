@@ -22,11 +22,14 @@ import { useSearch } from "@/context/SearchContext";
 import { formatDate } from "@/lib/utils/date";
 import { Home, Star } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
+import { differenceInMinutes } from "date-fns";
+import { OrderTimelineModal } from "@/components/orders/OrderTimelineModal";
 
 interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  imageUrl?: string;
 }
 
 interface Order {
@@ -53,8 +56,20 @@ interface Order {
   providerResponses?: {
     [providerId: string]: {
       status: "pending" | "accepted" | "rejected";
-      updatedAt: Date;
+      updatedAt:
+        | {
+            toDate: () => Date;
+          }
+        | Date;
     };
+  };
+  thresholdTime: string;
+}
+
+interface ThresholdStatus {
+  [orderId: string]: {
+    hasExpired: boolean;
+    remainingMinutes: number;
   };
 }
 
@@ -68,6 +83,10 @@ export default function OrdersPage() {
   const { setSearchQuery } = useSearch();
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 6; // Show 6 orders per page (2 rows x 3 columns)
+  const [thresholdStatuses, setThresholdStatuses] = useState<ThresholdStatus>(
+    {}
+  );
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -78,11 +97,7 @@ export default function OrdersPage() {
     }
 
     const ordersRef = collection(db, "serviceRequests");
-    const q = query(
-      ordersRef,
-      where("customerEmail", "==", user.email),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(ordersRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -106,6 +121,47 @@ export default function OrdersPage() {
 
     return () => unsubscribe();
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    const checkThresholdTimes = () => {
+      const newStatuses: ThresholdStatus = {};
+
+      orders.forEach((order) => {
+        if (order.status === "accepted") {
+          const acceptedResponse = Object.values(
+            order.providerResponses || {}
+          ).find((r) => r.status === "accepted");
+
+          if (acceptedResponse) {
+            const acceptedAt =
+              acceptedResponse.updatedAt instanceof Date
+                ? acceptedResponse.updatedAt
+                : acceptedResponse.updatedAt.toDate();
+
+            const thresholdMinutes = parseInt(order.thresholdTime || "120");
+            const minutesPassed = differenceInMinutes(new Date(), acceptedAt);
+            const remainingMinutes = Math.max(
+              0,
+              thresholdMinutes - minutesPassed
+            );
+            const hasExpired = remainingMinutes <= 0;
+
+            newStatuses[order.id] = {
+              hasExpired,
+              remainingMinutes,
+            };
+          }
+        }
+      });
+
+      setThresholdStatuses(newStatuses);
+    };
+
+    checkThresholdTimes();
+    const timer = setInterval(checkThresholdTimes, 60000);
+
+    return () => clearInterval(timer);
+  }, [orders]);
 
   const handlePayment = (order: Order) => {
     try {
@@ -253,7 +309,8 @@ export default function OrdersPage() {
                   {currentOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-xl p-4 hover:border-black dark:hover:border-white transition-all duration-200"
+                      className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-xl p-4 hover:border-black dark:hover:border-white transition-all duration-200 cursor-pointer"
+                      onClick={() => setSelectedOrder(order)}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
@@ -291,6 +348,39 @@ export default function OrdersPage() {
                           </span>
                         </div>
 
+                        {order.status === "accepted" && (
+                          <>
+                            {thresholdStatuses[order.id]?.hasExpired ? (
+                              <Button
+                                onClick={() => handleCancelRequest(order.id)}
+                                variant="destructive"
+                                className="w-full"
+                              >
+                                Cancel Request
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  onClick={() => handlePayment(order)}
+                                  className="w-full mb-2"
+                                >
+                                  Proceed to Payment
+                                </Button>
+                                {thresholdStatuses[order.id] && (
+                                  <p className="text-sm text-center text-gray-500">
+                                    Time remaining:{" "}
+                                    {
+                                      thresholdStatuses[order.id]
+                                        .remainingMinutes
+                                    }{" "}
+                                    minutes
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
+
                         {order.status === "pending" && (
                           <Button
                             onClick={() => handleCancelRequest(order.id)}
@@ -298,14 +388,6 @@ export default function OrdersPage() {
                             className="w-full"
                           >
                             Cancel Request
-                          </Button>
-                        )}
-                        {order.status === "accepted" && (
-                          <Button
-                            onClick={() => handlePayment(order)}
-                            className="w-full"
-                          >
-                            Proceed to Payment
                           </Button>
                         )}
                         {order.status === "completed" && !order.isReviewed && (
@@ -416,6 +498,15 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+
+        {/* Add the modal */}
+        {selectedOrder && (
+          <OrderTimelineModal
+            order={selectedOrder}
+            open={!!selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+          />
+        )}
       </div>
     </div>
   );

@@ -57,54 +57,31 @@ export interface ServicePricing {
 export interface Service {
   id: string;
   name: string;
-  details?: string;
   description: string;
-  category?: string;
   price: number;
-  imageUrl?: string;
-  pricing?: {
-    basePrice: number;
-    discountedPrice?: number;
-    unit: "per_hour" | "fixed" | "per_day";
-    minimumCharge?: number;
-    additionalCharges?: {
-      name: string;
-      amount: number;
-      description?: string;
-    }[];
-  };
-  images?: ServiceImage[];
-  serviceTime?: {
-    duration: number;
-    unit: "minutes" | "hours" | "days";
-    availableDays: string[];
-    availableHours: {
-      start: string;
-      end: string;
-    };
-  };
-  provider?: ServiceProvider;
-  reviews?: ServiceReview[];
+  details?: string;
+  category?: string;
   rating?: number;
   totalReviews?: number;
+  reviews?: ServiceReview[];
+  images?: { url: string; alt: string; isPrimary: boolean }[];
+  provider?: any;
   features?: string[];
-  faqs?: {
-    question: string;
-    answer: string;
-  }[];
-  metadata?: {
-    isActive: boolean;
-    isPopular: boolean;
-    isPromoted: boolean;
-    createdAt: string;
-    updatedAt: string;
+  faqs?: { question: string; answer: string }[];
+  createdAt: any;
+  updatedAt: any;
+  serviceTime?: {
+    duration: number;
+    unit: string;
   };
-  createdAt: Date;
-  updatedAt: Date;
-  maxQuantity?: number;
-  availableQuantity?: number;
+  imageUrl?: string;
+  thresholdTime?: string | number;
+  pricing?: {
+    unit?: 'per_hour' | 'per_day' | 'fixed';
+    basePrice?: number;
+    discountedPrice?: number;
+  };
   servicePincodes?: { pincode: string }[];
-  thresholdTime: string;
 }
 
 export interface SimpleService {
@@ -122,4 +99,33 @@ export interface SimpleService {
   updatedAt: string;
   reviews?: ServiceReview[];
   servicePincodes?: { pincode: string }[];
+}
+
+type ServiceStatus = "pending" | "accepted" | "completed" | "paid" | "rejected" | "cancelled";
+
+export interface ServiceRequest {
+  id: string;
+  customerName: string;
+  customerEmail?: string;
+  customerAddress: string;
+  customerPincode: string;
+  customerCity: string;
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+    imageUrl?: string;
+  }[];
+  isPaid?: boolean;
+  status: ServiceStatus;
+  createdAt: Date;
+  completedAt?: Date;
+  deliveryDate?: string | Date;
+  deliveryTime?: string;
+  customerPhone?: string;
+  updatedAt?: Date;
+}
+
+export interface Order {
+  status: ServiceStatus;
 } 

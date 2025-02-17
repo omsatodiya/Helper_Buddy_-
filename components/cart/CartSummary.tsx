@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/firebase";
+import { auth } from "@/lib/firebase/firebase";
 
 interface CartItem {
   id: string;
@@ -10,13 +13,18 @@ interface CartItem {
   quantity: number;
   imageUrl: string;
   serviceProvider?: string;
+  thresholdTime?: string;
 }
 
 interface CartSummaryProps {
   items: CartItem[];
   isAddressSelected: boolean;
   hasDateTime: boolean;
-  onNotifyProviders: () => void;
+  onNotifyProviders: (data: {
+    items: CartItem[];
+    thresholdTime: string;
+    totalAmount: number;
+  }) => Promise<void>;
   isSendingEmails: boolean;
 }
 
@@ -29,6 +37,7 @@ const CartSummary = ({
 }: CartSummaryProps) => {
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.price) * Number(item.quantity),
@@ -48,6 +57,45 @@ const CartSummary = ({
     }
 
     router.push(`/payment?amount=${total}`);
+  };
+
+  const handleNotifyProviders = async () => {
+    if (!isAddressSelected || !hasDateTime) {
+      toast({
+        title: "Required Fields",
+        description: "Please select address and date/time before proceeding",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const serviceRequestData = {
+        items: items,
+        thresholdTime: items[0]?.thresholdTime || "120",
+        totalAmount: total,
+      };
+
+      await onNotifyProviders(serviceRequestData);
+
+      toast({
+        title: "Request Sent",
+        description: "Service providers have been notified of your request",
+      });
+
+      router.push("/services/orders");
+    } catch (error) {
+      console.error("Error creating service request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send service request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,7 +140,7 @@ const CartSummary = ({
       <Button
         className="w-full mt-6"
         disabled={!isAddressSelected || !hasDateTime || isSendingEmails}
-        onClick={onNotifyProviders}
+        onClick={handleNotifyProviders}
       >
         {isSendingEmails ? (
           <div className="flex items-center gap-2">

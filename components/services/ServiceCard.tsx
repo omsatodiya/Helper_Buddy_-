@@ -31,6 +31,7 @@ interface CartItem {
   quantity: number;
   imageUrl: string;
   serviceProvider?: string;
+  thresholdTime: string;
 }
 
 const ServiceCard = memo(
@@ -54,6 +55,8 @@ const ServiceCard = memo(
     const [isLoading, setIsLoading] = useState(false);
     const [localRating, setLocalRating] = useState(rating);
     const [localTotalRatings, setLocalTotalRatings] = useState(totalRatings);
+    const [serviceThresholdTime, setServiceThresholdTime] =
+      useState<string>("120");
 
     console.log("ServiceCard received imageUrl:", imageUrl);
 
@@ -95,6 +98,7 @@ const ServiceCard = memo(
       const unsubscribe = onSnapshot(serviceRef, (doc) => {
         if (doc.exists()) {
           const serviceData = doc.data();
+          setServiceThresholdTime(serviceData.thresholdTime || "120");
           const reviews = serviceData.reviews || [];
           const avgRating = calculateAverageRating(reviews);
           setLocalRating(avgRating);
@@ -127,7 +131,6 @@ const ServiceCard = memo(
           const serviceDoc = await getDoc(serviceRef);
           const serviceData = serviceDoc.data();
 
-          // Ensure currentItems is always an array
           let currentItems: CartItem[] = [];
 
           if (cartDoc.exists()) {
@@ -139,7 +142,6 @@ const ServiceCard = memo(
             (item) => item.id === id
           );
 
-          // Ensure imageUrl is never undefined
           const safeImageUrl =
             serviceData?.images?.[0]?.url || "/placeholder-image.jpg";
 
@@ -151,18 +153,18 @@ const ServiceCard = memo(
               quantity: (updatedItems[existingItemIndex].quantity || 0) + 1,
             };
           } else {
-            // Ensure all fields are defined
             const newItem: CartItem = {
               id: id,
               name: title,
               price: price || 0,
               quantity: 1,
               imageUrl: safeImageUrl,
+              serviceProvider: providerName,
+              thresholdTime: serviceThresholdTime,
             };
             updatedItems = [...currentItems, newItem];
           }
 
-          // Create a clean object with no undefined values
           const cartData = {
             items: updatedItems.map((item) => ({
               ...item,
@@ -171,7 +173,6 @@ const ServiceCard = memo(
             updatedAt: new Date().toISOString(),
           };
 
-          // Update cart in Firestore
           await setDoc(cartRef, cartData, { merge: true });
 
           toast({
@@ -189,7 +190,7 @@ const ServiceCard = memo(
           setIsLoading(false);
         }
       },
-      [user, id, title, price, providerName, toast]
+      [user, id, title, price, providerName, toast, serviceThresholdTime]
     );
 
     const handleUpdateQuantity = useCallback(

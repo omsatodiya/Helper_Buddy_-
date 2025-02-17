@@ -30,20 +30,24 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 import { useRouter } from "next/navigation";
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Clock } from "lucide-react"
-import emailjs from "@emailjs/browser"
+} from "@/components/ui/select";
+import { Clock } from "lucide-react";
+import emailjs from "@emailjs/browser";
 
 interface Address {
   id: string;
@@ -225,10 +229,13 @@ export default function CartPage() {
         },
         (error) => {
           console.error("Error getting location:", error);
-          setLocationError("Failed to get your location. Please enter address manually.");
+          setLocationError(
+            "Failed to get your location. Please enter address manually."
+          );
           toast({
             title: "Location Error",
-            description: "Failed to get your location. Please enter address manually.",
+            description:
+              "Failed to get your location. Please enter address manually.",
             variant: "destructive",
           });
         }
@@ -374,12 +381,12 @@ export default function CartPage() {
   const validateDateTime = (date: string, time: string): boolean => {
     const selectedDateTime = new Date(`${date} ${time}`);
     const now = new Date();
-    
+
     // Add 2 hours to current time for minimum delivery time
-    const minDateTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
-    
+    const minDateTime = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
     // Maximum date is 30 days from now
-    const maxDateTime = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+    const maxDateTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     if (selectedDateTime < minDateTime) {
       setDateTimeError("Please select a time at least 2 hours from now");
@@ -414,7 +421,12 @@ export default function CartPage() {
       return;
     }
 
-    if (!validateDateTime(selectedAddress.deliveryDate, selectedAddress.deliveryTime)) {
+    if (
+      !validateDateTime(
+        selectedAddress.deliveryDate,
+        selectedAddress.deliveryTime
+      )
+    ) {
       toast({
         title: "Error",
         description: dateTimeError,
@@ -444,7 +456,8 @@ export default function CartPage() {
       if (providers.length === 0) {
         toast({
           title: "No Providers Found",
-          description: "Currently there are no service providers in your pincode area.",
+          description:
+            "Currently there are no service providers in your pincode area.",
           variant: "destructive",
         });
         return;
@@ -458,8 +471,13 @@ export default function CartPage() {
 
       // Format service details for email
       const serviceDetails = cartItems
-        .map(item => `${item.name} (Quantity: ${item.quantity}) - ₹${item.price * item.quantity}`)
-        .join('<br>');
+        .map(
+          (item) =>
+            `${item.name} (Quantity: ${item.quantity}) - ₹${
+              item.price * item.quantity
+            }`
+        )
+        .join("<br>");
 
       // Send emails to all matching providers
       await Promise.all(
@@ -467,7 +485,8 @@ export default function CartPage() {
           try {
             await emailjs.send(
               process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID_2!,
-              process.env.NEXT_PUBLIC_EMAILJS_PROVIDER_NOTIFICATION_TEMPLATE_ID!,
+              process.env
+                .NEXT_PUBLIC_EMAILJS_PROVIDER_NOTIFICATION_TEMPLATE_ID!,
               {
                 to_email: provider.email,
                 to_name: provider.name,
@@ -479,42 +498,46 @@ export default function CartPage() {
                 estimated_value: `₹${totalAmount.toLocaleString("en-IN")}`,
                 remarks: selectedAddress.remarks || "No additional remarks",
                 from_name: "Your Service Platform",
-                reply_to: "support@yourplatform.com"
+                reply_to: "support@yourplatform.com",
               },
               process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY_2
             );
           } catch (error) {
-            console.error(`Failed to send email to provider ${provider.email}:`, error);
+            console.error(
+              `Failed to send email to provider ${provider.email}:`,
+              error
+            );
           }
         })
       );
 
       // Create main service request
       const orderRef = doc(collection(db, "serviceRequests"));
-      const orderData = {
+      const serviceRequestData = {
         id: orderRef.id,
-        customerName: user.displayName || "Anonymous",
-        customerEmail: user.email,
-        customerAddress: selectedAddress.address,
-        customerPincode: selectedAddress.pincode,
-        customerCity: selectedAddress.city,
         items: cartItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           price: item.price,
+          imageUrl: item.imageUrl,
         })),
-        status: "pending",
         totalAmount,
+        customerName: selectedAddress.label,
+        customerEmail: user.email,
+        customerAddress: selectedAddress.address,
+        customerCity: selectedAddress.city,
+        customerPincode: selectedAddress.pincode,
+        status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
         availableProviders: providers.map((p) => p.id),
         deliveryDate: selectedAddress.deliveryDate,
         deliveryTime: selectedAddress.deliveryTime,
-        remarks: selectedAddress.remarks || '',
+        remarks: selectedAddress.remarks || "",
       };
 
       // Save main request
-      await setDoc(orderRef, orderData);
+      await setDoc(orderRef, serviceRequestData);
 
       // Create requests for providers
       await Promise.all(
@@ -524,7 +547,7 @@ export default function CartPage() {
           );
 
           await setDoc(providerRequestRef, {
-            ...orderData,
+            ...serviceRequestData,
             id: providerRequestRef.id,
             mainRequestId: orderRef.id,
             providerStatus: "pending",
@@ -712,10 +735,17 @@ export default function CartPage() {
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                    {date ? (
+                                      format(date, "PPP")
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
                                   <Calendar
                                     mode="single"
                                     selected={date}
@@ -724,7 +754,10 @@ export default function CartPage() {
                                       if (newDate) {
                                         setSelectedAddress({
                                           ...selectedAddress!,
-                                          deliveryDate: format(newDate, "yyyy-MM-dd"),
+                                          deliveryDate: format(
+                                            newDate,
+                                            "yyyy-MM-dd"
+                                          ),
                                         });
                                       }
                                     }}
@@ -745,9 +778,16 @@ export default function CartPage() {
                               </label>
                               <div className="flex gap-2">
                                 <Select
-                                  value={selectedAddress?.deliveryTime?.split(":")[0] || ""}
+                                  value={
+                                    selectedAddress?.deliveryTime?.split(
+                                      ":"
+                                    )[0] || ""
+                                  }
                                   onValueChange={(hour) => {
-                                    const currentMins = selectedAddress?.deliveryTime?.split(":")[1] || "00";
+                                    const currentMins =
+                                      selectedAddress?.deliveryTime?.split(
+                                        ":"
+                                      )[1] || "00";
                                     setSelectedAddress({
                                       ...selectedAddress!,
                                       deliveryTime: `${hour}:${currentMins}`,
@@ -759,7 +799,9 @@ export default function CartPage() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {Array.from({ length: 24 }, (_, i) => {
-                                      const hour = i.toString().padStart(2, "0");
+                                      const hour = i
+                                        .toString()
+                                        .padStart(2, "0");
                                       return (
                                         <SelectItem key={hour} value={hour}>
                                           {hour}:00
@@ -770,9 +812,16 @@ export default function CartPage() {
                                 </Select>
 
                                 <Select
-                                  value={selectedAddress?.deliveryTime?.split(":")[1] || ""}
+                                  value={
+                                    selectedAddress?.deliveryTime?.split(
+                                      ":"
+                                    )[1] || ""
+                                  }
                                   onValueChange={(minute) => {
-                                    const currentHour = selectedAddress?.deliveryTime?.split(":")[0] || "00";
+                                    const currentHour =
+                                      selectedAddress?.deliveryTime?.split(
+                                        ":"
+                                      )[0] || "00";
                                     setSelectedAddress({
                                       ...selectedAddress!,
                                       deliveryTime: `${currentHour}:${minute}`,
@@ -798,7 +847,9 @@ export default function CartPage() {
                             </div>
                           </div>
                           {dateTimeError && (
-                            <p className="text-sm text-red-500">{dateTimeError}</p>
+                            <p className="text-sm text-red-500">
+                              {dateTimeError}
+                            </p>
                           )}
 
                           <div className="space-y-2">
@@ -806,7 +857,7 @@ export default function CartPage() {
                               Additional Remarks
                             </label>
                             <textarea
-                              value={selectedAddress.remarks || ''}
+                              value={selectedAddress.remarks || ""}
                               onChange={(e) => {
                                 setSelectedAddress({
                                   ...selectedAddress,
@@ -818,9 +869,11 @@ export default function CartPage() {
                               maxLength={500}
                             />
                             <p className="text-xs text-gray-500">
-                              {((selectedAddress.remarks?.length || 0) <= 500) 
-                                ? `${selectedAddress.remarks?.length || 0}/500 characters`
-                                : 'Maximum character limit reached'}
+                              {(selectedAddress.remarks?.length || 0) <= 500
+                                ? `${
+                                    selectedAddress.remarks?.length || 0
+                                  }/500 characters`
+                                : "Maximum character limit reached"}
                             </p>
                           </div>
                         </div>
@@ -864,7 +917,12 @@ export default function CartPage() {
                 <CartSummary
                   items={cartItems}
                   isAddressSelected={!!selectedAddress}
-                  hasDateTime={!!(selectedAddress?.deliveryDate && selectedAddress?.deliveryTime)}
+                  hasDateTime={
+                    !!(
+                      selectedAddress?.deliveryDate &&
+                      selectedAddress?.deliveryTime
+                    )
+                  }
                   onNotifyProviders={handleFindProvider}
                   isSendingEmails={isSendingEmails}
                 />
