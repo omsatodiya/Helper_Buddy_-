@@ -36,31 +36,34 @@ import { useRouter } from "next/navigation";
 import GridMotion from "@/components/landing/GridMotion";
 
 const items = [
-  'Item 1',
-  <div key='jsx-item-1'>Custom JSX Content</div>,
-  'https://images.unsplash.com/photo-1723403804231-f4e9b515fe9d?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'Item 2',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'Item 4',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'https://images.unsplash.com/photo-1723403804231-f4e9b515fe9d?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'Item 5',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'Item 7',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'https://images.unsplash.com/photo-1723403804231-f4e9b515fe9d?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'Item 8',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'Item 10',
-  <div key='jsx-item-3'>Custom JSX Content</div>,
-  'https://images.unsplash.com/photo-1723403804231-f4e9b515fe9d?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'Item 11',
-  <div key='jsx-item-2'>Custom JSX Content</div>,
-  'Item 13',
-  <div key='jsx-item-4'>Custom JSX Content</div>,
-  'https://images.unsplash.com/photo-1723403804231-f4e9b515fe9d?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'Item 14',
-  // Add more items as needed
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707739/blogs/omi4p0f5ymcneegwyebi.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706688/blogs/xvhugdmaklkbt1yeocwc.webp",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
 ];
 
 
@@ -398,12 +401,14 @@ export default function Home() {
       >
         <Header />
         <div className="relative h-screen">
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 z-0 opacity-60">
             <GridMotion 
               items={items} 
-              gradientColor="rgba(0, 0, 0, 0.4)"
+              gradientColor="rgba(0, 0, 0, 0.6)"
             />
           </div>
+          
+          <div className="absolute inset-0 z-5 bg-black opacity-50"></div>
           
           <div className="relative z-10 h-full">
             <LandingPage />
