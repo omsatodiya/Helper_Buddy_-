@@ -222,10 +222,6 @@ export default function CartPage() {
           const { latitude, longitude } = position.coords;
           setUserLocation({ latitude, longitude });
           await fetchAddressFromCoordinates(latitude, longitude);
-          toast({
-            title: "Location Found",
-            description: "Your address has been automatically set",
-          });
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -273,10 +269,6 @@ export default function CartPage() {
     try {
       await removeFromCart(user.uid, itemId);
       setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-      toast({
-        title: "Success",
-        description: "Item removed from cart",
-      });
     } catch (error) {
       console.error("Error removing item:", error);
       toast({

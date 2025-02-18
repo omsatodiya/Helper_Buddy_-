@@ -287,7 +287,7 @@ export default function LoginForm() {
       ...userData,
       email: loginData.email,
       role: "user",
-      coins: 1000,
+      coins: 100,
       referralCode: generateReferralCode(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

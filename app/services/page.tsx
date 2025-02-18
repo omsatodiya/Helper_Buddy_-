@@ -35,14 +35,6 @@ import {
 import { Input } from "@/components/ui/input";
 import gsap from "gsap";
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 
 type ServiceCategory =
   | "Electrician"
@@ -136,11 +128,6 @@ function ServicesContent() {
 
   // Add ref for the grid
   const gridRef = React.useRef<HTMLDivElement>(null);
-
-  // Add these new state variables
-  const [isRemarksDialogOpen, setIsRemarksDialogOpen] = useState(false);
-  const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
-  const [remarks, setRemarks] = useState("");
 
   // Add effect to animate grid changes
   useEffect(() => {
@@ -320,18 +307,10 @@ function ServicesContent() {
       return;
     }
 
-    // Open remarks dialog and save service ID
-    setPendingServiceId(serviceId);
-    setIsRemarksDialogOpen(true);
-  };
-
-  const handleAddToCartWithRemarks = async () => {
-    if (!pendingServiceId) return;
-
     try {
-      const cartRef = doc(db, "carts", user!.uid);
+      const cartRef = doc(db, "carts", user.uid);
       const cartDoc = await getDoc(cartRef);
-      const serviceDoc = await getDoc(doc(db, "services", pendingServiceId));
+      const serviceDoc = await getDoc(doc(db, "services", serviceId));
 
       if (!serviceDoc.exists()) {
         throw new Error("Service not found");
@@ -346,22 +325,20 @@ function ServicesContent() {
       }
 
       const existingItemIndex = cartItems.findIndex(
-        (item) => item.id === pendingServiceId
+        (item) => item.id === serviceId
       );
 
       if (existingItemIndex !== -1) {
         cartItems[existingItemIndex].quantity += 1;
-        cartItems[existingItemIndex].remarks = remarks; // Update remarks
       } else {
         const serviceDetails = {
-          id: pendingServiceId,
+          id: serviceId,
           name: serviceData.name,
           description: serviceData.details || serviceData.description || "",
           price: serviceData.price,
           quantity: 1,
           imageUrl: serviceData.images?.[0]?.url || "/placeholder-image.jpg",
           serviceProvider: serviceData.provider?.name || "",
-          remarks: remarks, // Add remarks
         };
 
         cartItems.push(serviceDetails);
@@ -370,15 +347,6 @@ function ServicesContent() {
       await setDoc(cartRef, { items: cartItems }, { merge: true });
       setIsCartVisible(true);
 
-      toast({
-        title: "Added to cart",
-        description: "Service has been added to your cart",
-      });
-
-      // Reset states
-      setIsRemarksDialogOpen(false);
-      setPendingServiceId(null);
-      setRemarks("");
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast({
@@ -927,35 +895,6 @@ function ServicesContent() {
         </div>
       </div>
       <Footer />
-
-      <Dialog open={isRemarksDialogOpen} onOpenChange={setIsRemarksDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Service Remarks</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Textarea
-              placeholder="Add any specific requirements or notes for this service..."
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsRemarksDialogOpen(false);
-                setPendingServiceId(null);
-                setRemarks("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddToCartWithRemarks}>Add to Cart</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

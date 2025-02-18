@@ -13,7 +13,9 @@ declare global {
 }
 
 interface PaymentButtonProps {
-  amount: number;
+  amount: number;  // This is now the final amount after coin discount
+  originalAmount?: number; // Optional: original amount before discount
+  coinsApplied?: number; // Optional: number of coins applied
   onSuccess: () => void;
   disabled?: boolean;
   className?: string;
@@ -31,6 +33,8 @@ const loadRazorpayScript = () => {
 
 const PaymentButton = ({
   amount,
+  originalAmount,
+  coinsApplied = 0,
   onSuccess,
   disabled,
   className,
@@ -53,38 +57,76 @@ const PaymentButton = ({
       return;
     }
 
+    // Ensure amount is valid (can be 0 if fully paid by coins)
+    if (amount < 0) {
+      toast({
+        title: "Error",
+        description: "Invalid payment amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If amount is 0 (fully paid by coins), skip Razorpay and call onSuccess
+    if (amount === 0) {
+      onSuccess();
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Create order
       const response = await fetch("/api/razorpay", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ 
+          amount,
+          currency: "INR",
+          receipt: `receipt_${Date.now()}`,
+          notes: {
+            originalAmount: originalAmount || amount,
+            coinsApplied: coinsApplied
+          }
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create order');
+      }
 
       const data = await response.json();
 
       if (!data.orderId) {
-        throw new Error("Failed to create order");
+        throw new Error("Failed to create order - No order ID received");
       }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: amount * 100,
+        amount: amount * 100, // Razorpay expects amount in paise
         currency: "INR",
-        name: "Your Company Name",
-        description: "Service Payment",
+        name: "Dudh.com",
+        description: coinsApplied > 0 
+          ? `Service Payment (${coinsApplied} coins applied)`
+          : "Service Payment",
         order_id: data.orderId,
         handler: function (response: any) {
-          // Payment successful
-          onSuccess();
+          verifyPayment(response);
         },
         prefill: {
           email: user.email || "",
+          contact: user.phoneNumber || "",
         },
         theme: {
           color: "#000000",
         },
+        modal: {
+          ondismiss: function() {
+            setIsLoading(false);
+          }
+        }
       };
 
       const paymentObject = new window.Razorpay(options);
@@ -93,7 +135,38 @@ const PaymentButton = ({
       console.error("Payment error:", error);
       toast({
         title: "Payment Error",
-        description: "Failed to initiate payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const verifyPayment = async (response: any) => {
+    try {
+      const verificationResponse = await fetch("/api/razorpay/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        }),
+      });
+
+      if (!verificationResponse.ok) {
+        throw new Error("Payment verification failed");
+      }
+
+      // Payment verified successfully
+      onSuccess();
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast({
+        title: "Verification Error",
+        description: "Payment verification failed. Please contact support.",
         variant: "destructive",
       });
     } finally {

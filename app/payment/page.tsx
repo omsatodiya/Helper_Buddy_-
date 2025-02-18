@@ -6,7 +6,7 @@ import Navbar from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, CreditCard, Truck, Check } from "lucide-react";
+import { Shield, CreditCard, Truck, Check, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase/firebase";
 import { doc, updateDoc, getDoc, collection, setDoc } from "firebase/firestore";
@@ -23,6 +23,9 @@ function PaymentPageContent() {
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">(
     "online"
   );
+  const [userCoins, setUserCoins] = useState(0);
+  const [appliedCoins, setAppliedCoins] = useState(0);
+  const [isApplyingCoins, setIsApplyingCoins] = useState(false);
 
   const orderId = searchParams?.get("orderId");
 
@@ -32,6 +35,31 @@ function PaymentPageContent() {
       setAmount(Number(amountFromUrl));
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const fetchUserCoins = async () => {
+      if (!user) return;
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setUserCoins(userDoc.data().coins || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching user coins:", error);
+      }
+    };
+
+    fetchUserCoins();
+  }, [user]);
+
+  const handleApplyCoins = () => {
+    if (!user) return;
+    
+    setIsApplyingCoins(true);
+    const coinsToApply = Math.min(userCoins, amount);
+    setAppliedCoins(coinsToApply);
+  };
 
   const handlePaymentSuccess = async () => {
     setIsProcessing(true);
@@ -47,7 +75,14 @@ function PaymentPageContent() {
 
       const db = getFirestore();
 
-      // Get the order details first
+      // Update user's coins if applied
+      if (appliedCoins > 0) {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          coins: userCoins - appliedCoins
+        });
+      }
+
       const orderRef = doc(db, "serviceRequests", orderId);
       const orderDoc = await getDoc(orderRef);
       const orderData = orderDoc.data();
@@ -61,11 +96,15 @@ function PaymentPageContent() {
         return;
       }
 
+      const finalAmount = amount - appliedCoins;
+
       // Create payment record
       const paymentRef = doc(collection(db, "payments"));
       await setDoc(paymentRef, {
         id: paymentRef.id,
         amount: amount,
+        coinsUsed: appliedCoins,
+        finalAmount: finalAmount,
         userId: user.uid,
         userEmail: user.email,
         orderId: orderId,
@@ -86,6 +125,8 @@ function PaymentPageContent() {
         paymentId: paymentRef.id,
         paidToProvider: orderData.providerId,
         providerName: orderData.providerName,
+        coinsUsed: appliedCoins,
+        finalAmount: finalAmount,
       });
 
       toast({
@@ -96,7 +137,11 @@ function PaymentPageContent() {
             : "Payment completed successfully",
       });
 
-      router.push("/services/orders");
+      // Add a small delay before redirecting
+      setTimeout(() => {
+        router.push("/services/orders");
+      }, 1500);
+
     } catch (error) {
       console.error("Error processing payment:", error);
       toast({
@@ -184,11 +229,21 @@ function PaymentPageContent() {
 
               {/* Amount Display */}
               <div className="border-t border-black/10 dark:border-white/10 pt-6 mb-8">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-medium">Total Amount</span>
-                  <span className="text-3xl font-bold">
-                    ₹{amount.toLocaleString("en-IN")}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                    <span className="font-medium">₹{amount.toLocaleString("en-IN")}</span>
+                  </div>
+                  {appliedCoins > 0 && (
+                    <div className="flex justify-between items-center text-green-600 dark:text-green-400">
+                      <span>Coin Discount</span>
+                      <span>-₹{appliedCoins.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-lg font-bold pt-2">
+                    <span>Total Amount</span>
+                    <span>₹{(amount - appliedCoins).toLocaleString("en-IN")}</span>
+                  </div>
                 </div>
               </div>
 
@@ -206,7 +261,9 @@ function PaymentPageContent() {
               {/* Payment Action Button */}
               {paymentMethod === "online" ? (
                 <PaymentButton
-                  amount={amount}
+                  amount={amount - appliedCoins}
+                  originalAmount={amount}
+                  coinsApplied={appliedCoins}
                   onSuccess={handlePaymentSuccess}
                   disabled={isProcessing}
                   className="w-full py-4 text-lg font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 rounded-lg transition-colors"
@@ -219,6 +276,39 @@ function PaymentPageContent() {
                 >
                   Confirm Cash on Delivery
                 </Button>
+              )}
+
+              {userCoins > 0 && (
+                <div className="border-t border-black/10 dark:border-white/10 pt-6 mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-yellow-500" />
+                      <span className="font-medium">Available Coins</span>
+                    </div>
+                    <span className="text-lg font-semibold">{userCoins}</span>
+                  </div>
+                  
+                  {!isApplyingCoins ? (
+                    <Button
+                      onClick={handleApplyCoins}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Apply {Math.min(userCoins, amount)} Coins
+                    </Button>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-green-700 dark:text-green-300">
+                          Coins Applied
+                        </span>
+                        <span className="font-semibold text-green-700 dark:text-green-300">
+                          -{appliedCoins} ₹
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">

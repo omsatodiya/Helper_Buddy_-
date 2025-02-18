@@ -175,10 +175,6 @@ const ServiceCard = memo(
 
           await setDoc(cartRef, cartData, { merge: true });
 
-          toast({
-            title: "Added to cart",
-            description: "Service has been added to your cart",
-          });
         } catch (error) {
           console.error("Error adding to cart:", error);
           toast({
@@ -226,10 +222,6 @@ const ServiceCard = memo(
             await setDoc(cartRef, { items: updatedItems }, { merge: true });
 
             if (newQuantity === 0) {
-              toast({
-                title: "Removed from cart",
-                description: "Service has been removed from your cart",
-              });
             }
           }
         } catch (error) {
