@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
-import { getFirestore, collection, getDocs, addDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, addDoc, query, where, updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 import { Service } from "@/types/service";
 import { Search } from "lucide-react";
@@ -262,28 +262,61 @@ export default function LandingPage() {
 
     if (!serviceExists) {
       try {
-        // Store the unavailable service search
-        await addDoc(collection(db, "service-requests"), {
-          serviceName: searchQuery.trim(),
-          description: "User searched for this unavailable service",
-          status: "pending",
-          createdAt: new Date().toISOString(),
-          source: "search",
-          userInfo: user ? {
-            userId: user.uid,
-            email: user.email
-          } : {
-            userId: 'anonymous',
-            email: 'anonymous'
-          }
-        });
+        const searchTerm = searchQuery.trim().toLowerCase();
+        const searchStatsRef = collection(db, "search-statistics");
+        
+        // Get the existing stats document
+        const statsQuery = query(
+          searchStatsRef, 
+          where("term", "==", searchTerm)
+        );
+        const statsSnapshot = await getDocs(statsQuery);
+
+        if (statsSnapshot.empty) {
+          // Create new stats entry if it doesn't exist
+          await addDoc(searchStatsRef, {
+            term: searchTerm,
+            frequency: 1,
+            lastSearched: new Date().toISOString(),
+            firstSearched: new Date().toISOString(),
+            userInfo: user ? {
+              lastSearchedBy: {
+                userId: user.uid,
+                email: user.email
+              }
+            } : {
+              lastSearchedBy: {
+                userId: 'anonymous',
+                email: 'anonymous'
+              }
+            }
+          });
+        } else {
+          // Update existing stats entry
+          const statsDoc = statsSnapshot.docs[0];
+          await updateDoc(doc(db, "search-statistics", statsDoc.id), {
+            frequency: increment(1),
+            lastSearched: new Date().toISOString(),
+            userInfo: user ? {
+              lastSearchedBy: {
+                userId: user.uid,
+                email: user.email
+              }
+            } : {
+              lastSearchedBy: {
+                userId: 'anonymous',
+                email: 'anonymous'
+              }
+            }
+          });
+        }
 
         toast({
           title: "Service Not Available",
           description: "We've noted your interest in this service.",
         });
       } catch (error) {
-        console.error("Error logging service request:", error);
+        console.error("Error logging search statistics:", error);
       }
     }
 

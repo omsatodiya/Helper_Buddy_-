@@ -6,61 +6,63 @@ import { collection, getDocs, query, orderBy, deleteDoc, doc } from "firebase/fi
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Trash2, ArrowLeft } from "lucide-react";
+import { Trash2, ArrowLeft, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-interface ServiceRequest {
+interface SearchStatistic {
   id: string;
-  serviceName: string;
-  description: string;
-  createdAt: string;
-  source: string;
+  term: string;
+  frequency: number;
+  lastSearched: string;
+  firstSearched: string;
   userInfo: {
-    userId: string;
-    email: string;
+    lastSearchedBy: {
+      userId: string;
+      email: string;
+    };
   };
 }
 
 export default function ServiceRequestsPage() {
   const router = useRouter();
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [searchStats, setSearchStats] = useState<SearchStatistic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchRequests();
+    fetchSearchStats();
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchSearchStats = async () => {
     try {
       const q = query(
-        collection(db, "service-requests"),
-        orderBy("createdAt", "desc")
+        collection(db, "search-statistics"),
+        orderBy("frequency", "desc")
       );
       const snapshot = await getDocs(q);
-      const requestsData = snapshot.docs.map((doc) => ({
+      const statsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      })) as ServiceRequest[];
-      setRequests(requestsData);
+      })) as SearchStatistic[];
+      setSearchStats(statsData);
     } catch (error) {
-      console.error("Error fetching requests:", error);
+      console.error("Error fetching search statistics:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDelete = async (requestId: string) => {
+  const handleDelete = async (statId: string) => {
     try {
-      await deleteDoc(doc(db, "service-requests", requestId));
+      await deleteDoc(doc(db, "search-statistics", statId));
       toast({
-        title: "Request Deleted",
-        description: "Service request has been removed",
+        title: "Statistic Deleted",
+        description: "Search statistic has been removed",
       });
-      fetchRequests();
+      fetchSearchStats();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete request",
+        description: "Failed to delete statistic",
         variant: "destructive",
       });
     }
@@ -77,8 +79,8 @@ export default function ServiceRequestsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Service Requests</h1>
-          <p className="text-gray-500">View requested services from users</p>
+          <h1 className="text-3xl font-bold">Search Statistics</h1>
+          <p className="text-gray-500">View trending service requests from users</p>
         </div>
       </div>
 
@@ -86,37 +88,43 @@ export default function ServiceRequestsPage() {
         <div className="text-center py-8">Loading...</div>
       ) : (
         <div className="grid gap-4">
-          {requests.map((request) => (
+          {searchStats.map((stat) => (
             <div
-              key={request.id}
-              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              key={stat.id}
+              className="bg-white dark:bg-black p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">{request.serviceName}</h3>
-                  <p className="text-sm text-gray-500">{request.description}</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold capitalize">{stat.term}</h3>
+                    <span className="flex items-center gap-1 text-sm text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full">
+                      <TrendingUp className="w-3 h-3" />
+                      {stat.frequency} searches
+                    </span>
+                  </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    From: {request.userInfo.email || 'Anonymous'}
+                    Last searched by: {stat.userInfo.lastSearchedBy.email || 'Anonymous'}
                   </p>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">
-                  {format(new Date(request.createdAt), "PPp")}
-                </span>
+                <div className="text-sm text-gray-500">
+                  <div>First searched: {format(new Date(stat.firstSearched), "PPp")}</div>
+                  <div>Last searched: {format(new Date(stat.lastSearched), "PPp")}</div>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleDelete(request.id)}
+                  onClick={() => handleDelete(stat.id)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           ))}
-          {requests.length === 0 && (
+          {searchStats.length === 0 && (
             <p className="text-center text-gray-500 py-4">
-              No service requests found
+              No search statistics found
             </p>
           )}
         </div>
