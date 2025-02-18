@@ -143,85 +143,71 @@ const cleaningServices = [
   },
 ];
 
-function ServicesCarousel() {
-  const router = useRouter();
-
-  return (
-    <section className="py-12 bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            AC & Appliance Repair
-          </h2>
-          <button
-            onClick={() => router.push("/services")}
-            className="text-primary hover:underline"
-          >
-            See all
-          </button>
-        </div>
-
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full"
-        >
-          <CarouselContent>
-            {services.map((service) => (
-              <CarouselItem
-                key={service.id}
-                className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-              >
-                <div className="p-1">
-                  <Card
-                    className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => router.push(service.path)}
-                  >
-                    <CardContent className="p-0">
-                      <div className="relative aspect-square">
-                        <Image
-                          src={service.image}
-                          alt={service.title}
-                          fill
-                          className="object-cover rounded-t-lg"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-1">
-                          {service.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {service.description}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="hidden md:flex" />
-          <CarouselNext className="hidden md:flex" />
-        </Carousel>
-      </div>
-    </section>
-  );
+// Create a type for category configuration
+interface CategoryConfig {
+  title: string;
+  categories: string[];
+  path: string;
 }
 
-function CleaningServicesCarousel() {
+// Define the categories configuration
+const CATEGORY_CONFIGS: CategoryConfig[] = [
+  {
+    title: "Cleaning Services",
+    categories: ["Bathroom Kitchen Cleaning", "Cleaning"],
+    path: "/services/cleaning"
+  },
+  {
+    title: "Home Services",
+    categories: ["Electrician", "Plumber"],
+    path: "/services"
+  }
+];
+
+// Create a reusable carousel component
+function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
   const router = useRouter();
+  const [servicesData, setServicesData] = useState<Service[]>([]);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const db = getFirestore();
+        const servicesRef = collection(db, "services");
+        const q = query(
+          servicesRef,
+          where("category", "in", config.categories),
+          limit(5)
+        );
+        
+        const snapshot = await getDocs(q);
+        const services = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Service[];
+        
+        setServicesData(services);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    fetchServices();
+  }, [config.categories]);
+
+  const handleServiceClick = (serviceName: string) => {
+    router.push(`/services?search=${encodeURIComponent(serviceName)}`);
+  };
 
   return (
     <section className="py-12 bg-white dark:bg-gray-800">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Cleaning & Pest Control
+            {config.title}
           </h2>
           <button
-            onClick={() => router.push("/services/cleaning")}
+            onClick={() => router.push(config.path)}
             className="text-primary hover:underline"
           >
             See all
@@ -236,7 +222,7 @@ function CleaningServicesCarousel() {
           className="w-full"
         >
           <CarouselContent>
-            {cleaningServices.map((service) => (
+            {servicesData.map((service) => (
               <CarouselItem
                 key={service.id}
                 className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
@@ -244,24 +230,21 @@ function CleaningServicesCarousel() {
                 <div className="p-1">
                   <Card
                     className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => router.push(service.path)}
+                    onClick={() => handleServiceClick(service.name)}
                   >
                     <CardContent className="p-0">
                       <div className="relative aspect-square">
                         <Image
-                          src={service.image}
-                          alt={service.title}
+                          src={service.images?.[0]?.url || "/placeholder-image.jpg"}
+                          alt={service.name}
                           fill
                           className="object-cover rounded-t-lg"
                         />
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-1">
-                          {service.title}
+                      <div className="p-2 text-center">
+                        <h3 className="font-semibold text-lg">
+                          {service.name}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {service.description}
-                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -416,8 +399,12 @@ export default function Home() {
         </div>
 
         <div className="bg-white dark:bg-gray-900">
-          <ServicesCarousel />
-          <CleaningServicesCarousel />
+          {CATEGORY_CONFIGS.map((config, index) => (
+            <ServicesCategoryCarousel 
+              key={config.title} 
+              config={config} 
+            />
+          ))}
           <div className="container mx-auto px-4 py-12">
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
