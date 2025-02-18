@@ -67,81 +67,7 @@ const items = [
 ];
 
 
-const services = [
-  {
-    id: 1,
-    title: "AC Service and Repair",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Professional AC maintenance and repair services",
-    path: "/services/ac-repair",
-  },
-  {
-    id: 2,
-    title: "Washing Machine Repair",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Expert washing machine repair and servicing",
-    path: "/services/washing-machine",
-  },
-  {
-    id: 3,
-    title: "Water Purifier Repair",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Quality water purifier maintenance and repairs",
-    path: "/services/water-purifier",
-  },
-  {
-    id: 4,
-    title: "Refrigerator Repair",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Professional refrigerator repair services",
-    path: "/services/refrigerator",
-  },
-  {
-    id: 5,
-    title: "Microwave Repair",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Expert microwave repair and maintenance",
-    path: "/services/microwave",
-  },
-];
 
-const cleaningServices = [
-  {
-    id: 1,
-    title: "Home Deep Cleaning",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Professional home deep cleaning services",
-    path: "/services/home-cleaning",
-  },
-  {
-    id: 2,
-    title: "Pest Control",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Complete pest control solutions",
-    path: "/services/pest-control",
-  },
-  {
-    id: 3,
-    title: "Carpet Cleaning",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Expert carpet cleaning services",
-    path: "/services/carpet-cleaning",
-  },
-  {
-    id: 4,
-    title: "Sofa Cleaning",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Professional sofa cleaning services",
-    path: "/services/sofa-cleaning",
-  },
-  {
-    id: 5,
-    title: "Kitchen Deep Cleaning",
-    image: "https://picsum.photos/id/237/200/300",
-    description: "Thorough kitchen cleaning services",
-    path: "/services/kitchen-cleaning",
-  },
-];
 
 // Create a type for category configuration
 interface CategoryConfig {
@@ -155,7 +81,7 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
   {
     title: "Cleaning Services",
     categories: ["Bathroom Kitchen Cleaning", "Cleaning"],
-    path: "/services/cleaning"
+    path: "/services"
   },
   {
     title: "Home Services",
@@ -200,10 +126,10 @@ function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
   };
 
   return (
-    <section className="py-12 bg-white dark:bg-gray-800">
+    <section className="py-12 bg-white dark:bg-gray-950">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-3xl  font-extrabold text-gray-900 dark:text-white">
             {config.title}
           </h2>
           <button
@@ -229,7 +155,7 @@ function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
               >
                 <div className="p-1">
                   <Card
-                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-black dark:border-white transform transition-transform duration-200 hover:scale-105"
                     onClick={() => handleServiceClick(service.name)}
                   >
                     <CardContent className="p-0">
@@ -398,7 +324,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-950">
           {CATEGORY_CONFIGS.map((config, index) => (
             <ServicesCategoryCarousel 
               key={config.title} 
@@ -406,12 +332,12 @@ export default function Home() {
             />
           ))}
           <div className="container mx-auto px-4 py-12">
-            <div className="mb-12">
+            {/* <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
                 Browse by Category
               </h2>
               <ServiceFilters />
-            </div>
+            </div> */}
 
             <Testimonials />
 
