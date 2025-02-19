@@ -66,9 +66,6 @@ const items = [
     "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
 ];
 
-
-
-
 // Create a type for category configuration
 interface CategoryConfig {
   title: string;

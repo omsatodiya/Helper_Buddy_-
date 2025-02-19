@@ -146,8 +146,8 @@ const Footer = () => {
             </p>
             <div className="mt-4">
               <h4 className="font-montserrat font-semibold mb-2">Contact Us</h4>
-              <p className="text-gray-300 font-inter">Email: info@helperbuddy.in</p>
-              <p className="text-gray-300 font-inter">Phone: +91 XXXXX XXXXX</p>
+              <p className="text-gray-300 font-inter">Email: dudhkela@support.in</p>
+              <p className="text-gray-300 font-inter">Phone: +91 12345 67890</p>
             </div>
           </div>
 
@@ -155,20 +155,24 @@ const Footer = () => {
           <div ref={(el) => addToColumnsRef(el, 1)}>
             <h3 className="text-xl font-montserrat font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {["Home", "About Us", "Services", "Contact", "Careers"].map(
-                (item) => (
-                  <li key={item}>
-                    <Link
-                      href={`/${item.toLowerCase().replace(" ", "-")}`}
-                      className="text-gray-300 hover:text-white transition-colors font-inter tracking-wide block"
-                      onMouseEnter={(e) => handleHover(e.currentTarget)}
-                      onMouseLeave={(e) => handleHoverExit(e.currentTarget)}
-                    >
-                      {item}
-                    </Link>
-                  </li>
-                )
-              )}
+              {[
+                { name: "Home", path: "/" },
+                { name: "Services", path: "/services" },
+                { name: "My Orders", path: "/services/orders" },
+                { name: "Contact", path: "/contact" },
+                { name: "Become a Provider", path: "/become-provider" }
+              ].map((item) => (
+                <li key={item.name}>
+                  <Link
+                    href={item.path}
+                    className="text-gray-300 hover:text-white transition-colors font-inter tracking-wide block"
+                    onMouseEnter={(e) => handleHover(e.currentTarget)}
+                    onMouseLeave={(e) => handleHoverExit(e.currentTarget)}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -177,19 +181,19 @@ const Footer = () => {
             <h3 className="text-xl font-montserrat font-bold mb-4">Our Services</h3>
             <ul className="space-y-2">
               {[
-                "House Cleaning",
-                "Cook Services",
-                "Elderly Care",
-                "Kitchen Cleaning",
+                { name: "AC Repair", path: "/services?category=ac-repair" },
+                { name: "Plumbing", path: "/services?category=plumbing" },
+                { name: "Electrical", path: "/services?category=electrical" },
+                { name: "Cleaning", path: "/services?category=cleaning" },
               ].map((service) => (
-                <li key={service}>
+                <li key={service.name}>
                   <Link
-                    href={`/services/${service.toLowerCase().replace(" ", "-")}`}
+                    href={service.path}
                     className="text-gray-300 hover:text-white transition-colors font-inter tracking-wide block"
                     onMouseEnter={(e) => handleHover(e.currentTarget)}
                     onMouseLeave={(e) => handleHoverExit(e.currentTarget)}
                   >
-                    {service}
+                    {service.name}
                   </Link>
                 </li>
               ))}

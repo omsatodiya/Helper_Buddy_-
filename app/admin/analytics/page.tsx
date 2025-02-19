@@ -79,6 +79,17 @@ interface AnalyticsData {
   };
 }
 
+interface ServiceOrderData {
+  id: string;
+  status: string;
+  items?: {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+}
+
 export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -106,10 +117,11 @@ export default function AnalyticsPage() {
         const db = getFirestore();
 
         // Fetch collections
-        const [usersSnap, paymentsSnap, servicesSnap] = await Promise.all([
+        const [usersSnap, paymentsSnap, servicesSnap, serviceRequestsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "payments")),
           getDocs(collection(db, "services")),
+          getDocs(collection(db, "serviceRequests")),
         ]);
 
         // Process users data
@@ -179,12 +191,30 @@ export default function AnalyticsPage() {
           admin: users.filter((user) => user.role === "admin").length,
         };
 
-        // Calculate service popularity
-        const serviceUsage = servicesSnap.docs
-          .map((doc) => ({
-            name: doc.data().name,
-            count: payments.filter((p) => p.serviceId === doc.id).length,
-          }))
+        // Update the service popularity calculation
+        const serviceOrders = serviceRequestsSnap.docs
+          .filter(doc => doc.data().status === "paid")
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as ServiceOrderData[];
+
+        // Create a map to store service counts
+        const serviceCountMap = new Map();
+
+        // Count services from orders
+        serviceOrders.forEach(order => {
+          if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+              const count = serviceCountMap.get(item.name) || 0;
+              serviceCountMap.set(item.name, count + 1);
+            });
+          }
+        });
+
+        // Convert to array and get top 5
+        const serviceUsage = Array.from(serviceCountMap.entries())
+          .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
@@ -215,8 +245,8 @@ export default function AnalyticsPage() {
             data: [userTypes.regular, userTypes.provider, userTypes.admin],
           },
           servicePopularity: {
-            labels: serviceUsage.map((s) => s.name),
-            data: serviceUsage.map((s) => s.count),
+            labels: serviceUsage.map(s => s.name),
+            data: serviceUsage.map(s => s.count),
           },
         });
       } catch (error) {
@@ -392,16 +422,16 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Popular Services */}
+        {/* Most Ordered Services */}
         <div className="bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Popular Services</h3>
+          <h3 className="text-lg font-semibold mb-4">Most Ordered Services</h3>
           <div className="h-[250px]">
             <Bar
               data={{
                 labels: analyticsData.servicePopularity.labels,
                 datasets: [
                   {
-                    label: "Bookings",
+                    label: "Total Orders",
                     data: analyticsData.servicePopularity.data,
                     backgroundColor: "#8b5cf6",
                   },
@@ -415,6 +445,13 @@ export default function AnalyticsPage() {
                   legend: {
                     display: false,
                   },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        return `Orders: ${context.parsed.x}`;
+                      }
+                    }
+                  }
                 },
                 scales: {
                   x: {
@@ -422,6 +459,10 @@ export default function AnalyticsPage() {
                     grid: {
                       display: false,
                     },
+                    title: {
+                      display: true,
+                      text: "Number of Orders"
+                    }
                   },
                   y: {
                     grid: {
