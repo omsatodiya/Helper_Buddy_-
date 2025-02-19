@@ -326,17 +326,17 @@ export default function LandingPage() {
   };
 
   return (
-    <div ref={containerRef} className="bg-white dark:bg-black min-h-screen relative overflow-visible">
-      {/* Theme Toggle - Add this near the top of the content */}
+    <div ref={containerRef} className="min-h-screen relative overflow-visible">
+      {/* Theme Toggle */}
       <div className="absolute top-4 right-4 z-50">
         <ThemeToggle />
       </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-100/50 to-white dark:via-black/50 dark:to-black pointer-events-none" />
+      {/* Update gradient overlay to be more transparent */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-100/30 to-white/30 dark:via-black/30 dark:to-black/30 pointer-events-none" />
 
-      {/* Main content */}
-      <div className="relative  z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
+      {/* Main content - remove background colors */}
+      <div className="relative z-10 container mx-auto px-4 min-h-screen flex flex-col justify-center items-center">
         <div className="text-center">
           <h1 ref={headingRef} className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-10 opacity-0">
             Welcome to{" "}
