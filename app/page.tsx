@@ -7,7 +7,7 @@ import Testimonials from "@/components/FAQ/Testimonials";
 import FAQ from "@/components/FAQ/FAQ";
 import ServiceFilters from "@/components/services/ServiceFilters";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { Service, SimpleService } from "@/types/service";
 import ServiceCard from "@/components/services/ServiceCard";
 import {
@@ -36,34 +36,34 @@ import { useRouter } from "next/navigation";
 import GridMotion from "@/components/landing/GridMotion";
 
 const items = [
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707739/blogs/omi4p0f5ymcneegwyebi.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706688/blogs/xvhugdmaklkbt1yeocwc.webp",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
-    "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707739/blogs/omi4p0f5ymcneegwyebi.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706688/blogs/xvhugdmaklkbt1yeocwc.webp",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707290/blogs/wjzg3llntnuaugdqsu5c.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707384/blogs/wrzhpejhtovejqctb4ed.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739742616/blogs/itt1hjptb75wtdkdberm.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739706490/blogs/g0faa5w3nrkazzzsu569.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707225/blogs/ycijlchxucsfrgkss1o7.avif",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739825538/blogs/hboee5gskpguzy9oyqvu.jpg",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707136/blogs/pkywrbv5n1nmbisrfhdk.webp",
+  "https://res.cloudinary.com/dylgppwvp/image/upload/v1739707489/blogs/tdv7sth80nie8mmcegox.avif",
 ];
 
 // Create a type for category configuration
@@ -78,13 +78,13 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
   {
     title: "Cleaning Services",
     categories: ["Bathroom Kitchen Cleaning", "Cleaning"],
-    path: "/services"
+    path: "/services",
   },
   {
     title: "Home Services",
     categories: ["Electrician", "Plumber"],
-    path: "/services"
-  }
+    path: "/services",
+  },
 ];
 
 // Create a reusable carousel component
@@ -102,13 +102,13 @@ function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
           where("category", "in", config.categories),
           limit(5)
         );
-        
+
         const snapshot = await getDocs(q);
-        const services = snapshot.docs.map(doc => ({
+        const services = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         })) as Service[];
-        
+
         setServicesData(services);
       } catch (error) {
         console.error("Error fetching services:", error);
@@ -122,15 +122,23 @@ function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
     router.push(`/services?search=${encodeURIComponent(serviceName)}`);
   };
 
+  const handleSeeAll = () => {
+    // Encode the categories as a search query
+    const searchQuery = encodeURIComponent(
+      config.title.replace(" Services", "")
+    );
+    router.push(`${config.path}?search=${searchQuery}`);
+  };
+
   return (
     <section className="py-12 bg-white dark:bg-gray-950">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl  font-extrabold text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
             {config.title}
           </h2>
           <button
-            onClick={() => router.push(config.path)}
+            onClick={handleSeeAll}
             className="text-primary hover:underline"
           >
             See all
@@ -150,15 +158,18 @@ function ServicesCategoryCarousel({ config }: { config: CategoryConfig }) {
                 key={service.id}
                 className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
               >
-                <div className="p-1">
+                <div className="p-4">
                   <Card
-                    className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-black dark:border-white transform transition-transform duration-200 hover:scale-105"
+                    className="cursor-pointer hover:shadow-lg border-2 border-black dark:border-white 
+                    transition-all duration-200 hover:scale-105 relative z-10 hover:z-20"
                     onClick={() => handleServiceClick(service.name)}
                   >
                     <CardContent className="p-0">
                       <div className="relative aspect-square">
                         <Image
-                          src={service.images?.[0]?.url || "/placeholder-image.jpg"}
+                          src={
+                            service.images?.[0]?.url || "/placeholder-image.jpg"
+                          }
                           alt={service.name}
                           fill
                           className="object-cover rounded-t-lg"
@@ -192,6 +203,9 @@ export default function Home() {
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [newestServices, setNewestServices] = useState<Service[]>([]);
+  const [mostBookedServices, setMostBookedServices] = useState<Service[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const handleStart = () => {
@@ -235,6 +249,56 @@ export default function Home() {
       )
     );
   };
+
+  // Add this useEffect to fetch newest services
+  useEffect(() => {
+    const fetchNewestServices = async () => {
+      try {
+        const db = getFirestore();
+        const servicesRef = collection(db, "services");
+        const q = query(servicesRef, orderBy("createdAt", "desc"), limit(8));
+
+        const snapshot = await getDocs(q);
+        const services = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
+
+        setNewestServices(services);
+      } catch (error) {
+        console.error("Error fetching newest services:", error);
+      }
+    };
+
+    fetchNewestServices();
+  }, []);
+
+  // Add this useEffect to fetch most booked services
+  useEffect(() => {
+    const fetchMostBookedServices = async () => {
+      try {
+        const db = getFirestore();
+        const servicesRef = collection(db, "services");
+        const q = query(
+          servicesRef,
+          orderBy("totalReviews", "desc"), // Order by total reviews in descending order
+          limit(8)
+        );
+
+        const snapshot = await getDocs(q);
+        const services = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
+
+        setMostBookedServices(services);
+      } catch (error) {
+        console.error("Error fetching most booked services:", error);
+      }
+    };
+
+    fetchMostBookedServices();
+  }, []);
 
   const ServiceSection = ({
     title,
@@ -297,6 +361,10 @@ export default function Home() {
     </div>
   );
 
+  const handleServiceClick = (serviceName: string) => {
+    router.push(`/services?search=${encodeURIComponent(serviceName)}`);
+  };
+
   return (
     <>
       {loading && <Preloader onLoadingComplete={() => setLoading(false)} />}
@@ -308,37 +376,162 @@ export default function Home() {
         <Header />
         <div className="relative h-screen">
           <div className="absolute inset-0 z-0 opacity-60">
-            <GridMotion 
-              items={items} 
-              gradientColor="rgba(0, 0, 0, 0.6)"
-            />
+            <GridMotion items={items} gradientColor="rgba(0, 0, 0, 0.6)" />
           </div>
-          
+
           <div className="absolute inset-0 z-5 bg-black opacity-50"></div>
-          
+
           <div className="relative z-10 h-full">
             <LandingPage />
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-950">
+          {/* Most Booked Services Section First */}
+          <section className="py-12 bg-white dark:bg-gray-950">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+                  Most Booked Services
+                </h2>
+              </div>
+
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {mostBookedServices.map((service) => (
+                    <CarouselItem
+                      key={service.id}
+                      className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                    >
+                      <div className="p-4">
+                        <Card
+                          className="cursor-pointer hover:shadow-lg border-2 border-black dark:border-white 
+                          transition-all duration-200 hover:scale-105 relative z-10 hover:z-20"
+                          onClick={() => handleServiceClick(service.name)}
+                        >
+                          <CardContent className="p-0">
+                            <div className="relative aspect-square">
+                              <Image
+                                src={
+                                  service.images?.[0]?.url ||
+                                  "/placeholder-image.jpg"
+                                }
+                                alt={service.name}
+                                fill
+                                className="object-cover rounded-t-lg"
+                              />
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-semibold text-lg text-center">
+                                {service.name}
+                              </h3>
+                              <div className="mt-2 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="flex items-center">
+                                  <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                                  {service.rating?.toFixed(1) || "0.0"}
+                                </span>
+                                <span>•</span>
+                                <span>{service.totalReviews || 0} reviews</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex" />
+                <CarouselNext className="hidden md:flex" />
+              </Carousel>
+            </div>
+          </section>
+
+          {/* Newest Services Section Second */}
+          <section className="py-12 bg-white dark:bg-gray-950">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+                  Newest Services
+                </h2>
+              </div>
+
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {newestServices.map((service) => (
+                    <CarouselItem
+                      key={service.id}
+                      className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                    >
+                      <div className="p-4">
+                        <Card
+                          className="cursor-pointer hover:shadow-lg border-2 border-black dark:border-white 
+                          transition-all duration-200 hover:scale-105 relative z-10 hover:z-20"
+                          onClick={() => handleServiceClick(service.name)}
+                        >
+                          <CardContent className="p-0">
+                            <div className="relative aspect-square">
+                              <Image
+                                src={
+                                  service.images?.[0]?.url ||
+                                  "/placeholder-image.jpg"
+                                }
+                                alt={service.name}
+                                fill
+                                className="object-cover rounded-t-lg"
+                              />
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-semibold text-lg text-center">
+                                {service.name}
+                              </h3>
+                              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                Added{" "}
+                                {new Date(
+                                  service.createdAt
+                                ).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex" />
+                <CarouselNext className="hidden md:flex" />
+              </Carousel>
+            </div>
+          </section>
+
+          {/* Category-specific Services Last */}
           {CATEGORY_CONFIGS.map((config, index) => (
-            <ServicesCategoryCarousel 
-              key={config.title} 
-              config={config} 
-            />
+            <ServicesCategoryCarousel key={config.title} config={config} />
           ))}
-          <div className="container mx-auto px-4 py-12">
-            {/* <div className="mb-12">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
-                Browse by Category
-              </h2>
-              <ServiceFilters />
-            </div> */}
 
-            <Testimonials />
+          <div className="w-full px-4 py-12">
+            <div className="w-full bg-white dark:bg-gray-950">
+              <div className="container mx-auto">
+                <Testimonials />
+              </div>
+            </div>
 
-            <FAQ />
+            <div className="w-full bg-white dark:bg-gray-950">
+              <div className="container mx-auto">
+                <FAQ />
+              </div>
+            </div>
           </div>
         </div>
         <Footer />

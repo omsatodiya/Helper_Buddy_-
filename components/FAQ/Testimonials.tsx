@@ -1,10 +1,16 @@
-"use client"
-import React, { useEffect, useRef } from 'react';
-import { Star } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import gsap from 'gsap';
+"use client";
+import React, { useEffect, useRef } from "react";
+import { Star } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import gsap from "gsap";
 
 interface Review {
   id: number;
@@ -21,43 +27,43 @@ const defaultReviews: Review[] = [
     name: "Priya Patel",
     rating: 5,
     text: "The AC cleaning service was thorough and efficient. My home feels fresh and cool again. Thank you.",
-    avatar: "https://picsum.photos/seed/priya/100/100"
+    avatar: "https://picsum.photos/seed/priya/100/100",
   },
   {
     id: 2,
     name: "Purvi Patel",
     rating: 5,
     text: "Helper Buddy transformed my home with their exceptional cleaning service. Highly recommend for any cleaning needs.",
-    avatar: "https://picsum.photos/seed/purvi/100/100"
+    avatar: "https://picsum.photos/seed/purvi/100/100",
   },
   {
     id: 3,
     name: "Rahul Shah",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "https://picsum.photos/seed/rahul/100/100"
+    avatar: "https://picsum.photos/seed/rahul/100/100",
   },
   {
     id: 4,
     name: "Jay Patel",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "https://picsum.photos/seed/jay/100/100"
+    avatar: "https://picsum.photos/seed/jay/100/100",
   },
   {
     id: 5,
     name: "Pura Shah",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "https://picsum.photos/seed/pura/100/100"
+    avatar: "https://picsum.photos/seed/pura/100/100",
   },
   {
     id: 6,
     name: "Satu Patel",
     rating: 4,
     text: "Great handyman service! Fixed multiple issues in my apartment in just one visit. Very professional team.",
-    avatar: "https://picsum.photos/seed/satu/100/100"
-  }
+    avatar: "https://picsum.photos/seed/satu/100/100",
+  },
 ];
 
 interface TestimonialsProps {
@@ -68,8 +74,12 @@ interface StarRatingProps {
   rating: number;
 }
 
-const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultReviews }) => {
-  const reviews = Array.isArray(initialReviews) ? initialReviews : defaultReviews;
+const Testimonials: React.FC<TestimonialsProps> = ({
+  initialReviews = defaultReviews,
+}) => {
+  const reviews = Array.isArray(initialReviews)
+    ? initialReviews
+    : defaultReviews;
   const carouselRef = useRef<HTMLDivElement>(null);
   const carouselWrapperRef = useRef<HTMLDivElement>(null);
   const animation = useRef<gsap.core.Tween | null>(null);
@@ -82,7 +92,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
 
     const firstCard = carousel.children[0] as HTMLElement;
     if (!firstCard) return;
-    
+
     // Reset position when animation completes
     const resetPosition = () => {
       const lastCard = carousel.children[reviews.length - 1] as HTMLElement;
@@ -112,18 +122,20 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
 
     // Initial setup
     const setupCarousel = () => {
-      Array.from(carousel.children).slice(0, 4).forEach(child => {
-        const clonedItem = child.cloneNode(true) as HTMLElement;
-        carousel.appendChild(clonedItem);
-      });
-      
+      Array.from(carousel.children)
+        .slice(0, 4)
+        .forEach((child) => {
+          const clonedItem = child.cloneNode(true) as HTMLElement;
+          carousel.appendChild(clonedItem);
+        });
+
       createInfiniteScroll();
 
       // Add hover handlers to each card
-      const cards = carousel.querySelectorAll('.review-card');
-      cards.forEach(card => {
-        card.addEventListener('mouseenter', () => animation.current?.pause());
-        card.addEventListener('mouseleave', () => animation.current?.play());
+      const cards = carousel.querySelectorAll(".review-card");
+      cards.forEach((card) => {
+        card.addEventListener("mouseenter", () => animation.current?.pause());
+        card.addEventListener("mouseleave", () => animation.current?.play());
       });
     };
 
@@ -132,10 +144,12 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
     return () => {
       animation.current?.kill();
       // Remove event listeners if needed
-      const cards = carousel.querySelectorAll('.review-card');
-      cards.forEach(card => {
-        card.removeEventListener('mouseenter', () => animation.current?.pause());
-        card.removeEventListener('mouseleave', () => animation.current?.play());
+      const cards = carousel.querySelectorAll(".review-card");
+      cards.forEach((card) => {
+        card.removeEventListener("mouseenter", () =>
+          animation.current?.pause()
+        );
+        card.removeEventListener("mouseleave", () => animation.current?.play());
       });
     };
   }, [reviews]);
@@ -147,7 +161,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
           key={index}
           size={20}
           className={`${
-            index < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
+            index < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
           }`}
         />
       ))}
@@ -172,24 +186,19 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
           <p className="text-foreground/80 mb-8">
             Read trusted reviews from our happy customers
           </p>
-          
-        
         </div>
 
-        <div 
+        <div
           ref={carouselWrapperRef}
           className="relative w-full overflow-hidden h-64"
         >
-          <div 
+          <div
             ref={carouselRef}
             className="flex gap-8 absolute left-0 top-0"
-            style={{ width: 'max-content' }}
+            style={{ width: "max-content" }}
           >
             {reviews.map((review) => (
-              <div
-                key={review.id}
-                className="w-80 flex-shrink-0 review-card"
-              >
+              <div key={review.id} className="w-80 flex-shrink-0 review-card">
                 <Card className="bg-background border-border shadow-lg h-full hover:border-foreground/20 transition-colors duration-300">
                   <CardContent className="pt-6">
                     <div className="flex items-center mb-4">
@@ -205,9 +214,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ initialReviews = defaultRev
                         <StarRating rating={review.rating} />
                       </div>
                     </div>
-                    <p className="text-foreground/80">
-                      {review.text}
-                    </p>
+                    <p className="text-foreground/80">{review.text}</p>
                   </CardContent>
                 </Card>
               </div>

@@ -1,5 +1,5 @@
-import Image from 'next/image';
-import { useState } from 'react';
+import Image from "next/image";
+import { useState } from "react";
 
 interface SafeImageProps {
   src: string;
@@ -11,14 +11,16 @@ const SafeImage: React.FC<SafeImageProps> = ({ src, alt, className }) => {
   const [error, setError] = useState(false);
 
   // Default image to show on error
-  const fallbackImage = '/placeholder-image.jpg'; // Create a placeholder image in your public folder
+  const fallbackImage = "/placeholder-image.jpg"; // Create a placeholder image in your public folder
 
   // Check if the image is an external URL
-  const isExternal = src.startsWith('http') || src.startsWith('https');
+  const isExternal = src.startsWith("http") || src.startsWith("https");
 
   if (error || !src) {
     return (
-      <div className={`bg-gray-200 flex items-center justify-center ${className}`}>
+      <div
+        className={`bg-gray-200 flex items-center justify-center ${className}`}
+      >
         <span className="text-gray-400">Image not available</span>
       </div>
     );
@@ -50,4 +52,4 @@ const SafeImage: React.FC<SafeImageProps> = ({ src, alt, className }) => {
   );
 };
 
-export default SafeImage; 
+export default SafeImage;
