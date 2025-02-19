@@ -17,6 +17,13 @@ import { cn } from "@/lib/utils";
 import AdminProtected from '@/components/auth/AdminProtected';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { validateImage } from '@/lib/imageUtils';
+import {
+  Label,
+  Input,
+  Textarea,
+  Editor,
+} from "@/components/ui/label";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 const tags = ['Beauty', 'Lifestyle', 'Homepage', 'Fashion', 'Health', 'Food'];
 
@@ -57,6 +64,7 @@ const EditBlog = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [newTag, setNewTag] = useState('');
 
   const getCurrentStepFields = () => {
     switch (currentStep) {
@@ -521,22 +529,15 @@ const EditBlog = () => {
   return (
     <div ref={containerRef} className="min-h-screen bg-white dark:bg-black py-12">
       <div className="max-w-3xl mx-auto px-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-8 text-black dark:text-white opacity-75 hover:opacity-100 group"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
-          Back to Blog
-        </Button>
-
-        <div className="header-content text-center mb-12">
-          <h1 className="text-4xl font-bold text-black dark:text-white mb-4">
-            Edit Blog Post
-          </h1>
-          <p className="text-black dark:text-white opacity-75">
-            Update your thoughts and ideas
-          </p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.push('/admin/blogs')}
+            className="hover:bg-transparent p-0 h-auto"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-2xl sm:text-3xl font-bold">Edit Blog Post</h1>
         </div>
 
         <div ref={formRef} className="bg-white dark:bg-black rounded-2xl shadow-xl border border-black dark:border-white p-8">
@@ -544,8 +545,9 @@ const EditBlog = () => {
             {renderStepContent()}
 
             {/* Step Navigation and Action Buttons */}
-            <div className="flex justify-between items-center pt-6 border-t border-black dark:border-white">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col border-t border-black dark:border-white pt-6">
+              {/* Progress Dots */}
+              <div className="flex items-center gap-2 mb-4">
                 {Array.from({ length: totalSteps }, (_, i) => (
                   <div
                     key={i + 1}
@@ -558,34 +560,46 @@ const EditBlog = () => {
                 ))}
               </div>
               
-              <div className="flex gap-4">
-                {currentStep > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    className="px-6 py-2.5 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                  >
-                    Previous
-                  </Button>
-                )}
-                
+              {/* Navigation Buttons */}
+              <div className="flex flex-col gap-3">
                 {currentStep < totalSteps ? (
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black"
-                  >
-                    Next
-                  </Button>
+                  <>
+                    {currentStep > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handlePrevious}
+                        className="w-full bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                      >
+                        Previous
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      className="w-full bg-black dark:bg-white text-white dark:text-black"
+                    >
+                      Next
+                    </Button>
+                  </>
                 ) : (
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Updating...' : 'Update Blog Post'}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      className="w-full bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Updating...' : 'Update Blog Post'}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -594,12 +608,12 @@ const EditBlog = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-black rounded-2xl p-6 border border-black dark:border-white">
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-black rounded-2xl p-4 sm:p-6 border border-black dark:border-white overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-black dark:text-white">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-black dark:text-white">
               Update Blog Post
             </DialogTitle>
-            <DialogDescription className="text-black dark:text-white opacity-75 mt-2 text-base">
+            <DialogDescription className="text-black dark:text-white opacity-75 mt-2 text-sm sm:text-base">
               {getChangedFields().length > 0
                 ? 'The following fields will be updated:'
                 : 'No changes have been made to the blog post.'}
@@ -629,12 +643,11 @@ const EditBlog = () => {
             </div>
           )}
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3">
             <Button
-              type="button"
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="mr-2 bg-white dark:bg-black text-black dark:text-white border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+              className="w-full sm:w-auto border-black dark:border-white"
             >
               Cancel
             </Button>
@@ -643,7 +656,7 @@ const EditBlog = () => {
                 type="button"
                 onClick={handleConfirmUpdate}
                 disabled={isSubmitting}
-                className="bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
+                className="w-full sm:w-auto bg-black dark:bg-white text-white dark:text-black disabled:opacity-50"
               >
                 {isSubmitting ? 'Updating...' : 'Confirm Update'}
               </Button>
