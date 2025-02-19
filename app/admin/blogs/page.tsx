@@ -143,18 +143,11 @@ export default function BlogsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 p-4">
+      <div>
         <h2 className="text-2xl font-semibold text-black dark:text-white">
           Blog Management
         </h2>
-        <Button
-          onClick={() => router.push('/blog/newblog')}
-          className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black"
-        >
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Create New Blog
-        </Button>
       </div>
 
       <div className="rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
@@ -162,26 +155,22 @@ export default function BlogsPage() {
           <div className="divide-y divide-black/10 dark:divide-white/10">
             {paginatedBlogs.map((post) => (
               <div key={post.id} className="p-4 bg-white dark:bg-black hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col md:flex-row gap-4">
                   <img 
                     src={post.imageUrl}
                     alt={post.title}
-                    className="w-20 h-20 rounded-lg object-cover border border-black/10 dark:border-white/10"
+                    className="w-full md:w-48 h-48 md:h-32 rounded-lg object-cover border border-black/10 dark:border-white/10"
                   />
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <h3 className="font-medium text-black dark:text-white truncate">
-                          {post.title}
-                        </h3>
-                        <p className="text-sm text-black/60 dark:text-white/60 line-clamp-2">
-                          {post.description}
-                        </p>
-                      </div>
-                    </div>
+                    <h3 className="font-medium text-black dark:text-white truncate">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-black/60 dark:text-white/60 line-clamp-2 mt-1">
+                      {post.description}
+                    </p>
                     
-                    <div className="mt-2 flex items-center gap-4 text-sm text-black/60 dark:text-white/60">
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-black/60 dark:text-white/60">
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
                         {post.author}
@@ -190,13 +179,19 @@ export default function BlogsPage() {
                         <Clock className="w-4 h-4" />
                         {post.readTime}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Tag className="w-4 h-4" />
-                        {post.tags.join(', ')}
+                        <div className="flex flex-wrap gap-1">
+                          {post.tags.map((tag, index) => (
+                            <span key={index} className="inline-block px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         onClick={() => router.push(`/blog/editblog?id=${post.id}`)}
@@ -235,11 +230,26 @@ export default function BlogsPage() {
           </div>
         )}
       </div>
-      <Pagination
-        currentPage={currentPage}
-        totalPages={Math.max(1, Math.ceil(blogPosts.length / ITEMS_PER_PAGE))}
-        onPageChange={setCurrentPage}
-      />
+
+      {/* Pagination */}
+      <div className="mt-4">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(blogPosts.length / ITEMS_PER_PAGE))}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* Create New Blog Button - Now at bottom */}
+      <div className="fixed bottom-6 right-6 z-10">
+        <Button
+          onClick={() => router.push('/blog/newblog')}
+          className="bg-black hover:bg-black/90 text-white dark:bg-white dark:hover:bg-white/90 dark:text-black shadow-lg"
+        >
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Create New Blog
+        </Button>
+      </div>
 
       {/* Blog Delete Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
