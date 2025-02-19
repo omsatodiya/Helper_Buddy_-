@@ -144,8 +144,8 @@ const PaymentButton = ({
 
   const verifyPayment = async (response: any) => {
     try {
-      const verificationResponse = await fetch("/api/razorpay/verify", {
-        method: "POST",
+      const verificationResponse = await fetch("/api/razorpay", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
