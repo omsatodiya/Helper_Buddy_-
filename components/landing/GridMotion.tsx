@@ -12,12 +12,12 @@ const GridMotion: FC<GridMotionProps> = ({
   gradientColor = "black",
 }) => {
   const gridRef = useRef<HTMLDivElement>(null);
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const mouseXRef = useRef<number>(window.innerWidth / 2);
+  const rowRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const mouseXRef = useRef<number>(typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 
   // Responsive grid configuration
   const getGridConfig = () => {
-    const width = window.innerWidth;
+    const width = typeof window !== 'undefined' ? window.innerWidth : 1024; // Default to desktop
     if (width < 640) { // Mobile
       return {
         rows: 7,
@@ -122,7 +122,9 @@ const GridMotion: FC<GridMotionProps> = ({
                 gridTemplateColumns: `repeat(${gridConfig.columns}, 1fr)`,
                 willChange: "transform, filter"
               }}
-              ref={(el) => (rowRefs.current[rowIndex] = el)}
+              ref={(el) => {
+                rowRefs.current[rowIndex] = el;
+              }}
             >
               {Array.from({ length: gridConfig.columns }, (_, itemIndex) => {
                 const content = combinedItems[rowIndex * gridConfig.columns + itemIndex];
