@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Helper Buddy - README</title>
-  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
   <main class="max-w-4xl mx-auto p-6">
@@ -71,9 +69,6 @@ cd helper-buddy</code></pre>
       <h2 class="text-2xl font-semibold text-gray-700 mb-4">✅ Future Improvements</h2>
       <ul class="list-disc list-inside space-y-2">
         <li>Real-time chat between users and providers</li>
-        <li>Review and rating system</li>
-        <li>Analytics dashboard for admin</li>
-        <li>Dedicated mobile app version</li>
       </ul>
     </section>
     <section class="mb-8">
